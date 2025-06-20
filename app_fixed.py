@@ -134,6 +134,41 @@ def show_email_details_modal(email):
         st.write(f"**Action Taken:** {email.get('act', 'N/A')}")
         st.write(f"**Delivered:** {email.get('delivered', 'N/A')}")
         st.write(f"**Last Working Day:** {email.get('last_working_day', 'N/A')}")
+    
+    # Anomaly Detection Section
+    st.write("---")
+    st.write("**🚨 Anomaly Detection Results:**")
+    
+    is_anomaly = email.get('is_anomaly', False)
+    anomaly_type = email.get('anomaly_type', 'None')
+    anomaly_score = email.get('anomaly_score', 0)
+    anomaly_reason = email.get('anomaly_reason', 'No anomalies detected')
+    
+    if is_anomaly:
+        st.error(f"**Anomaly Detected:** {anomaly_type}")
+        st.write(f"**Anomaly Score:** {anomaly_score:.2f}")
+        st.write(f"**Reason:** {anomaly_reason}")
+        
+        # Additional anomaly details if available
+        if email.get('anomaly_details'):
+            st.write("**Detailed Analysis:**")
+            st.write(email.get('anomaly_details'))
+            
+        # Behavioral anomaly information
+        if email.get('behavioral_anomaly'):
+            st.write("**Behavioral Anomaly:**")
+            st.write(f"- Unusual sending time: {email.get('unusual_time', 'No')}")
+            st.write(f"- Unusual recipient pattern: {email.get('unusual_recipients', 'No')}")
+            st.write(f"- Content anomaly: {email.get('content_anomaly', 'No')}")
+            
+        # Statistical anomaly information
+        if email.get('statistical_anomaly'):
+            st.write("**Statistical Anomaly:**")
+            st.write(f"- Deviation from normal patterns: {email.get('pattern_deviation', 'N/A')}")
+            st.write(f"- Frequency anomaly: {email.get('frequency_anomaly', 'N/A')}")
+    else:
+        st.success("**No Anomalies Detected**")
+        st.write("This email follows normal patterns and behaviors.")
 
 def main():
     st.title("🛡️ ExfilEye - DLP Email Security Monitoring System")
