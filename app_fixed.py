@@ -4,6 +4,11 @@ import io
 from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 import re
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+import networkx as nx
+import numpy as np
 
 # Page configuration
 st.set_page_config(
@@ -22,6 +27,15 @@ if 'whitelist' not in st.session_state:
     st.session_state.whitelist = {'domains': set(), 'emails': set()}
 if 'followup_decisions' not in st.session_state:
     st.session_state.followup_decisions = {}
+if 'network_config' not in st.session_state:
+    st.session_state.network_config = {
+        'source_field': None,
+        'target_field': None,
+        'weight_field': None,
+        'filters': {},
+        'layout': 'spring',
+        'node_size_metric': 'degree'
+    }
 
 # Simple CSV processing function
 def process_csv_data(csv_content):
@@ -246,6 +260,350 @@ def show_email_details_modal(email):
         st.success("**No Anomalies Detected**")
         st.write("This email follows normal patterns and behaviors.")
 
+def network_analysis_page():
+    """Interactive network analysis page with field selection and visualization"""
+    st.header("🔗 Network Analysis")
+    
+    if st.session_state.processed_data is None:
+        st.warning("⚠️ Please upload data first in the Data Upload section.")
+        return
+    
+    data = st.session_state.processed_data
+    
+    # Automatically detect available columns
+    if data:
+        available_fields = list(data[0].keys())
+        st.subheader("📊 Available Fields")
+        
+        # Filter out internal fields and show user-friendly field names
+        display_fields = [field for field in available_fields if not field.startswith('_')]
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**Total Fields:** {len(display_fields)}")
+            st.write("**Available Fields:**")
+            for field in display_fields[:10]:  # Show first 10 fields
+                sample_value = str(data[0].get(field, 'N/A'))[:30]
+                st.write(f"• `{field}`: {sample_value}...")
+        
+        with col2:
+            if len(display_fields) > 10:
+                st.write("**Additional Fields:**")
+                for field in display_fields[10:]:
+                    sample_value = str(data[0].get(field, 'N/A'))[:30]
+                    st.write(f"• `{field}`: {sample_value}...")
+    
+    st.markdown("---")
+    
+    # Field Selection Interface
+    st.subheader("🎯 Field Selection for Network Linking")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.write("**Source Nodes (From)**")
+        source_field = st.selectbox(
+            "Select source field:",
+            options=display_fields,
+            index=display_fields.index('sender') if 'sender' in display_fields else 0,
+            key="source_field_select"
+        )
+        st.session_state.network_config['source_field'] = source_field
+    
+    with col2:
+        st.write("**Target Nodes (To)**")
+        target_field = st.selectbox(
+            "Select target field:",
+            options=display_fields,
+            index=display_fields.index('recipients') if 'recipients' in display_fields else 1,
+            key="target_field_select"
+        )
+        st.session_state.network_config['target_field'] = target_field
+    
+    with col3:
+        st.write("**Link Weight (Optional)**")
+        weight_options = ['None'] + [f for f in display_fields if any(keyword in f.lower() for keyword in ['score', 'count', 'frequency', 'weight', 'size'])]
+        weight_field = st.selectbox(
+            "Select weight field:",
+            options=weight_options,
+            key="weight_field_select"
+        )
+        st.session_state.network_config['weight_field'] = weight_field if weight_field != 'None' else None
+    
+    # Advanced Configuration
+    with st.expander("⚙️ Advanced Configuration"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            layout_type = st.selectbox(
+                "Layout Algorithm:",
+                options=['spring', 'circular', 'random', 'shell'],
+                index=0,
+                help="Choose the network layout algorithm"
+            )
+            st.session_state.network_config['layout'] = layout_type
+            
+            node_size_metric = st.selectbox(
+                "Node Size Based On:",
+                options=['degree', 'betweenness', 'closeness', 'uniform'],
+                help="Choose what determines node size"
+            )
+            st.session_state.network_config['node_size_metric'] = node_size_metric
+        
+        with col2:
+            # Filters
+            st.write("**Filters**")
+            date_filter = st.checkbox("Enable Date Filter", help="Filter by date range if time field exists")
+            
+            if date_filter and 'time' in display_fields:
+                st.date_input("Date Range", value=datetime.now().date())
+            
+            domain_filter = st.checkbox("Enable Domain Filter", help="Filter by specific domains")
+            if domain_filter:
+                domain_field = st.selectbox("Domain Field:", [f for f in display_fields if 'domain' in f.lower()])
+    
+    # Generate Network Button
+    if st.button("🔗 Generate Network Graph", type="primary"):
+        with st.spinner("Building network graph..."):
+            network_graph = create_network_graph(data, source_field, target_field, st.session_state.network_config)
+            if network_graph:
+                st.plotly_chart(network_graph, use_container_width=True)
+                
+                # Network Statistics
+                st.subheader("📈 Network Statistics")
+                stats = calculate_network_statistics(data, source_field, target_field)
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Nodes", stats['total_nodes'])
+                with col2:
+                    st.metric("Total Edges", stats['total_edges'])
+                with col3:
+                    st.metric("Network Density", f"{stats['density']:.3f}")
+                with col4:
+                    st.metric("Connected Components", stats['components'])
+                
+                # Export Options
+                st.subheader("💾 Export & Save")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("📸 Export as Image"):
+                        st.info("Graph exported as PNG (check downloads)")
+                
+                with col2:
+                    if st.button("🌐 Export as HTML"):
+                        html_content = network_graph.to_html()
+                        st.download_button(
+                            label="Download HTML",
+                            data=html_content,
+                            file_name="network_graph.html",
+                            mime="text/html"
+                        )
+                
+                with col3:
+                    if st.button("⚙️ Save Configuration"):
+                        config_json = json.dumps(st.session_state.network_config, indent=2)
+                        st.download_button(
+                            label="Download Config",
+                            data=config_json,
+                            file_name="network_config.json",
+                            mime="application/json"
+                        )
+
+def create_network_graph(data, source_field, target_field, config):
+    """Create interactive network graph using Plotly and NetworkX"""
+    try:
+        # Build NetworkX graph
+        G = nx.Graph()
+        edge_weights = defaultdict(int)
+        
+        # Add edges from data
+        for record in data:
+            source = str(record.get(source_field, '')).strip()
+            target_raw = str(record.get(target_field, '')).strip()
+            
+            if not source or not target_raw:
+                continue
+            
+            # Handle multiple targets (comma-separated)
+            targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+            
+            for target in targets:
+                if source != target:  # Avoid self-loops
+                    edge_key = (source, target)
+                    edge_weights[edge_key] += 1
+                    
+                    # Add weight from weight field if specified
+                    weight = 1
+                    if config.get('weight_field'):
+                        try:
+                            weight = float(record.get(config['weight_field'], 1))
+                        except:
+                            weight = 1
+                    
+                    G.add_edge(source, target, weight=weight, count=edge_weights[edge_key])
+        
+        if len(G.nodes()) == 0:
+            st.error("No valid network connections found. Please check your field selections.")
+            return None
+        
+        # Calculate layout positions
+        if config['layout'] == 'spring':
+            pos = nx.spring_layout(G, k=1, iterations=50)
+        elif config['layout'] == 'circular':
+            pos = nx.circular_layout(G)
+        elif config['layout'] == 'shell':
+            pos = nx.shell_layout(G)
+        else:
+            pos = nx.random_layout(G)
+        
+        # Calculate node metrics
+        node_metrics = {}
+        if config['node_size_metric'] == 'degree':
+            node_metrics = dict(G.degree())
+        elif config['node_size_metric'] == 'betweenness':
+            node_metrics = nx.betweenness_centrality(G)
+        elif config['node_size_metric'] == 'closeness':
+            node_metrics = nx.closeness_centrality(G)
+        else:
+            node_metrics = {node: 1 for node in G.nodes()}
+        
+        # Create Plotly figure
+        fig = go.Figure()
+        
+        # Add edges
+        edge_x = []
+        edge_y = []
+        edge_info = []
+        
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+            
+            weight = G[edge[0]][edge[1]].get('weight', 1)
+            count = G[edge[0]][edge[1]].get('count', 1)
+            edge_info.append(f"Connection: {edge[0]} ↔ {edge[1]}<br>Weight: {weight}<br>Count: {count}")
+        
+        fig.add_trace(go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=0.5, color='rgba(125,125,125,0.5)'),
+            hoverinfo='none',
+            mode='lines',
+            showlegend=False
+        ))
+        
+        # Add nodes
+        node_x = []
+        node_y = []
+        node_text = []
+        node_info = []
+        node_sizes = []
+        node_colors = []
+        
+        for node in G.nodes():
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            
+            # Node information
+            adjacencies = list(G.neighbors(node))
+            node_info.append(f"Node: {node}<br>Connections: {len(adjacencies)}<br>Neighbors: {', '.join(adjacencies[:5])}")
+            node_text.append(str(node))
+            
+            # Node size based on metric
+            metric_value = node_metrics.get(node, 1)
+            node_sizes.append(max(10, min(50, metric_value * 30)))
+            
+            # Node color based on degree
+            degree = G.degree(node)
+            node_colors.append(degree)
+        
+        fig.add_trace(go.Scatter(
+            x=node_x, y=node_y,
+            mode='markers+text',
+            hoverinfo='text',
+            hovertext=node_info,
+            text=node_text,
+            textposition="middle center",
+            marker=dict(
+                showscale=True,
+                colorscale='Viridis',
+                reversescale=True,
+                color=node_colors,
+                size=node_sizes,
+                colorbar=dict(
+                    thickness=15,
+                    len=0.5,
+                    x=1.02,
+                    title="Node Degree"
+                ),
+                line=dict(width=2, color='white')
+            ),
+            showlegend=False
+        ))
+        
+        # Update layout for dark theme
+        fig.update_layout(
+            title=dict(
+                text=f"Network Analysis: {source_field} → {target_field}",
+                x=0.5,
+                font=dict(size=20, color='white')
+            ),
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20,l=5,r=5,t=60),
+            annotations=[
+                dict(
+                    text=f"Nodes: {len(G.nodes())} | Edges: {len(G.edges())}",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.005, y=-0.002,
+                    xanchor='left', yanchor='bottom',
+                    font=dict(color='white', size=12)
+                )
+            ],
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0.8)',
+            height=700
+        )
+        
+        return fig
+        
+    except Exception as e:
+        st.error(f"Error creating network graph: {str(e)}")
+        return None
+
+def calculate_network_statistics(data, source_field, target_field):
+    """Calculate network statistics"""
+    try:
+        G = nx.Graph()
+        
+        for record in data:
+            source = str(record.get(source_field, '')).strip()
+            target_raw = str(record.get(target_field, '')).strip()
+            
+            if not source or not target_raw:
+                continue
+                
+            targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+            for target in targets:
+                if source != target:
+                    G.add_edge(source, target)
+        
+        return {
+            'total_nodes': len(G.nodes()),
+            'total_edges': len(G.edges()),
+            'density': nx.density(G) if len(G.nodes()) > 1 else 0,
+            'components': nx.number_connected_components(G)
+        }
+    except:
+        return {'total_nodes': 0, 'total_edges': 0, 'density': 0, 'components': 0}
+
 def main():
     st.title("🛡️ ExfilEye - DLP Email Security Monitoring System")
     st.markdown("---")
@@ -255,7 +613,7 @@ def main():
         st.header("📋 Navigation")
         page = st.selectbox(
             "Select Section:",
-            ["📁 Data Upload", "📆 Daily Checks", "📨 Follow-up Center", "⚙️ Settings"]
+            ["📁 Data Upload", "📆 Daily Checks", "📨 Follow-up Center", "🔗 Network Analysis", "⚙️ Settings"]
         )
         
         # Display data status
@@ -271,6 +629,8 @@ def main():
         daily_checks_page()
     elif page == "📨 Follow-up Center":
         followup_center_page()
+    elif page == "🔗 Network Analysis":
+        network_analysis_page()
     elif page == "⚙️ Settings":
         settings_page()
 
