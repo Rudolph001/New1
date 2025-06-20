@@ -36,6 +36,8 @@ if 'network_config' not in st.session_state:
         'layout': 'spring',
         'node_size_metric': 'degree'
     }
+if 'selected_node' not in st.session_state:
+    st.session_state.selected_node = None
 
 # Simple CSV processing function
 def process_csv_data(csv_content):
@@ -364,10 +366,56 @@ def network_analysis_page():
     
     # Generate Network Button
     if st.button("🔗 Generate Network Graph", type="primary"):
+        st.session_state.selected_node = None  # Reset selection
+    
+    # Display network graph
+    if st.session_state.get('show_network', False) or st.button("🔗 Generate Network Graph", type="primary"):
+        st.session_state.show_network = True
+        
         with st.spinner("Building network graph..."):
             network_graph = create_network_graph(data, source_field, target_field, st.session_state.network_config)
             if network_graph:
-                st.plotly_chart(network_graph, use_container_width=True)
+                # Enhanced clickable network with selection handling
+                event = st.plotly_chart(
+                    network_graph, 
+                    use_container_width=True, 
+                    on_select="rerun",
+                    selection_mode="points",
+                    key="network_chart"
+                )
+                
+                # Node selection interface
+                st.subheader("🎯 Node Interaction")
+                
+                # Manual node selection dropdown
+                G = build_network_from_data(data, source_field, target_field)
+                if len(G.nodes()) > 0:
+                    all_nodes = sorted(list(G.nodes()))
+                    
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        selected_node = st.selectbox(
+                            "Click on a node in the graph above or select manually:",
+                            options=["None"] + all_nodes,
+                            index=0,
+                            key="manual_node_select"
+                        )
+                    
+                    with col2:
+                        if selected_node != "None":
+                            if st.button("🔍 Analyze Node", key="analyze_button"):
+                                st.session_state.selected_node = selected_node
+                                st.rerun()
+                    
+                    # Clear selection button
+                    if st.session_state.selected_node:
+                        if st.button("❌ Clear Selection"):
+                            st.session_state.selected_node = None
+                            st.rerun()
+                
+                # Display selected node details
+                if st.session_state.selected_node:
+                    display_node_analysis(st.session_state.selected_node, data, source_field, target_field)
                 
                 # Network Statistics
                 st.subheader("📈 Network Statistics")
@@ -542,7 +590,9 @@ def create_network_graph(data, source_field, target_field, config):
                 ),
                 line=dict(width=2, color='white')
             ),
-            showlegend=False
+            showlegend=False,
+            customdata=node_text,  # Store node names for click handling
+            selectedpoints=[]
         ))
         
         # Update layout for dark theme
@@ -603,6 +653,241 @@ def calculate_network_statistics(data, source_field, target_field):
         }
     except:
         return {'total_nodes': 0, 'total_edges': 0, 'density': 0, 'components': 0}
+
+def build_network_from_data(data, source_field, target_field):
+    """Build NetworkX graph from data for node analysis"""
+    G = nx.Graph()
+    
+    for record in data:
+        source = str(record.get(source_field, '')).strip()
+        target_raw = str(record.get(target_field, '')).strip()
+        
+        if not source or not target_raw:
+            continue
+            
+        targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+        for target in targets:
+            if source != target:
+                G.add_edge(source, target)
+    
+    return G
+
+def display_node_analysis(selected_node, data, source_field, target_field):
+    """Display comprehensive analysis for selected node"""
+    st.markdown("---")
+    st.subheader(f"🎯 Detailed Analysis: {selected_node}")
+    
+    # Find all records related to this node
+    related_records = []
+    connections = set()
+    outgoing_connections = set()
+    incoming_connections = set()
+    
+    for record in data:
+        source = str(record.get(source_field, '')).strip()
+        target_raw = str(record.get(target_field, '')).strip()
+        
+        # Check if this node appears as source
+        if source == selected_node:
+            targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+            for target in targets:
+                if target != selected_node:
+                    connections.add(target)
+                    outgoing_connections.add(target)
+                    related_records.append({
+                        'type': 'outgoing',
+                        'connection': target,
+                        'record': record
+                    })
+        
+        # Check if this node appears as target
+        if selected_node in [t.strip() for t in target_raw.split(',') if t.strip()]:
+            connections.add(source)
+            incoming_connections.add(source)
+            related_records.append({
+                'type': 'incoming',
+                'connection': source,
+                'record': record
+            })
+    
+    # Node statistics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Connections", len(connections))
+    with col2:
+        st.metric("Outgoing Links", len(outgoing_connections))
+    with col3:
+        st.metric("Incoming Links", len(incoming_connections))
+    with col4:
+        high_risk_count = len([r for r in related_records if r['record'].get('risk_level') in ['High', 'Critical']])
+        st.metric("High Risk Emails", high_risk_count)
+    
+    # Connection details
+    if connections:
+        col_a, col_b = st.columns(2)
+        
+        with col_a:
+            if outgoing_connections:
+                st.write("**Outgoing Connections:**")
+                for conn in list(outgoing_connections)[:8]:
+                    st.write(f"• → {conn}")
+                if len(outgoing_connections) > 8:
+                    st.write(f"... and {len(outgoing_connections) - 8} more")
+        
+        with col_b:
+            if incoming_connections:
+                st.write("**Incoming Connections:**")
+                for conn in list(incoming_connections)[:8]:
+                    st.write(f"• ← {conn}")
+                if len(incoming_connections) > 8:
+                    st.write(f"... and {len(incoming_connections) - 8} more")
+    
+    # Email analysis
+    if related_records:
+        st.write("**Associated Email Activity:**")
+        
+        # Risk level breakdown
+        risk_counts = Counter(r['record'].get('risk_level', 'Unknown') for r in related_records)
+        anomaly_count = sum(1 for r in related_records if r['record'].get('is_anomaly', False))
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.write("**Risk Distribution:**")
+            for level, count in risk_counts.items():
+                color = {'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢'}.get(level, '⚪')
+                st.write(f"{color} {level}: {count}")
+        
+        with col2:
+            if anomaly_count > 0:
+                st.error(f"🚨 {anomaly_count} Anomalies Detected")
+            else:
+                st.success("✅ No Anomalies")
+        
+        with col3:
+            total_emails = len(related_records)
+            avg_risk = sum(r['record'].get('risk_score', 0) for r in related_records) / total_emails if total_emails else 0
+            st.metric("Average Risk Score", f"{avg_risk:.1f}")
+        
+        # Recent email activity
+        st.write("**Recent Email Activity:**")
+        
+        # Sort by time (if available) and risk score
+        sorted_records = sorted(related_records, 
+                              key=lambda x: (x['record'].get('risk_score', 0), x['record'].get('time', '')), 
+                              reverse=True)
+        
+        for i, record_info in enumerate(sorted_records[:6]):
+            record = record_info['record']
+            connection_type = "→" if record_info['type'] == 'outgoing' else "←"
+            risk_level = record.get('risk_level', 'Unknown')
+            risk_color = {'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢'}.get(risk_level, '⚪')
+            
+            with st.expander(f"{connection_type} {record_info['connection']} {risk_color} - {record.get('subject', 'No Subject')[:40]}..."):
+                col_x, col_y = st.columns(2)
+                with col_x:
+                    st.write(f"**Subject:** {record.get('subject', 'N/A')}")
+                    st.write(f"**Time:** {record.get('time', 'N/A')}")
+                    st.write(f"**Risk Score:** {record.get('risk_score', 0)}")
+                    st.write(f"**Risk Level:** {risk_level}")
+                
+                with col_y:
+                    st.write(f"**Attachments:** {record.get('attachments', 'None')}")
+                    st.write(f"**Keywords:** {record.get('word_list_match', 'None')}")
+                    if record.get('is_anomaly', False):
+                        st.error(f"🚨 Anomaly: {record.get('anomaly_type', 'Unknown')}")
+                    
+                    # Risk factors
+                    risk_factors = record.get('risk_factors', 'None')
+                    if risk_factors and risk_factors != 'None':
+                        st.write(f"**Risk Factors:** {risk_factors}")
+        
+        if len(related_records) > 6:
+            st.info(f"Showing 6 of {len(related_records)} related records")
+
+def handle_node_click(selected_points, data, source_field, target_field):
+    """Handle node click events and display detailed information"""
+    if not selected_points:
+        return
+    
+    # Get the clicked node
+    point = selected_points[0]
+    if 'customdata' in point:
+        clicked_node = point['customdata']
+        
+        st.subheader(f"🎯 Node Details: {clicked_node}")
+        
+        # Find all records related to this node
+        related_records = []
+        connections = set()
+        
+        for record in data:
+            source = str(record.get(source_field, '')).strip()
+            target_raw = str(record.get(target_field, '')).strip()
+            
+            # Check if this node appears as source or target
+            if source == clicked_node:
+                targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+                for target in targets:
+                    if target != clicked_node:
+                        connections.add(target)
+                        related_records.append({
+                            'type': 'outgoing',
+                            'connection': target,
+                            'record': record
+                        })
+            
+            if clicked_node in [t.strip() for t in target_raw.split(',') if t.strip()]:
+                connections.add(source)
+                related_records.append({
+                    'type': 'incoming',
+                    'connection': source,
+                    'record': record
+                })
+        
+        # Display node statistics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Connections", len(connections))
+        with col2:
+            outgoing = len([r for r in related_records if r['type'] == 'outgoing'])
+            st.metric("Outgoing Links", outgoing)
+        with col3:
+            incoming = len([r for r in related_records if r['type'] == 'incoming'])
+            st.metric("Incoming Links", incoming)
+        
+        # Display connections
+        if connections:
+            st.write("**Direct Connections:**")
+            connections_list = list(connections)[:10]  # Show first 10
+            for i, conn in enumerate(connections_list):
+                st.write(f"• {conn}")
+            
+            if len(connections) > 10:
+                st.write(f"... and {len(connections) - 10} more connections")
+        
+        # Display related email records
+        if related_records:
+            st.write("**Related Email Records:**")
+            
+            # Group by connection type
+            for record_info in related_records[:5]:  # Show first 5 records
+                record = record_info['record']
+                connection_type = "→" if record_info['type'] == 'outgoing' else "←"
+                
+                with st.expander(f"{connection_type} {record_info['connection']} - {record.get('subject', 'No Subject')[:40]}..."):
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        st.write(f"**Subject:** {record.get('subject', 'N/A')}")
+                        st.write(f"**Time:** {record.get('time', 'N/A')}")
+                        st.write(f"**Risk Score:** {record.get('risk_score', 0)}")
+                    with col_b:
+                        st.write(f"**Risk Level:** {record.get('risk_level', 'Unknown')}")
+                        st.write(f"**Attachments:** {record.get('attachments', 'None')}")
+                        if record.get('is_anomaly', False):
+                            st.error("🚨 Anomaly Detected")
+            
+            if len(related_records) > 5:
+                st.info(f"Showing 5 of {len(related_records)} related records")
 
 def main():
     st.title("🛡️ ExfilEye - DLP Email Security Monitoring System")
