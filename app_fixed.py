@@ -356,7 +356,16 @@ def daily_checks_page():
         max_risk_level = next((email.get('risk_level', 'Low') for email in emails 
                               if email.get('risk_score', 0) == max_risk), 'Low')
         
-        with st.expander(f"📧 {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"):
+        # Check if sender has any anomalies
+        has_anomalies = any(email.get('is_anomaly', False) for email in emails)
+        anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
+        
+        # Create sender title with anomaly indicator
+        sender_title = f"📧 {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
+        if has_anomalies:
+            sender_title += f" 🚨 {anomaly_count} Anomalies"
+        
+        with st.expander(sender_title):
             # Sort emails within sender group by risk level and score (Critical first)
             sorted_emails = sorted(emails, 
                                  key=lambda x: (risk_priority.get(x.get('risk_level', 'Low'), 0), 
@@ -373,7 +382,12 @@ def daily_checks_page():
                     recipients = email.get('recipients', 'N/A')
                     risk_score = email.get('risk_score', 0)
                     
-                    st.write(f"{risk_color} **{subject[:50]}...** | {recipients} | Score: {risk_score}")
+                    # Add anomaly indicator for individual emails
+                    email_display = f"{risk_color} **{subject[:50]}...** | {recipients} | Score: {risk_score}"
+                    if email.get('is_anomaly', False):
+                        email_display += " 🚨"
+                    
+                    st.write(email_display)
                 
                 with col_b:
                     if st.button("📧 View Details", key=f"details_{sender}_{i}"):
