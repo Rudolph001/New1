@@ -97,6 +97,82 @@ def calculate_risk_score(email_data):
         'risk_factors': ', '.join(factors) if factors else 'Normal activity'
     }
 
+def detect_anomalies(email_data):
+    """Detect anomalies in email behavior"""
+    is_anomaly = False
+    anomaly_reasons = []
+    anomaly_score = 0
+    anomaly_type = 'None'
+    
+    # Check for time-based anomalies (after hours)
+    time_str = email_data.get('time', '')
+    if time_str:
+        try:
+            # Extract hour from time string (assuming format like "2024-01-01 22:30:00")
+            if ':' in time_str:
+                hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                hour = int(hour_part)
+                # Flag emails sent after 6 PM or before 6 AM as anomalous
+                if hour >= 18 or hour <= 6:
+                    is_anomaly = True
+                    anomaly_reasons.append('Sent during unusual hours (after 6 PM or before 6 AM)')
+                    anomaly_score += 0.3
+                    anomaly_type = 'Temporal'
+        except:
+            pass
+    
+    # Check for recipient anomalies (too many recipients)
+    recipients = email_data.get('recipients', '')
+    if recipients:
+        recipient_count = len([r.strip() for r in recipients.split(',') if r.strip()])
+        if recipient_count > 10:
+            is_anomaly = True
+            anomaly_reasons.append(f'Unusual high recipient count ({recipient_count})')
+            anomaly_score += 0.4
+            anomaly_type = 'Behavioral'
+    
+    # Check for content anomalies (sensitive keywords + attachments)
+    has_keywords = email_data.get('word_list_match', '').strip()
+    has_attachments = email_data.get('attachments', '').strip()
+    if has_keywords and has_attachments:
+        is_anomaly = True
+        anomaly_reasons.append('Combination of sensitive keywords and attachments')
+        anomaly_score += 0.5
+        anomaly_type = 'Content'
+    
+    # Check for departing employee anomaly
+    last_working_day = email_data.get('last_working_day', '')
+    if last_working_day and last_working_day.strip():
+        is_anomaly = True
+        anomaly_reasons.append('Email from departing employee')
+        anomaly_score += 0.6
+        anomaly_type = 'Behavioral'
+    
+    # Check for external domain anomalies
+    sender_domain = email_data.get('sender_domain', '').lower()
+    free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+    recipient_status = email_data.get('recipient_status', '')
+    if sender_domain in free_domains and 'external' in recipient_status.lower():
+        is_anomaly = True
+        anomaly_reasons.append('Free email domain sending to external recipients')
+        anomaly_score += 0.4
+        anomaly_type = 'Domain'
+    
+    # High-risk combination anomaly
+    if (last_working_day and has_attachments and has_keywords and sender_domain in free_domains):
+        is_anomaly = True
+        anomaly_reasons.append('CRITICAL: Departing employee + attachments + keywords + free domain')
+        anomaly_score += 0.9
+        anomaly_type = 'Critical'
+    
+    return {
+        'is_anomaly': is_anomaly,
+        'anomaly_type': anomaly_type,
+        'anomaly_score': min(anomaly_score, 1.0),  # Cap at 1.0
+        'anomaly_reason': '; '.join(anomaly_reasons) if anomaly_reasons else 'No anomalies detected',
+        'anomaly_details': f"Detected {len(anomaly_reasons)} anomaly indicators" if anomaly_reasons else None
+    }
+
 @st.dialog("Email Details")
 def show_email_details_modal(email):
     """Display email details in a modal popup"""
@@ -220,11 +296,13 @@ def data_upload_page():
                 if data:
                     st.session_state.data = data
                     
-                    # Process each email for risk scoring
+                    # Process each email for risk scoring and anomaly detection
                     processed_data = []
                     for email in data:
                         risk_info = calculate_risk_score(email)
+                        anomaly_info = detect_anomalies(email)
                         email.update(risk_info)
+                        email.update(anomaly_info)
                         processed_data.append(email)
                     
                     st.session_state.processed_data = processed_data
@@ -248,13 +326,16 @@ def data_upload_page():
                     
                     # Display summary
                     st.subheader("🔍 Analysis Summary")
-                    col_a, col_b, col_c = st.columns(3)
+                    col_a, col_b, col_c, col_d = st.columns(4)
                     with col_a:
                         st.metric("Total Records", len(data))
                     with col_b:
                         high_risk = len([e for e in processed_data if e.get('risk_level') in ['High', 'Critical']])
                         st.metric("High Risk Emails", high_risk)
                     with col_c:
+                        anomaly_count = len([e for e in processed_data if e.get('is_anomaly', False)])
+                        st.metric("Anomalies Detected", anomaly_count)
+                    with col_d:
                         avg_risk = sum(e.get('risk_score', 0) for e in processed_data) / len(processed_data) if processed_data else 0
                         st.metric("Average Risk Score", f"{avg_risk:.1f}")
                         
