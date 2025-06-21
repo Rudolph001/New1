@@ -442,7 +442,7 @@ def network_analysis_page():
                 col_control1, col_control2, col_control3 = st.columns([2, 1, 1])
                 
                 with col_control1:
-                    st.info("🎯 **Professional Network Controls:**\n- **Click** nodes to highlight connections\n- **Drag** nodes to reposition them\n- **Scroll** to zoom in/out\n- **Double-click** to reset view")
+                    st.info("🎯 **Enhanced Network Controls:**\n- **Select Tool** (📍): Click individual nodes\n- **Pan Tool** (✋): Move the entire view\n- **Individual Drag**: Select a node, then drag it\n- **Scroll**: Zoom in/out • **Double-click**: Reset view")
                 
                 with col_control2:
                     if st.button("🔄 Reset Highlights", key="reset_highlights_btn", type="secondary"):
@@ -468,22 +468,23 @@ def network_analysis_page():
                         config={
                             'displayModeBar': True,
                             'displaylogo': False,
-                            'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d'],
-                            'modeBarButtonsToRemove': ['resetScale2d'],
+                            'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d'],
+                            'modeBarButtonsToRemove': [],
                             'scrollZoom': True,
                             'doubleClick': 'reset+autosize',
                             'toImageButtonOptions': {
                                 'format': 'png',
-                                'filename': 'professional_network_graph',
+                                'filename': 'interactive_network_graph',
                                 'height': 1200,
                                 'width': 1600,
                                 'scale': 4
                             },
                             'editable': True,
                             'showTips': True,
-                            'responsive': True
+                            'responsive': True,
+                            'showEditInChartStudio': False
                         },
-                        key="professional_network_chart",
+                        key="interactive_network_chart",
                         on_select="rerun"
                     )
 
@@ -739,15 +740,20 @@ def create_network_graph(data, source_field, target_field, config):
             st.error("No nodes meet the current filter criteria. Try adjusting your filters.")
             return None
 
-        # Calculate layout positions with improved algorithm
+        # Calculate layout positions with improved spacing
         if config['layout'] == 'spring':
-            pos = nx.spring_layout(G, k=2.5, iterations=100, seed=42)
+            # Increase k value for better spacing and add more iterations
+            pos = nx.spring_layout(G, k=5.0, iterations=200, seed=42)
         elif config['layout'] == 'circular':
-            pos = nx.circular_layout(G)
+            pos = nx.circular_layout(G, scale=2.0)
         elif config['layout'] == 'shell':
-            pos = nx.shell_layout(G)
+            pos = nx.shell_layout(G, scale=2.0)
         else:
             pos = nx.random_layout(G, seed=42)
+        
+        # Scale positions to increase spacing between nodes
+        scaling_factor = 3.0
+        pos = {node: (x * scaling_factor, y * scaling_factor) for node, (x, y) in pos.items()}
 
         # Calculate node metrics
         node_metrics = {}
@@ -861,7 +867,7 @@ def create_network_graph(data, source_field, target_field, config):
             else:
                 node_colors.append('#2ecc71')  # Green for low risk
 
-        # Main nodes trace with enhanced styling
+        # Main nodes trace with enhanced styling and individual dragging
         fig.add_trace(go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text' if show_labels else 'markers',
@@ -870,15 +876,15 @@ def create_network_graph(data, source_field, target_field, config):
             text=node_text,
             textposition="middle center",
             textfont=dict(
-                size=11, 
+                size=12, 
                 color='white', 
                 family='Arial Black'
             ),
             marker=dict(
                 color=node_colors,
                 size=node_sizes,
-                line=dict(width=3, color='white'),
-                opacity=0.9,
+                line=dict(width=2, color='rgba(255,255,255,0.8)'),
+                opacity=0.95,
                 sizemode='diameter'
             ),
             showlegend=False,
@@ -891,7 +897,7 @@ def create_network_graph(data, source_field, target_field, config):
 
         fig.update_layout(
             title=dict(
-                text=f"<b>Network Analysis Dashboard</b><br><sub>{source_field} → {target_field}</sub>",
+                text=f"<b>Interactive Network Analysis</b><br><sub>{source_field} → {target_field} • Individual Node Dragging Enabled</sub>",
                 x=0.5,
                 font=dict(size=18, color='#2c3e50', family='Arial Black')
             ),
@@ -900,19 +906,19 @@ def create_network_graph(data, source_field, target_field, config):
             margin=dict(b=60, l=40, r=120, t=80),
             annotations=[
                 dict(
-                    text=f"<b>📊 Network Overview</b><br>{len(G.nodes())} nodes • {len(G.edges())} connections<br>Click nodes to highlight connections • Drag to reposition",
+                    text=f"<b>🎯 Interactive Controls</b><br>{len(G.nodes())} nodes • {len(G.edges())} connections<br><b>Select Tool:</b> Click nodes individually<br><b>Drag:</b> Move individual nodes<br><b>Pan:</b> Use toolbar to switch modes",
                     showarrow=False,
                     xref="paper", yref="paper",
                     x=0.02, y=0.02,
                     xanchor='left', yanchor='bottom',
-                    font=dict(color='#34495e', size=11, family='Arial'),
+                    font=dict(color='#2c3e50', size=11, family='Arial Black'),
                     bgcolor='rgba(255,255,255,0.95)',
-                    bordercolor='#bdc3c7',
+                    bordercolor='#3498db',
                     borderwidth=2,
                     borderpad=8
                 ),
                 dict(
-                    text="<b>🎨 Color Legend</b><br><span style='color:#e74c3c'>● Anomalies</span> <span style='color:#e67e22'>● High Risk</span> <span style='color:#f39c12'>● Medium Risk</span><br><span style='color:#3498db'>● Low-Med Risk</span> <span style='color:#2ecc71'>● Low Risk</span>",
+                    text="<b>🎨 Risk Levels</b><br><span style='color:#e74c3c'>● Anomalies</span> <span style='color:#e67e22'>● High Risk</span> <span style='color:#f39c12'>● Medium Risk</span><br><span style='color:#3498db'>● Low-Med Risk</span> <span style='color:#2ecc71'>● Low Risk</span>",
                     showarrow=False,
                     xref="paper", yref="paper",
                     x=0.98, y=0.02,
@@ -925,26 +931,29 @@ def create_network_graph(data, source_field, target_field, config):
                 )
             ],
             xaxis=dict(
-                showgrid=False, 
+                showgrid=True, 
+                gridcolor='rgba(200,200,200,0.2)',
                 zeroline=False, 
                 showticklabels=False,
-                range=[-zoom_level * 1.2, zoom_level * 1.2],
+                range=[-zoom_level * 8, zoom_level * 8],
                 fixedrange=False,
                 scaleanchor="y",
                 scaleratio=1
             ),
             yaxis=dict(
-                showgrid=False, 
+                showgrid=True,
+                gridcolor='rgba(200,200,200,0.2)', 
                 zeroline=False, 
                 showticklabels=False,
-                range=[-zoom_level * 1.2, zoom_level * 1.2],
+                range=[-zoom_level * 8, zoom_level * 8],
                 fixedrange=False
             ),
-            plot_bgcolor='#f8f9fa',
+            plot_bgcolor='rgba(248,249,250,0.8)',
             paper_bgcolor='#ffffff',
             height=700,
-            dragmode='pan',
-            clickmode='event+select'
+            dragmode='select',
+            clickmode='event+select',
+            selectdirection='any'
         )
 
         # Store graph data for highlighting functionality
