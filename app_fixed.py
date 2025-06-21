@@ -366,11 +366,12 @@ def network_analysis_page():
                 domain_field = st.selectbox("Domain Field:", [f for f in display_fields if 'domain' in f.lower()])
     
     # Generate Network Button
-    if st.button("🔗 Generate Network Graph", type="primary"):
+    if st.button("🔗 Generate Network Graph", type="primary", key="generate_network_btn"):
         st.session_state.selected_node = None  # Reset selection
+        st.session_state.show_network = True
     
     # Display network graph
-    if st.session_state.get('show_network', False) or st.button("🔗 Generate Network Graph", type="primary"):
+    if st.session_state.get('show_network', False):
         st.session_state.show_network = True
         
         with st.spinner("Building network graph..."):
@@ -410,7 +411,7 @@ def network_analysis_page():
                     
                     # Clear selection button
                     if st.session_state.selected_node:
-                        if st.button("❌ Clear Selection"):
+                        if st.button("❌ Clear Selection", key="clear_selection_btn"):
                             st.session_state.selected_node = None
                             st.rerun()
                 
@@ -437,27 +438,29 @@ def network_analysis_page():
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    if st.button("📸 Export as Image"):
+                    if st.button("📸 Export as Image", key="export_image_btn"):
                         st.info("Graph exported as PNG (check downloads)")
                 
                 with col2:
-                    if st.button("🌐 Export as HTML"):
+                    if st.button("🌐 Export as HTML", key="export_html_btn"):
                         html_content = network_graph.to_html()
                         st.download_button(
                             label="Download HTML",
                             data=html_content,
                             file_name="network_graph.html",
-                            mime="text/html"
+                            mime="text/html",
+                            key="download_html_btn"
                         )
                 
                 with col3:
-                    if st.button("⚙️ Save Configuration"):
+                    if st.button("⚙️ Save Configuration", key="save_config_btn"):
                         config_json = json.dumps(st.session_state.network_config, indent=2)
                         st.download_button(
                             label="Download Config",
                             data=config_json,
                             file_name="network_config.json",
-                            mime="application/json"
+                            mime="application/json",
+                            key="download_config_btn"
                         )
 
 def create_network_graph(data, source_field, target_field, config):
