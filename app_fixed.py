@@ -777,7 +777,7 @@ def create_network_graph(data, source_field, target_field, config):
         node_metrics = calculate_node_metrics(G, config['node_size_metric'])
 
         # Create advanced Plotly figure
-        fig = create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field)
+        fig = create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field, community_colors)
 
         # Store graph data for highlighting functionality
         if 'graph_data' not in st.session_state:
@@ -815,11 +815,11 @@ def calculate_advanced_layout(G, layout_type):
             # Layout nodes by communities first, then within communities
             try:
                 import networkx.algorithms.community as nxcom
-                communities = list(nxcom.greedy_modularity_communities(G))
+                communities_list = list(nxcom.greedy_modularity_communities(G))
                 pos = {}
-                angle_step = 2 * np.pi / len(communities)
+                angle_step = 2 * np.pi / len(communities_list) if communities_list else 2 * np.pi
                 
-                for i, community in enumerate(communities):
+                for i, community in enumerate(communities_list):
                     # Position communities in a circle
                     center_x = 5 * np.cos(i * angle_step)
                     center_y = 5 * np.sin(i * angle_step)
@@ -883,7 +883,7 @@ def calculate_node_metrics(G, metric_type):
         return dict(G.degree())
 
 
-def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field):
+def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field, community_colors):
     """Create advanced Plotly figure with enhanced features"""
     fig = go.Figure()
     
