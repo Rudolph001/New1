@@ -1155,8 +1155,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
                 bgcolor='rgba(255,255,255,0.95)',
                 bordercolor='#3498db',
                 borderwidth=2,
-                borderpad=10,
-                borderradius=8
+                borderpad=10
             )
         ],
         xaxis=dict(
