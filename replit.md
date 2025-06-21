@@ -31,18 +31,15 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 2. **Network Analysis**: Email communication pattern analysis using NetworkX
 3. **Visualization Engine**: Plotly-based interactive charts and network graphs
 4. **Security Monitoring**: Anomaly detection and threat identification
-5. **Whitelist Management**: Domain and email whitelist functionality
-6. **Follow-up Decision Tracking**: Security incident response tracking
+5. **Follow-up Decision Tracking**: Security incident response tracking
 
 ### Session State Management
 - **Data Storage**: Raw and processed data persistence
-- **User Preferences**: Whitelist settings and network configuration
+- **User Preferences**: Network configuration and application settings
 - **Analysis State**: Follow-up decisions and selected nodes
 - **UI State**: Network layout and filtering preferences
 
 ### Security Features
-- **Domain Whitelisting**: Trusted domain management
-- **Email Whitelisting**: Trusted email address management
 - **Anomaly Detection**: Pattern-based threat identification
 - **Network Analysis**: Communication flow visualization
 - **Risk Assessment**: Automated security scoring

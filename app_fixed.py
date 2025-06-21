@@ -23,8 +23,7 @@ if 'data' not in st.session_state:
     st.session_state.data = None
 if 'processed_data' not in st.session_state:
     st.session_state.processed_data = None
-if 'whitelist' not in st.session_state:
-    st.session_state.whitelist = {'domains': set(), 'emails': set()}
+
 if 'followup_decisions' not in st.session_state:
     st.session_state.followup_decisions = {}
 if 'network_config' not in st.session_state:
@@ -922,96 +921,72 @@ def main():
 def data_upload_page():
     st.header("📁 Data Upload & Validation")
     
-    col1, col2 = st.columns([2, 1])
+    st.subheader("CSV Email Data Upload")
+    uploaded_file = st.file_uploader(
+        "Upload email metadata CSV file",
+        type=['csv'],
+        help="Upload CSV file containing email metadata for analysis"
+    )
     
-    with col1:
-        st.subheader("CSV Email Data Upload")
-        uploaded_file = st.file_uploader(
-            "Upload email metadata CSV file",
-            type=['csv'],
-            help="Upload CSV file containing email metadata for analysis"
-        )
-        
-        if uploaded_file is not None:
-            try:
-                # Read the CSV file content
-                csv_content = uploaded_file.read().decode('utf-8')
-                data = process_csv_data(csv_content)
+    if uploaded_file is not None:
+        try:
+            # Read the CSV file content
+            csv_content = uploaded_file.read().decode('utf-8')
+            data = process_csv_data(csv_content)
+            
+            if data:
+                st.session_state.data = data
                 
-                if data:
-                    st.session_state.data = data
+                # Process each email for risk scoring and anomaly detection
+                processed_data = []
+                for email in data:
+                    risk_info = calculate_risk_score(email)
+                    anomaly_info = detect_anomalies(email)
+                    email.update(risk_info)
+                    email.update(anomaly_info)
+                    processed_data.append(email)
+                
+                st.session_state.processed_data = processed_data
+                st.success("✅ Data uploaded and processed successfully!")
+                
+                # Display data preview
+                st.subheader("📊 Data Preview")
+                
+                # Show first few records
+                for i, email in enumerate(data[:5]):
+                    with st.expander(f"Email {i+1}: {email.get('subject', 'No Subject')[:50]}..."):
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.write(f"**Sender:** {email.get('sender', 'N/A')}")
+                            st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
+                            st.write(f"**Time:** {email.get('time', 'N/A')}")
+                        with col_b:
+                            st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                            st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                            st.write(f"**Domain:** {email.get('sender_domain', 'N/A')}")
+                
+                # Display summary
+                st.subheader("🔍 Analysis Summary")
+                col_a, col_b, col_c, col_d = st.columns(4)
+                with col_a:
+                    st.metric("Total Records", len(data))
+                with col_b:
+                    high_risk = len([e for e in processed_data if e.get('risk_level') in ['High', 'Critical']])
+                    st.metric("High Risk Emails", high_risk)
+                with col_c:
+                    anomaly_count = len([e for e in processed_data if e.get('is_anomaly', False)])
+                    st.metric("Anomalies Detected", anomaly_count)
+                with col_d:
+                    avg_risk = sum(e.get('risk_score', 0) for e in processed_data) / len(processed_data) if processed_data else 0
+                    st.metric("Average Risk Score", f"{avg_risk:.1f}")
                     
-                    # Process each email for risk scoring and anomaly detection
-                    processed_data = []
-                    for email in data:
-                        risk_info = calculate_risk_score(email)
-                        anomaly_info = detect_anomalies(email)
-                        email.update(risk_info)
-                        email.update(anomaly_info)
-                        processed_data.append(email)
-                    
-                    st.session_state.processed_data = processed_data
-                    st.success("✅ Data uploaded and processed successfully!")
-                    
-                    # Display data preview
-                    st.subheader("📊 Data Preview")
-                    
-                    # Show first few records
-                    for i, email in enumerate(data[:5]):
-                        with st.expander(f"Email {i+1}: {email.get('subject', 'No Subject')[:50]}..."):
-                            col_a, col_b = st.columns(2)
-                            with col_a:
-                                st.write(f"**Sender:** {email.get('sender', 'N/A')}")
-                                st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
-                                st.write(f"**Time:** {email.get('time', 'N/A')}")
-                            with col_b:
-                                st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
-                                st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
-                                st.write(f"**Domain:** {email.get('sender_domain', 'N/A')}")
-                    
-                    # Display summary
-                    st.subheader("🔍 Analysis Summary")
-                    col_a, col_b, col_c, col_d = st.columns(4)
-                    with col_a:
-                        st.metric("Total Records", len(data))
-                    with col_b:
-                        high_risk = len([e for e in processed_data if e.get('risk_level') in ['High', 'Critical']])
-                        st.metric("High Risk Emails", high_risk)
-                    with col_c:
-                        anomaly_count = len([e for e in processed_data if e.get('is_anomaly', False)])
-                        st.metric("Anomalies Detected", anomaly_count)
-                    with col_d:
-                        avg_risk = sum(e.get('risk_score', 0) for e in processed_data) / len(processed_data) if processed_data else 0
-                        st.metric("Average Risk Score", f"{avg_risk:.1f}")
-                        
-                else:
-                    st.error("❌ No valid data found in the uploaded file")
-                    
-            except Exception as e:
-                st.error(f"❌ Error processing file: {str(e)}")
+            else:
+                st.error("❌ No valid data found in the uploaded file")
+                
+        except Exception as e:
+            st.error(f"❌ Error processing file: {str(e)}")
     
-    with col2:
-        st.subheader("🔗 Whitelist Management")
-        
-        # Domain whitelist
-        st.write("**Trusted Domains**")
-        new_domain = st.text_input("Add domain:", placeholder="example.com")
-        if st.button("Add Domain"):
-            if new_domain:
-                st.session_state.whitelist['domains'].add(new_domain.lower())
-                st.success(f"Added {new_domain} to whitelist")
-                st.rerun()
-        
-        # Display current whitelisted domains
-        if st.session_state.whitelist['domains']:
-            for domain in list(st.session_state.whitelist['domains']):
-                col_x, col_y = st.columns([3, 1])
-                with col_x:
-                    st.text(domain)
-                with col_y:
-                    if st.button("🗑️", key=f"del_domain_{domain}"):
-                        st.session_state.whitelist['domains'].remove(domain)
-                        st.rerun()
+
 
 def daily_checks_page():
     if st.session_state.processed_data is None:
