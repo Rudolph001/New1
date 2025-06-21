@@ -1129,29 +1129,38 @@ def daily_checks_page():
         if has_anomalies:
             sender_title += f" 🚨 {anomaly_count} Anomalies"
         
+        # Auto-calculate status based on user actions
+        sender_emails_count = len(emails)
+        sender_followup_decisions = [
+            st.session_state.followup_decisions.get(f"{sender}_{i}", 'pending') 
+            for i in range(sender_emails_count)
+        ]
+        
+        # Determine automatic status
+        decided_count = sum(1 for decision in sender_followup_decisions if decision != 'pending')
+        
+        if decided_count == 0:
+            auto_status = 'outstanding'
+        elif decided_count == sender_emails_count:
+            auto_status = 'completed'
+        else:
+            auto_status = 'in_progress'
+        
+        # Update status automatically
+        st.session_state.sender_review_status[sender] = auto_status
+        
+        # Update status icon based on auto-calculated status
+        status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
+        status_icon = status_icons.get(auto_status, '⏳')
+        
+        # Update sender title with new status
+        sender_title = f"{status_icon} {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
+        if has_anomalies:
+            sender_title += f" 🚨 {anomaly_count} Anomalies"
+        
         with st.expander(sender_title):
-            # Add sender status controls at the top
-            st.write("**Review Status:**")
-            status_col1, status_col2, status_col3, status_col4 = st.columns(4)
-            
-            with status_col1:
-                if st.button("⏳ Outstanding", key=f"status_outstanding_{sender}"):
-                    st.session_state.sender_review_status[sender] = 'outstanding'
-                    st.rerun()
-            
-            with status_col2:
-                if st.button("🔄 In Progress", key=f"status_progress_{sender}"):
-                    st.session_state.sender_review_status[sender] = 'in_progress'
-                    st.rerun()
-            
-            with status_col3:
-                if st.button("✅ Completed", key=f"status_completed_{sender}"):
-                    st.session_state.sender_review_status[sender] = 'completed'
-                    st.rerun()
-            
-            with status_col4:
-                st.write(f"**Current:** {current_status.title()}")
-            
+            # Show automatic status info
+            st.write(f"**Review Status:** {auto_status.title()} ({decided_count}/{sender_emails_count} emails reviewed)")
             st.markdown("---")
             # Sort emails within sender group by risk level and score (Critical first)
             sorted_emails = sorted(emails, 
