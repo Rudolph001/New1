@@ -947,9 +947,7 @@ def create_network_graph(data, source_field, target_field, config):
             paper_bgcolor='#ffffff',
             height=700,
             dragmode='pan',
-            # Enable click and hover events
-            clickmode='event+select',
-            hovermode='closest'
+            clickmode='event+select'
         )
 
         # Store graph data for highlighting functionality
