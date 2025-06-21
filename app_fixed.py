@@ -1415,8 +1415,7 @@ def create_highlighted_network_graph(data, source_field, target_field, config, s
             paper_bgcolor='#ffffff',
             height=700,
             dragmode='pan',
-            clickmode='event+select',
-            hovermode='closest'
+            clickmode='event+select'
         )
 
         return fig
