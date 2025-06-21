@@ -883,9 +883,7 @@ def create_network_graph(data, source_field, target_field, config):
             ),
             showlegend=False,
             customdata=node_ids,
-            name='nodes',
-            # Enable dragging
-            dragmode='select'
+            name='nodes'
         ))
 
         # Professional layout configuration
