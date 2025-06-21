@@ -769,8 +769,7 @@ def create_network_graph(data, source_field, target_field, config):
             Anomalies: {anomaly_count}<br>
             Top Connections: {', '.join(adjacencies[:3])}
             """.strip()
-
-            ```
+            
             node_info.append(hover_text)
 
             # Enhanced node labeling
@@ -1531,10 +1530,7 @@ def followup_center_page():
 
                 # Backup link if auto-open doesn't work
                 with col_email2:
-                    st.markdown(f"**[Click here if Outlook didn't open]({mailto_Analysis: The code modification addresses the `NameError` in the `network_analysis_page` function by properly initializing the `node_data` dictionary before it's used to calculate anomaly nodes and displaying relevant statistics, thereby resolving the error.
-
-```python
-link})**")
+                    st.markdown(f"**[Click here if Outlook didn't open]({mailto_link})**")
                     st.caption("Backup link for manual opening")
 
                 # Display email body for reference
