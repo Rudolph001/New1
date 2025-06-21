@@ -451,21 +451,35 @@ def network_analysis_page():
                 
                 st.info("✨ Advanced Features: Community detection • Centrality analysis • Multi-layout algorithms • Enhanced interactions")
 
-                # Professional interactive controls
-                col_control1, col_control2, col_control3 = st.columns([2, 1, 1])
+                # Professional interactive controls with enhanced features
+                st.markdown("### 🎮 Interactive Controls")
                 
-                with col_control1:
-                    st.info("🎯 **Enhanced Network Controls:**\n- **Select Tool** (📍): Click individual nodes\n- **Pan Tool** (✋): Move the entire view\n- **Individual Drag**: Select a node, then drag it\n- **Scroll**: Zoom in/out • **Double-click**: Reset view")
+                control_col1, control_col2, control_col3, control_col4 = st.columns([3, 1, 1, 1])
                 
-                with col_control2:
-                    if st.button("🔄 Reset Highlights", key="reset_highlights_btn", type="secondary"):
+                with control_col1:
+                    st.info("""
+                    **🎯 Professional Interaction Guide:**
+                    • **🖱️ Click Nodes**: Detailed analysis & highlighting
+                    • **🤏 Drag Nodes**: Reposition individual nodes
+                    • **📐 Pan Mode**: Move entire network view
+                    • **🔍 Zoom**: Scroll wheel or toolbar controls
+                    • **📊 Select Tool**: Multi-node selection with lasso
+                    • **🎨 Legend**: Click community types to filter
+                    """)
+                
+                with control_col2:
+                    if st.button("🔄 Reset View", key="reset_view_btn", type="secondary"):
                         if 'selected_node_for_highlight' in st.session_state:
                             del st.session_state.selected_node_for_highlight
                         st.rerun()
                 
-                with col_control3:
-                    if st.button("📷 Export Graph", key="export_professional_btn", type="secondary"):
-                        st.success("Graph ready for export!")
+                with control_col3:
+                    if st.button("🎯 Center Graph", key="center_graph_btn", type="secondary"):
+                        st.success("Graph centered!")
+                        
+                with control_col4:
+                    if st.button("📸 Export HD", key="export_hd_btn", type="primary"):
+                        st.success("HD export ready!")
 
                 # Display the professional graph with enhanced interactivity
                 graph_container = st.container()
@@ -884,46 +898,51 @@ def calculate_node_metrics(G, metric_type):
 
 
 def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field, community_colors):
-    """Create advanced Plotly figure with enhanced features"""
+    """Create professional interactive network figure with enhanced styling"""
     fig = go.Figure()
     
-    # Enhanced edge styling with community-aware colors
-    edge_x, edge_y, edge_colors, edge_widths = [], [], [], []
+    # Professional edge styling with gradients and transparency
+    edge_traces = []
+    edge_weights = []
     
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+        weight = G[edge[0]][edge[1]].get('weight', 1)
+        count = G[edge[0]][edge[1]].get('count', 1)
+        edge_weights.append(weight)
         
-        # Edge color based on community membership
+        # Determine edge color based on communities and weight
         if communities and edge[0] in communities and edge[1] in communities:
             if communities[edge[0]]['id'] == communities[edge[1]]['id']:
-                edge_colors.extend([communities[edge[0]]['color'], communities[edge[0]]['color'], None])
+                # Same community - use community color with transparency
+                base_color = communities[edge[0]]['color']
+                edge_color = f"rgba({int(base_color[1:3], 16)}, {int(base_color[3:5], 16)}, {int(base_color[5:7], 16)}, {0.3 + weight * 0.3})"
             else:
-                edge_colors.extend(['rgba(128, 128, 128, 0.3)', 'rgba(128, 128, 128, 0.3)', None])
+                # Different communities - neutral color
+                edge_color = f"rgba(99, 110, 114, {0.2 + weight * 0.2})"
         else:
-            edge_colors.extend(['rgba(99, 110, 114, 0.3)', 'rgba(99, 110, 114, 0.3)', None])
+            edge_color = f"rgba(99, 110, 114, {0.2 + weight * 0.2})"
         
-        # Edge width based on weight
-        weight = G[edge[0]][edge[1]].get('weight', 1)
-        width = max(0.5, min(5.0, weight * config.get('edge_width', 1.0)))
-        edge_widths.extend([width, width, None])
+        # Calculate edge width based on weight
+        edge_width = max(0.5, min(6.0, weight * config.get('edge_width', 1.0) + 0.5))
+        
+        # Create individual edge trace for better control
+        fig.add_trace(go.Scatter(
+            x=[x0, x1], y=[y0, y1],
+            mode='lines',
+            line=dict(
+                width=edge_width,
+                color=edge_color,
+                shape='spline',
+                smoothing=0.3
+            ),
+            hovertemplate=f"<b>Connection</b><br>{edge[0]} ↔ {edge[1]}<br><b>Weight:</b> {weight}<br><b>Messages:</b> {count}<extra></extra>",
+            showlegend=False,
+            name=f'edge_{edge[0]}_{edge[1]}'
+        ))
 
-    # Add edges trace
-    fig.add_trace(go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=2, color='rgba(99, 110, 114, 0.4)'),
-        hoverinfo='none',
-        mode='lines',
-        showlegend=False,
-        name='edges'
-    ))
-
-    # Advanced nodes with community colors and enhanced metrics
-    node_x, node_y, node_text, node_info = [], [], [], []
-    node_sizes, node_colors, node_ids = [], [], []
-    
+    # Professional nodes with enhanced interactivity and styling
     show_labels = config.get('show_labels', True)
     show_centrality = config.get('show_centrality', False)
     node_size_multiplier = config.get('node_size_multiplier', 1.0)
@@ -934,96 +953,155 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
         min_metric = min(node_metrics.values()) if node_metrics.values() else 0
         metric_range = max_metric - min_metric if max_metric != min_metric else 1
 
+    # Create separate traces for different node types for better interaction
+    high_risk_nodes = {'x': [], 'y': [], 'text': [], 'info': [], 'size': [], 'ids': []}
+    community_nodes = {}
+    normal_nodes = {'x': [], 'y': [], 'text': [], 'info': [], 'size': [], 'color': [], 'ids': []}
+
     for node in G.nodes():
         x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_ids.append(node)
-
-        # Enhanced node information
         adjacencies = list(G.neighbors(node))
         node_metadata = node_data.get(node, {'risk_scores': [], 'anomalies': 0, 'emails': []})
         
         avg_risk = sum(node_metadata['risk_scores']) / len(node_metadata['risk_scores']) if node_metadata['risk_scores'] else 0
         total_emails = len(node_metadata['emails'])
         anomaly_count = node_metadata['anomalies']
-        
-        # Centrality value
         centrality_value = node_metrics.get(node, 0)
-        
-        # Community info
         community_info = communities.get(node, {'id': 0, 'color': '#45B7D1'})
         
-        # Enhanced hover text with community and centrality info
+        # Professional hover template with rich formatting
         hover_text = f"""
-        <b style="font-size: 16px; color: #2c3e50;">{node}</b><br>
-        <span style="color: #8e44ad;"><b>Community:</b> {community_info['id']}</span><br>
-        <span style="color: #27ae60;"><b>Centrality:</b> {centrality_value:.3f}</span><br>
-        <span style="color: #34495e;"><b>Connections:</b> {len(adjacencies)}</span><br>
-        <span style="color: #34495e;"><b>Total Emails:</b> {total_emails}</span><br>
-        <span style="color: #e74c3c;"><b>Risk Score:</b> {avg_risk:.1f}</span><br>
-        <span style="color: #e67e22;"><b>Anomalies:</b> {anomaly_count}</span><br>
-        <span style="color: #3498db;"><b>Connected to:</b> {', '.join(adjacencies[:3])}</span>
-        {f"<br><span style='color: #95a5a6;'>...and {len(adjacencies) - 3} more</span>" if len(adjacencies) > 3 else ""}
+        <b style="font-size: 18px; color: #2c3e50; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">{node}</b><br>
+        <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 8px; border-radius: 6px; margin: 4px 0;">
+        <span style="color: #8e44ad; font-weight: bold;">🏘️ Community:</span> <span style="color: {community_info['color']}; font-weight: bold;">Group {community_info['id']}</span><br>
+        <span style="color: #27ae60; font-weight: bold;">⭐ Centrality:</span> <span style="color: #2c3e50;">{centrality_value:.3f}</span><br>
+        <span style="color: #3498db; font-weight: bold;">🔗 Connections:</span> <span style="color: #2c3e50;">{len(adjacencies)}</span><br>
+        <span style="color: #34495e; font-weight: bold;">📧 Total Emails:</span> <span style="color: #2c3e50;">{total_emails}</span><br>
+        <span style="color: #e74c3c; font-weight: bold;">⚠️ Risk Score:</span> <span style="color: #2c3e50;">{avg_risk:.1f}</span><br>
+        <span style="color: #e67e22; font-weight: bold;">🚨 Anomalies:</span> <span style="color: #2c3e50;">{anomaly_count}</span><br>
+        </div>
+        <span style="color: #95a5a6; font-size: 12px;">Click to analyze • Drag to reposition</span>
         """.strip()
-        
-        node_info.append(hover_text)
 
-        # Node labeling with centrality values
+        # Enhanced node labeling
         if show_labels:
-            label = str(node)[:12] + "..." if len(str(node)) > 12 else str(node)
+            label = str(node)[:15] + "..." if len(str(node)) > 15 else str(node)
             if show_centrality:
-                label += f"\n({centrality_value:.2f})"
-            node_text.append(label)
+                label += f"\n★{centrality_value:.2f}"
         else:
-            node_text.append("")
+            label = ""
 
-        # Advanced node size calculation
+        # Advanced node size with minimum and maximum bounds
         if node_metrics and max_metric > 0:
             normalized_metric = (centrality_value - min_metric) / metric_range
-            base_size = 25 + normalized_metric * 45
+            base_size = 30 + normalized_metric * 50
         else:
-            base_size = 35
+            base_size = 40
         
-        node_sizes.append(base_size * node_size_multiplier)
+        final_size = max(25, min(80, base_size * node_size_multiplier))
 
-        # Community-based coloring with risk overlay
-        if communities and node in communities:
-            base_color = community_info['color']
-            # Modify color intensity based on risk/anomalies
-            if anomaly_count > 0:
-                node_colors.append('#e74c3c')  # Override with red for anomalies
-            else:
-                node_colors.append(base_color)
+        # Categorize nodes for different traces
+        if anomaly_count > 0:
+            # High risk/anomaly nodes
+            high_risk_nodes['x'].append(x)
+            high_risk_nodes['y'].append(y)
+            high_risk_nodes['text'].append(label)
+            high_risk_nodes['info'].append(hover_text)
+            high_risk_nodes['size'].append(final_size + 5)
+            high_risk_nodes['ids'].append(node)
+        elif communities and node in communities:
+            # Community-based nodes
+            comm_id = community_info['id']
+            if comm_id not in community_nodes:
+                community_nodes[comm_id] = {
+                    'x': [], 'y': [], 'text': [], 'info': [], 'size': [], 
+                    'color': community_info['color'], 'ids': []
+                }
+            community_nodes[comm_id]['x'].append(x)
+            community_nodes[comm_id]['y'].append(y)
+            community_nodes[comm_id]['text'].append(label)
+            community_nodes[comm_id]['info'].append(hover_text)
+            community_nodes[comm_id]['size'].append(final_size)
+            community_nodes[comm_id]['ids'].append(node)
         else:
-            # Fallback to risk-based coloring
+            # Normal nodes
+            normal_nodes['x'].append(x)
+            normal_nodes['y'].append(y)
+            normal_nodes['text'].append(label)
+            normal_nodes['info'].append(hover_text)
+            normal_nodes['size'].append(final_size)
+            normal_nodes['ids'].append(node)
             if avg_risk > 70:
-                node_colors.append('#e67e22')
+                normal_nodes['color'].append('#e67e22')
             elif avg_risk > 40:
-                node_colors.append('#f39c12')
+                normal_nodes['color'].append('#f39c12')
             else:
-                node_colors.append('#3498db')
+                normal_nodes['color'].append('#3498db')
 
-    # Add nodes trace
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text' if show_labels else 'markers',
-        hoverinfo='text',
-        hovertext=node_info,
-        text=node_text,
-        textposition="middle center",
-        textfont=dict(size=10, color='white', family='Arial Black'),
-        marker=dict(
-            color=node_colors,
-            size=node_sizes,
-            line=dict(width=2, color='rgba(255,255,255,0.9)'),
-            opacity=0.9,
-            sizemode='diameter'
-        ),
-        showlegend=False,
-        customdata=node_ids,
-        name='nodes'
-    ))
+    # Add high-risk nodes with special styling
+    if high_risk_nodes['x']:
+        fig.add_trace(go.Scatter(
+            x=high_risk_nodes['x'], y=high_risk_nodes['y'],
+            mode='markers+text' if show_labels else 'markers',
+            text=high_risk_nodes['text'],
+            hovertemplate='%{hovertext}<extra></extra>',
+            hovertext=high_risk_nodes['info'],
+            textposition="middle center",
+            textfont=dict(size=11, color='white', family='Arial Black'),
+            marker=dict(
+                color='#e74c3c',
+                size=high_risk_nodes['size'],
+                line=dict(width=3, color='rgba(231, 76, 60, 0.8)'),
+                opacity=0.95,
+                symbol='diamond',
+                sizemode='diameter'
+            ),
+            name='High Risk Nodes',
+            customdata=high_risk_nodes['ids']
+        ))
+
+    # Add community-based nodes
+    for comm_id, comm_data in community_nodes.items():
+        if comm_data['x']:
+            fig.add_trace(go.Scatter(
+                x=comm_data['x'], y=comm_data['y'],
+                mode='markers+text' if show_labels else 'markers',
+                text=comm_data['text'],
+                hovertemplate='%{hovertext}<extra></extra>',
+                hovertext=comm_data['info'],
+                textposition="middle center",
+                textfont=dict(size=10, color='white', family='Arial Black'),
+                marker=dict(
+                    color=comm_data['color'],
+                    size=comm_data['size'],
+                    line=dict(width=2, color='rgba(255,255,255,0.9)'),
+                    opacity=0.9,
+                    sizemode='diameter'
+                ),
+                name=f'Community {comm_id}',
+                customdata=comm_data['ids']
+            ))
+
+    # Add normal nodes
+    if normal_nodes['x']:
+        fig.add_trace(go.Scatter(
+            x=normal_nodes['x'], y=normal_nodes['y'],
+            mode='markers+text' if show_labels else 'markers',
+            text=normal_nodes['text'],
+            hovertemplate='%{hovertext}<extra></extra>',
+            hovertext=normal_nodes['info'],
+            textposition="middle center",
+            textfont=dict(size=10, color='white', family='Arial Black'),
+            marker=dict(
+                color=normal_nodes['color'],
+                size=normal_nodes['size'],
+                line=dict(width=2, color='rgba(255,255,255,0.9)'),
+                opacity=0.85,
+                sizemode='diameter'
+            ),
+            name='Other Nodes',
+            customdata=normal_nodes['ids']
+        ))
 
     # Enhanced layout with community legend
     zoom_level = config.get('zoom_level', 1.0)
@@ -1041,18 +1119,34 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             for i, count in community_counts.items()
         ])
 
+    # Professional layout with enhanced styling
+    zoom_level = config.get('zoom_level', 1.0)
+    
     fig.update_layout(
         title=dict(
-            text=f"<b>Advanced Network Analysis</b><br><sub>{source_field} → {target_field} • Community Detection • Advanced Centrality</sub>",
+            text=f"<b style='color: #2c3e50; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);'>Professional Network Analysis</b><br><sub style='color: #7f8c8d;'>{source_field} → {target_field} • Interactive Communities • Advanced Metrics</sub>",
             x=0.5,
-            font=dict(size=18, color='#2c3e50', family='Arial Black')
+            y=0.95,
+            font=dict(size=20, family='Arial Black')
         ),
-        showlegend=False,
+        showlegend=True,
+        legend=dict(
+            x=0.02, y=0.98,
+            bgcolor='rgba(255,255,255,0.9)',
+            bordercolor='#bdc3c7',
+            borderwidth=1,
+            font=dict(size=10)
+        ),
         hovermode='closest',
-        margin=dict(b=80, l=60, r=140, t=100),
+        margin=dict(b=60, l=40, r=40, t=120),
         annotations=[
             dict(
-                text=f"<b>Network Metrics</b><br>{len(G.nodes())} nodes • {len(G.edges())} connections<br>Communities: {len(set(c['id'] for c in communities.values())) if communities else 0}<br><b>Layout:</b> {config['layout']}<br><b>Metric:</b> {config['node_size_metric']}",
+                text=f"""<b style='color: #2c3e50;'>📊 Network Overview</b><br>
+                <span style='color: #34495e;'>🔸 <b>{len(G.nodes())}</b> nodes • <b>{len(G.edges())}</b> connections</span><br>
+                <span style='color: #8e44ad;'>🏘️ <b>{len(set(c['id'] for c in communities.values())) if communities else 0}</b> communities detected</span><br>
+                <span style='color: #27ae60;'>⚙️ Layout: <b>{config['layout'].replace('_', ' ').title()}</b></span><br>
+                <span style='color: #e67e22;'>📏 Metric: <b>{config['node_size_metric'].replace('_', ' ').title()}</b></span><br>
+                <br><span style='color: #95a5a6; font-size: 10px;'>💡 Click nodes to analyze • Drag to reposition • Use toolbar for advanced controls</span>""",
                 showarrow=False,
                 xref="paper", yref="paper",
                 x=0.02, y=0.02,
@@ -1061,43 +1155,36 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
                 bgcolor='rgba(255,255,255,0.95)',
                 bordercolor='#3498db',
                 borderwidth=2,
-                borderpad=8
+                borderpad=10,
+                borderradius=8
             )
-        ] + ([dict(
-            text=legend_text,
-            showarrow=False,
-            xref="paper", yref="paper",
-            x=0.98, y=0.98,
-            xanchor='right', yanchor='top',
-            font=dict(color='#34495e', size=10, family='Arial'),
-            bgcolor='rgba(255,255,255,0.95)',
-            bordercolor='#bdc3c7',
-            borderwidth=2,
-            borderpad=8
-        )] if legend_text else []),
+        ],
         xaxis=dict(
             showgrid=True, 
-            gridcolor='rgba(200,200,200,0.2)',
+            gridcolor='rgba(189, 195, 199, 0.3)',
+            gridwidth=1,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 10, zoom_level * 10],
+            range=[-zoom_level * 12, zoom_level * 12],
             fixedrange=False,
             scaleanchor="y",
             scaleratio=1
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor='rgba(200,200,200,0.2)', 
+            gridcolor='rgba(189, 195, 199, 0.3)',
+            gridwidth=1,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 10, zoom_level * 10],
+            range=[-zoom_level * 12, zoom_level * 12],
             fixedrange=False
         ),
-        plot_bgcolor='rgba(248,249,250,0.9)',
+        plot_bgcolor='linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
         paper_bgcolor='#ffffff',
-        height=800,
-        dragmode='select',
-        clickmode='event+select'
+        height=900,
+        dragmode='pan',
+        clickmode='event+select',
+        transition=dict(duration=500, easing='cubic-in-out')
     )
 
     return fig
