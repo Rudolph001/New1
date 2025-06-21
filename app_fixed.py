@@ -1153,11 +1153,41 @@ def followup_center_page():
             
             # Generate follow-up email template
             if st.button(f"📧 Generate Follow-up Email", key=f"generate_{i}"):
-                template = generate_followup_email(email)
-                st.text_area("Follow-up Email Template:", template, height=300, key=f"template_{i}")
+                email_data = generate_followup_email(email)
+                
+                st.subheader("📧 Follow-up Email Generated")
+                
+                # Display email details
+                col_email1, col_email2 = st.columns(2)
+                with col_email1:
+                    st.write(f"**To:** {email_data['to']}")
+                    st.write(f"**Subject:** {email_data['subject']}")
+                
+                # Create mailto link for easy opening in Outlook
+                import urllib.parse
+                mailto_subject = urllib.parse.quote(email_data['subject'])
+                mailto_body = urllib.parse.quote(email_data['body'])
+                mailto_to = urllib.parse.quote(email_data['to'])
+                mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
+                
+                with col_email2:
+                    st.markdown(f"[📧 Open in Outlook/Email Client]({mailto_link})")
+                    
+                # Display email body for copying
+                st.text_area("Email Content (Copy to Outlook):", email_data['body'], height=300, key=f"template_{i}")
+                
+                # Download option
+                email_content = f"To: {email_data['to']}\nSubject: {email_data['subject']}\n\n{email_data['body']}"
+                st.download_button(
+                    label="💾 Download Email Template",
+                    data=email_content,
+                    file_name=f"followup_email_{email_data['sender_name']}.txt",
+                    mime="text/plain",
+                    key=f"download_{i}"
+                )
 
 def generate_followup_email(email):
-    """Generate a follow-up email template"""
+    """Generate a follow-up email template with Outlook integration"""
     sender = email.get('sender', 'Unknown')
     subject = email.get('subject', 'No Subject')
     risk_level = email.get('risk_level', 'Medium')
@@ -1165,9 +1195,14 @@ def generate_followup_email(email):
     time = email.get('time', 'Unknown')
     recipients = email.get('recipients', 'Unknown')
     
-    template = f"""Subject: Security Review Required - Email Activity Alert
-
-Dear {sender.split('@')[0].title() if '@' in sender else sender},
+    # Clean sender name for display
+    sender_name = sender.split('@')[0].title() if '@' in sender else sender
+    
+    # Email subject for the follow-up
+    followup_subject = f"Security Review Required - Email Activity Alert"
+    
+    # Email body
+    email_body = f"""Dear {sender_name},
 
 Our email security monitoring system has identified an email sent from your account that requires review:
 
@@ -1191,9 +1226,14 @@ Please respond to this email within 2 hours to confirm the legitimacy of this co
 If you did not send this email or suspect unauthorized access, please contact IT Security immediately.
 
 Best regards,
-IT Security Team
-"""
-    return template
+IT Security Team"""
+    
+    return {
+        'subject': followup_subject,
+        'body': email_body,
+        'to': sender,
+        'sender_name': sender_name
+    }
 
 def settings_page():
     st.header("⚙️ Settings")
