@@ -1178,7 +1178,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             range=[-zoom_level * 12, zoom_level * 12],
             fixedrange=False
         ),
-        plot_bgcolor='linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+        plot_bgcolor='rgba(248, 249, 250, 0.95)',
         paper_bgcolor='#ffffff',
         height=900,
         dragmode='pan',
