@@ -1245,7 +1245,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
         height=950,
         dragmode='pan',
         clickmode='event+select',
-        transition=dict(duration=300, easing='ease-out'),
+        transition=dict(duration=300),
         font=dict(family='Roboto, Arial, sans-serif')
     )
 
