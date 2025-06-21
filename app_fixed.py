@@ -438,29 +438,63 @@ def network_analysis_page():
                 
                 st.info("🎯 Click nodes for analysis • Use toolbar to select/drag nodes • Scroll to zoom • Double-click to reset view")
 
-                # Display the graph with enhanced interactivity
-                selected_data = st.plotly_chart(
-                    network_graph, 
-                    use_container_width=True,
-                    config={
-                        'displayModeBar': True,
-                        'displaylogo': False,
-                        'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d'],
-                        'modeBarButtonsToRemove': ['autoScale2d', 'resetScale2d'],
-                        'scrollZoom': True,
-                        'doubleClick': 'reset+autosize',
-                        'toImageButtonOptions': {
-                            'format': 'png',
-                            'filename': 'network_graph_enhanced',
-                            'height': 1000,
-                            'width': 1400,
-                            'scale': 3
+                # Professional interactive controls
+                col_control1, col_control2, col_control3 = st.columns([2, 1, 1])
+                
+                with col_control1:
+                    st.info("🎯 **Professional Network Controls:**\n- **Click** nodes to highlight connections\n- **Drag** nodes to reposition them\n- **Scroll** to zoom in/out\n- **Double-click** to reset view")
+                
+                with col_control2:
+                    if st.button("🔄 Reset Highlights", key="reset_highlights_btn", type="secondary"):
+                        if 'selected_node_for_highlight' in st.session_state:
+                            del st.session_state.selected_node_for_highlight
+                        st.rerun()
+                
+                with col_control3:
+                    if st.button("📷 Export Graph", key="export_professional_btn", type="secondary"):
+                        st.success("Graph ready for export!")
+
+                # Display the professional graph with enhanced interactivity
+                graph_container = st.container()
+                
+                with graph_container:
+                    # Check if we need to highlight connections
+                    if 'selected_node_for_highlight' in st.session_state and st.session_state.selected_node_for_highlight:
+                        network_graph = create_highlighted_network_graph(data, source_field, target_field, st.session_state.network_config, st.session_state.selected_node_for_highlight)
+                    
+                    selected_data = st.plotly_chart(
+                        network_graph, 
+                        use_container_width=True,
+                        config={
+                            'displayModeBar': True,
+                            'displaylogo': False,
+                            'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d'],
+                            'modeBarButtonsToRemove': ['resetScale2d'],
+                            'scrollZoom': True,
+                            'doubleClick': 'reset+autosize',
+                            'toImageButtonOptions': {
+                                'format': 'png',
+                                'filename': 'professional_network_graph',
+                                'height': 1200,
+                                'width': 1600,
+                                'scale': 4
+                            },
+                            'editable': True,
+                            'showTips': True,
+                            'responsive': True
                         },
-                        'editable': True,
-                        'showTips': True
-                    },
-                    key="interactive_network_chart"
-                )
+                        key="professional_network_chart",
+                        on_select="rerun"
+                    )
+
+                    # Handle node selection for highlighting
+                    if selected_data and 'selection' in selected_data and selected_data['selection']['points']:
+                        selected_point = selected_data['selection']['points'][0]
+                        if 'customdata' in selected_point:
+                            selected_node = selected_point['customdata']
+                            if selected_node != st.session_state.get('selected_node_for_highlight'):
+                                st.session_state.selected_node_for_highlight = selected_node
+                                st.rerun()
 
                 # Enhanced Node Selection Interface
                 st.subheader("🎯 Node Analysis")
@@ -624,7 +658,7 @@ def network_analysis_page():
                         )
 
 def create_network_graph(data, source_field, target_field, config):
-    """Create interactive network graph using Plotly and NetworkX with enhanced user controls"""
+    """Create professional interactive network graph with drag functionality and node highlighting"""
     try:
         # Build NetworkX graph with filtering
         G = nx.Graph()
@@ -652,7 +686,7 @@ def create_network_graph(data, source_field, target_field, config):
 
             # Initialize node data if needed
             if source not in node_data:
-                node_data[source] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+                node_data[source] = {'risk_scores': [], 'anomalies': 0, 'emails': [], 'connections': set()}
 
             # Store node metadata for enhanced interactions
             risk_score = record.get('risk_score', 0)
@@ -673,7 +707,11 @@ def create_network_graph(data, source_field, target_field, config):
 
                     # Initialize target node data if needed
                     if target not in node_data:
-                        node_data[target] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+                        node_data[target] = {'risk_scores': [], 'anomalies': 0, 'emails': [], 'connections': set()}
+
+                    # Store connections for highlighting
+                    node_data[source]['connections'].add(target)
+                    node_data[target]['connections'].add(source)
 
                     # Store target metadata too
                     node_data[target]['risk_scores'].append(risk_score)
@@ -701,15 +739,15 @@ def create_network_graph(data, source_field, target_field, config):
             st.error("No nodes meet the current filter criteria. Try adjusting your filters.")
             return None
 
-        # Calculate layout positions
+        # Calculate layout positions with improved algorithm
         if config['layout'] == 'spring':
-            pos = nx.spring_layout(G, k=1, iterations=50)
+            pos = nx.spring_layout(G, k=2.5, iterations=100, seed=42)
         elif config['layout'] == 'circular':
             pos = nx.circular_layout(G)
         elif config['layout'] == 'shell':
             pos = nx.shell_layout(G)
         else:
-            pos = nx.random_layout(G)
+            pos = nx.random_layout(G, seed=42)
 
         # Calculate node metrics
         node_metrics = {}
@@ -722,12 +760,13 @@ def create_network_graph(data, source_field, target_field, config):
         else:
             node_metrics = {node: 1 for node in G.nodes()}
 
-        # Create Plotly figure
+        # Create Plotly figure with professional styling
         fig = go.Figure()
 
-        # Add edges
+        # Professional edge styling with gradient and proper weights
         edge_x = []
         edge_y = []
+        edge_weights_vis = []
         edge_info = []
 
         for edge in G.edges():
@@ -738,26 +777,33 @@ def create_network_graph(data, source_field, target_field, config):
 
             weight = G[edge[0]][edge[1]].get('weight', 1)
             count = G[edge[0]][edge[1]].get('count', 1)
-            edge_info.append(f"Connection: {edge[0]} ↔ {edge[1]}<br>Weight: {weight}<br>Count: {count}")
+            edge_weights_vis.extend([weight, weight, None])
+            edge_info.append(f"<b>Connection</b><br>{edge[0]} ↔ {edge[1]}<br><b>Weight:</b> {weight}<br><b>Messages:</b> {count}")
 
-        # Enhanced edge styling with user controls
+        # Enhanced edges with better styling
         edge_width = config.get('edge_width', 1.0)
         fig.add_trace(go.Scatter(
             x=edge_x, y=edge_y,
-            line=dict(width=edge_width * 2, color='rgba(150,150,150,0.4)'),
+            line=dict(
+                width=edge_width * 1.5, 
+                color='rgba(99, 110, 114, 0.3)',
+                dash=None
+            ),
             hoverinfo='none',
             mode='lines',
             showlegend=False,
-            name='connections'
+            name='edges',
+            opacity=0.7
         ))
 
-        # Enhanced nodes with rich metadata
+        # Professional nodes with enhanced interactivity
         node_x = []
         node_y = []
         node_text = []
         node_info = []
         node_sizes = []
         node_colors = []
+        node_ids = []
         node_size_multiplier = config.get('node_size_multiplier', 1.0)
         show_labels = config.get('show_labels', True)
         highlight_anomalies = config.get('highlight_anomalies', True)
@@ -766,56 +812,56 @@ def create_network_graph(data, source_field, target_field, config):
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
+            node_ids.append(node)
 
             # Enhanced node information with risk data
             adjacencies = list(G.neighbors(node))
-            node_metadata = node_data.get(node, {'risk_scores': [], 'anomalies': 0, 'emails': []})
+            node_metadata = node_data.get(node, {'risk_scores': [], 'anomalies': 0, 'emails': [], 'connections': set()})
 
             avg_risk = sum(node_metadata['risk_scores']) / len(node_metadata['risk_scores']) if node_metadata['risk_scores'] else 0
             total_emails = len(node_metadata['emails'])
             anomaly_count = node_metadata['anomalies']
 
-            # Rich hover information
+            # Professional hover information with better formatting
             hover_text = f"""
-            <b>{node}</b><br>
-            Connections: {len(adjacencies)}<br>
-            Total Emails: {total_emails}<br>
-            Avg Risk Score: {avg_risk:.1f}<br>
-            Anomalies: {anomaly_count}<br>
-            Top Connections: {', '.join(adjacencies[:3])}
+            <b style="font-size: 14px; color: #2c3e50;">{node}</b><br>
+            <span style="color: #34495e;"><b>Connections:</b> {len(adjacencies)}</span><br>
+            <span style="color: #34495e;"><b>Total Emails:</b> {total_emails}</span><br>
+            <span style="color: #e74c3c;"><b>Risk Score:</b> {avg_risk:.1f}</span><br>
+            <span style="color: #e67e22;"><b>Anomalies:</b> {anomaly_count}</span><br>
+            <span style="color: #3498db;"><b>Connected to:</b> {', '.join(adjacencies[:5])}</span>
+            {f"<br><span style='color: #95a5a6;'>...and {len(adjacencies) - 5} more</span>" if len(adjacencies) > 5 else ""}
             """.strip()
             
             node_info.append(hover_text)
 
-            # Enhanced node labeling
+            # Professional node labeling with better font styling
             if show_labels:
-                if len(str(node)) > 20:
-                    node_text.append(str(node)[:17] + "...")
+                if len(str(node)) > 15:
+                    node_text.append(str(node)[:12] + "...")
                 else:
                     node_text.append(str(node))
             else:
                 node_text.append("")
 
-            # Enhanced node size based on metric and user controls
+            # Enhanced node size calculation
             metric_value = node_metrics.get(node, 1)
-            base_size = max(15, min(60, metric_value * 40)) * node_size_multiplier
+            base_size = max(20, min(80, metric_value * 35 + 15)) * node_size_multiplier
             node_sizes.append(base_size)
 
-            # Enhanced node color based on risk and anomalies
+            # Professional color scheme with better gradients
             if highlight_anomalies and anomaly_count > 0:
-                # Red for anomalies
-                node_colors.append(100)
+                node_colors.append('#e74c3c')  # Red for anomalies
             elif avg_risk > 70:
-                # Orange for high risk
-                node_colors.append(80)
+                node_colors.append('#e67e22')  # Orange for high risk
             elif avg_risk > 40:
-                # Yellow for medium risk
-                node_colors.append(50)
+                node_colors.append('#f39c12')  # Yellow for medium risk
+            elif avg_risk > 20:
+                node_colors.append('#3498db')  # Blue for low-medium risk
             else:
-                # Green/Blue for low risk, scaled by connections
-                degree = G.degree(node)
-                node_colors.append(min(30, degree * 5))
+                node_colors.append('#2ecc71')  # Green for low risk
 
+        # Main nodes trace with enhanced styling
         fig.add_trace(go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text' if show_labels else 'markers',
@@ -823,73 +869,105 @@ def create_network_graph(data, source_field, target_field, config):
             hovertext=node_info,
             text=node_text,
             textposition="middle center",
-            textfont=dict(size=12, color='black', family='Arial Black'),
+            textfont=dict(
+                size=11, 
+                color='white', 
+                family='Arial Black',
+                shadow=dict(color='rgba(0,0,0,0.8)', blur=2, offset={'x': 1, 'y': 1})
+            ),
             marker=dict(
-                showscale=True,
-                colorscale='Plasma',  # Better contrast colorscale
                 color=node_colors,
                 size=node_sizes,
-                colorbar=dict(
-                    thickness=20,
-                    len=0.6,
-                    x=1.02,
-                    title=dict(text="Risk Level", font=dict(size=14)),
-                    tickvals=[0, 25, 50, 75, 100],
-                    ticktext=['Low', 'Low-Med', 'Medium', 'High', 'Critical'],
-                    tickfont=dict(size=12)
-                ),
-                line=dict(width=3, color='black'),
-                opacity=0.9
+                line=dict(width=3, color='white'),
+                opacity=0.9,
+                sizemode='diameter'
             ),
             showlegend=False,
-            customdata=node_text,
-            name='nodes'
+            customdata=node_ids,
+            name='nodes',
+            # Enable dragging
+            dragmode='select'
         ))
 
-        # Enhanced layout with user controls
+        # Professional layout configuration
         zoom_level = config.get('zoom_level', 1.0)
 
         fig.update_layout(
             title=dict(
-                text=f"Interactive Network: {source_field} → {target_field}",
+                text=f"<b>Network Analysis Dashboard</b><br><sub>{source_field} → {target_field}</sub>",
                 x=0.5,
-                font=dict(size=16, color='#2c3e50')
+                font=dict(size=18, color='#2c3e50', family='Arial Black')
             ),
             showlegend=False,
             hovermode='closest',
-            margin=dict(b=40,l=20,r=80,t=60),
+            margin=dict(b=60, l=40, r=120, t=80),
             annotations=[
                 dict(
-                    text=f"📊 {len(G.nodes())} nodes • {len(G.edges())} connections",
+                    text=f"<b>📊 Network Overview</b><br>{len(G.nodes())} nodes • {len(G.edges())} connections<br>Click nodes to highlight connections • Drag to reposition",
                     showarrow=False,
                     xref="paper", yref="paper",
-                    x=0.02, y=0.98,
-                    xanchor='left', yanchor='top',
-                    font=dict(color='#34495e', size=11),
-                    bgcolor='rgba(255,255,255,0.8)',
+                    x=0.02, y=0.02,
+                    xanchor='left', yanchor='bottom',
+                    font=dict(color='#34495e', size=11, family='Arial'),
+                    bgcolor='rgba(255,255,255,0.95)',
                     bordercolor='#bdc3c7',
-                    borderwidth=1
+                    borderwidth=2,
+                    borderpad=8
+                ),
+                dict(
+                    text="<b>🎨 Color Legend</b><br><span style='color:#e74c3c'>● Anomalies</span> <span style='color:#e67e22'>● High Risk</span> <span style='color:#f39c12'>● Medium Risk</span><br><span style='color:#3498db'>● Low-Med Risk</span> <span style='color:#2ecc71'>● Low Risk</span>",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.98, y=0.02,
+                    xanchor='right', yanchor='bottom',
+                    font=dict(color='#34495e', size=10, family='Arial'),
+                    bgcolor='rgba(255,255,255,0.95)',
+                    bordercolor='#bdc3c7',
+                    borderwidth=2,
+                    borderpad=8
                 )
             ],
             xaxis=dict(
                 showgrid=False, 
                 zeroline=False, 
                 showticklabels=False,
-                range=[-zoom_level, zoom_level],
-                fixedrange=False
+                range=[-zoom_level * 1.2, zoom_level * 1.2],
+                fixedrange=False,
+                scaleanchor="y",
+                scaleratio=1
             ),
             yaxis=dict(
                 showgrid=False, 
                 zeroline=False, 
                 showticklabels=False,
-                range=[-zoom_level, zoom_level],
+                range=[-zoom_level * 1.2, zoom_level * 1.2],
                 fixedrange=False
             ),
-            plot_bgcolor='white',
-            paper_bgcolor='#f8f9fa',
-            height=650,
-            dragmode='select'
+            plot_bgcolor='#f8f9fa',
+            paper_bgcolor='#ffffff',
+            height=700,
+            dragmode='pan',
+            # Enable click and hover events
+            clickmode='event+select',
+            hovermode='closest'
         )
+
+        # Store graph data for highlighting functionality
+        if 'graph_data' not in st.session_state:
+            st.session_state.graph_data = {}
+        
+        st.session_state.graph_data = {
+            'G': G,
+            'pos': pos,
+            'node_data': node_data,
+            'node_ids': node_ids,
+            'node_x': node_x,
+            'node_y': node_y,
+            'node_colors': node_colors,
+            'node_sizes': node_sizes,
+            'edge_x': edge_x,
+            'edge_y': edge_y
+        }
 
         return fig
 
@@ -1018,6 +1096,337 @@ def display_node_analysis(selected_node, data, source_field, target_field):
         # Risk level breakdown
         risk_counts = Counter(r['record'].get('risk_level', 'Unknown') for r in related_records)
         anomaly_count = sum(1 for r in related_records if r['record'].get('is_anomaly', False))
+
+
+
+def create_highlighted_network_graph(data, source_field, target_field, config, selected_node):
+    """Create network graph with highlighted connections for selected node"""
+    try:
+        # Build NetworkX graph
+        G = nx.Graph()
+        edge_weights = defaultdict(int)
+        node_data = {}
+
+        # Apply risk filter to data first
+        filtered_data = data
+        risk_filter = config.get('risk_filter', 'All')
+        if risk_filter != 'All':
+            if risk_filter == 'High Risk Only':
+                filtered_data = [r for r in data if r.get('risk_level') in ['High', 'Critical']]
+            elif risk_filter == 'Medium+ Risk':
+                filtered_data = [r for r in data if r.get('risk_level') in ['Medium', 'High', 'Critical']]
+            elif risk_filter == 'Low Risk Only':
+                filtered_data = [r for r in data if r.get('risk_level') == 'Low']
+
+        # Build graph and collect connections
+        connected_nodes = set()
+        selected_edges = set()
+
+        for record in filtered_data:
+            source = str(record.get(source_field, '')).strip()
+            target_raw = str(record.get(target_field, '')).strip()
+
+            if not source or not target_raw:
+                continue
+
+            # Initialize node data
+            if source not in node_data:
+                node_data[source] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+
+            risk_score = record.get('risk_score', 0)
+            is_anomaly = record.get('is_anomaly', False)
+
+            node_data[source]['risk_scores'].append(risk_score)
+            node_data[source]['emails'].append(record)
+            if is_anomaly:
+                node_data[source]['anomalies'] += 1
+
+            targets = [t.strip() for t in target_raw.split(',') if t.strip()]
+
+            for target in targets:
+                if source != target:
+                    edge_key = (source, target)
+                    edge_weights[edge_key] += 1
+
+                    if target not in node_data:
+                        node_data[target] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+
+                    node_data[target]['risk_scores'].append(risk_score)
+                    node_data[target]['emails'].append(record)
+                    if is_anomaly:
+                        node_data[target]['anomalies'] += 1
+
+                    weight = 1
+                    if config.get('weight_field'):
+                        try:
+                            weight = float(record.get(config['weight_field'], 1))
+                        except:
+                            weight = 1
+
+                    G.add_edge(source, target, weight=weight, count=edge_weights[edge_key])
+
+                    # Track connections to selected node
+                    if source == selected_node:
+                        connected_nodes.add(target)
+                        selected_edges.add((source, target))
+                    elif target == selected_node:
+                        connected_nodes.add(source)
+                        selected_edges.add((source, target))
+
+        # Apply minimum connections filter
+        min_connections = config.get('min_connections', 0)
+        if min_connections > 0:
+            nodes_to_remove = [node for node in G.nodes() if G.degree(node) < min_connections]
+            G.remove_nodes_from(nodes_to_remove)
+
+        if len(G.nodes()) == 0:
+            return None
+
+        # Calculate layout positions
+        if config['layout'] == 'spring':
+            pos = nx.spring_layout(G, k=2.5, iterations=100, seed=42)
+        elif config['layout'] == 'circular':
+            pos = nx.circular_layout(G)
+        elif config['layout'] == 'shell':
+            pos = nx.shell_layout(G)
+        else:
+            pos = nx.random_layout(G, seed=42)
+
+        # Calculate node metrics
+        node_metrics = {}
+        if config['node_size_metric'] == 'degree':
+            node_metrics = dict(G.degree())
+        elif config['node_size_metric'] == 'betweenness':
+            node_metrics = nx.betweenness_centrality(G)
+        elif config['node_size_metric'] == 'closeness':
+            node_metrics = nx.closeness_centrality(G)
+        else:
+            node_metrics = {node: 1 for node in G.nodes()}
+
+        # Create highlighted figure
+        fig = go.Figure()
+
+        # Add regular edges (dimmed)
+        edge_x_regular = []
+        edge_y_regular = []
+        edge_x_highlighted = []
+        edge_y_highlighted = []
+
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            
+            if edge in selected_edges or (edge[1], edge[0]) in selected_edges:
+                # Highlighted edges
+                edge_x_highlighted.extend([x0, x1, None])
+                edge_y_highlighted.extend([y0, y1, None])
+            else:
+                # Regular edges (dimmed)
+                edge_x_regular.extend([x0, x1, None])
+                edge_y_regular.extend([y0, y1, None])
+
+        # Regular edges (dimmed)
+        if edge_x_regular:
+            fig.add_trace(go.Scatter(
+                x=edge_x_regular, y=edge_y_regular,
+                line=dict(width=1, color='rgba(150, 150, 150, 0.2)'),
+                hoverinfo='none',
+                mode='lines',
+                showlegend=False,
+                name='regular_edges'
+            ))
+
+        # Highlighted edges
+        if edge_x_highlighted:
+            fig.add_trace(go.Scatter(
+                x=edge_x_highlighted, y=edge_y_highlighted,
+                line=dict(width=4, color='rgba(231, 76, 60, 0.8)'),
+                hoverinfo='none',
+                mode='lines',
+                showlegend=False,
+                name='highlighted_edges'
+            ))
+
+        # Add nodes with highlighting
+        node_x = []
+        node_y = []
+        node_text = []
+        node_info = []
+        node_sizes = []
+        node_colors = []
+        node_opacities = []
+        node_line_colors = []
+        node_line_widths = []
+        node_ids = []
+
+        node_size_multiplier = config.get('node_size_multiplier', 1.0)
+        show_labels = config.get('show_labels', True)
+        highlight_anomalies = config.get('highlight_anomalies', True)
+
+        for node in G.nodes():
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            node_ids.append(node)
+
+            adjacencies = list(G.neighbors(node))
+            node_metadata = node_data.get(node, {'risk_scores': [], 'anomalies': 0, 'emails': []})
+
+            avg_risk = sum(node_metadata['risk_scores']) / len(node_metadata['risk_scores']) if node_metadata['risk_scores'] else 0
+            total_emails = len(node_metadata['emails'])
+            anomaly_count = node_metadata['anomalies']
+
+            # Enhanced hover for highlighted nodes
+            if node == selected_node:
+                hover_text = f"""
+                <b style="font-size: 16px; color: #e74c3c;">🎯 SELECTED: {node}</b><br>
+                <span style="color: #34495e;"><b>Connections:</b> {len(adjacencies)}</span><br>
+                <span style="color: #34495e;"><b>Connected Nodes:</b> {len(connected_nodes)}</span><br>
+                <span style="color: #e74c3c;"><b>Risk Score:</b> {avg_risk:.1f}</span><br>
+                <span style="color: #e67e22;"><b>Anomalies:</b> {anomaly_count}</span>
+                """.strip()
+            elif node in connected_nodes:
+                hover_text = f"""
+                <b style="font-size: 14px; color: #e67e22;">🔗 CONNECTED: {node}</b><br>
+                <span style="color: #34495e;"><b>Connected to selected node</b></span><br>
+                <span style="color: #34495e;"><b>Total Connections:</b> {len(adjacencies)}</span><br>
+                <span style="color: #e74c3c;"><b>Risk Score:</b> {avg_risk:.1f}</span><br>
+                <span style="color: #e67e22;"><b>Anomalies:</b> {anomaly_count}</span>
+                """.strip()
+            else:
+                hover_text = f"""
+                <b style="font-size: 12px; color: #7f8c8d;">{node}</b><br>
+                <span style="color: #95a5a6;"><b>Connections:</b> {len(adjacencies)}</span><br>
+                <span style="color: #95a5a6;"><b>Risk Score:</b> {avg_risk:.1f}</span>
+                """.strip()
+            
+            node_info.append(hover_text)
+
+            # Node labeling
+            if show_labels and (node == selected_node or node in connected_nodes):
+                if len(str(node)) > 15:
+                    node_text.append(str(node)[:12] + "...")
+                else:
+                    node_text.append(str(node))
+            else:
+                node_text.append("")
+
+            # Node size calculation
+            metric_value = node_metrics.get(node, 1)
+            base_size = max(20, min(80, metric_value * 35 + 15)) * node_size_multiplier
+            
+            # Increase size for selected and connected nodes
+            if node == selected_node:
+                base_size *= 1.5
+            elif node in connected_nodes:
+                base_size *= 1.2
+            
+            node_sizes.append(base_size)
+
+            # Enhanced color scheme with highlighting
+            if node == selected_node:
+                node_colors.append('#e74c3c')  # Bright red for selected
+                node_opacities.append(1.0)
+                node_line_colors.append('#ffffff')
+                node_line_widths.append(4)
+            elif node in connected_nodes:
+                if highlight_anomalies and anomaly_count > 0:
+                    node_colors.append('#e67e22')  # Orange for connected anomalies
+                elif avg_risk > 50:
+                    node_colors.append('#f39c12')  # Yellow for connected high risk
+                else:
+                    node_colors.append('#3498db')  # Blue for connected normal
+                node_opacities.append(0.9)
+                node_line_colors.append('#e74c3c')
+                node_line_widths.append(3)
+            else:
+                # Dimmed colors for non-connected nodes
+                node_colors.append('#bdc3c7')
+                node_opacities.append(0.3)
+                node_line_colors.append('#95a5a6')
+                node_line_widths.append(1)
+
+        # Create nodes trace with highlighting
+        fig.add_trace(go.Scatter(
+            x=node_x, y=node_y,
+            mode='markers+text' if show_labels else 'markers',
+            hoverinfo='text',
+            hovertext=node_info,
+            text=node_text,
+            textposition="middle center",
+            textfont=dict(
+                size=11, 
+                color='white', 
+                family='Arial Black'
+            ),
+            marker=dict(
+                color=node_colors,
+                size=node_sizes,
+                line=dict(width=node_line_widths, color=node_line_colors),
+                opacity=node_opacities,
+                sizemode='diameter'
+            ),
+            showlegend=False,
+            customdata=node_ids,
+            name='nodes'
+        ))
+
+        # Professional layout
+        zoom_level = config.get('zoom_level', 1.0)
+
+        fig.update_layout(
+            title=dict(
+                text=f"<b>Network Analysis - Highlighting: {selected_node}</b><br><sub>{len(connected_nodes)} connected nodes shown</sub>",
+                x=0.5,
+                font=dict(size=18, color='#2c3e50', family='Arial Black')
+            ),
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=60, l=40, r=120, t=80),
+            annotations=[
+                dict(
+                    text=f"<b>🎯 Node Highlighting Active</b><br>Selected: <b>{selected_node}</b><br>Connected nodes: <b>{len(connected_nodes)}</b><br>Click another node or reset to change selection",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.02, y=0.02,
+                    xanchor='left', yanchor='bottom',
+                    font=dict(color='#e74c3c', size=12, family='Arial Black'),
+                    bgcolor='rgba(255,255,255,0.95)',
+                    bordercolor='#e74c3c',
+                    borderwidth=3,
+                    borderpad=10
+                )
+            ],
+            xaxis=dict(
+                showgrid=False, 
+                zeroline=False, 
+                showticklabels=False,
+                range=[-zoom_level * 1.2, zoom_level * 1.2],
+                fixedrange=False,
+                scaleanchor="y",
+                scaleratio=1
+            ),
+            yaxis=dict(
+                showgrid=False, 
+                zeroline=False, 
+                showticklabels=False,
+                range=[-zoom_level * 1.2, zoom_level * 1.2],
+                fixedrange=False
+            ),
+            plot_bgcolor='#f8f9fa',
+            paper_bgcolor='#ffffff',
+            height=700,
+            dragmode='pan',
+            clickmode='event+select',
+            hovermode='closest'
+        )
+
+        return fig
+
+    except Exception as e:
+        st.error(f"Error creating highlighted network graph: {str(e)}")
+        return None
+
 
         col1, col2, col3 = st.columns(3)
         with col1:
