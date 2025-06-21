@@ -859,10 +859,10 @@ def calculate_advanced_layout(G, layout_type):
         elif layout_type == 'circular':
             pos = nx.circular_layout(G, scale=3.0)
         else:
-            pos = nx.spring_layout(G, k=3.0, iterations=200, seed=42)
+            pos = nx.spring_layout(G, k=10.0, iterations=300, seed=42)
         
-        # Scale positions for better spacing
-        scaling_factor = 4.0
+        # Scale positions for much better spacing
+        scaling_factor = 8.0
         pos = {node: (x * scaling_factor, y * scaling_factor) for node, (x, y) in pos.items()}
         
         return pos
@@ -927,17 +927,13 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
         weight = G[edge[0]][edge[1]].get('weight', 1)
         count = G[edge[0]][edge[1]].get('count', 1)
         
-        # Create curved edge path
-        mid_x = (x0 + x1) / 2 + np.random.normal(0, 0.5)
-        mid_y = (y0 + y1) / 2 + np.random.normal(0, 0.5)
+        # Create slightly curved edge path with less randomness
+        mid_x = (x0 + x1) / 2 + np.random.normal(0, 0.2)
+        mid_y = (y0 + y1) / 2 + np.random.normal(0, 0.2)
         
-        # Bezier curve approximation with multiple points
-        t_values = np.linspace(0, 1, 20)
-        curve_x = [(1-t)**2 * x0 + 2*(1-t)*t * mid_x + t**2 * x1 for t in t_values]
-        curve_y = [(1-t)**2 * y0 + 2*(1-t)*t * mid_y + t**2 * y1 for t in t_values]
-        
-        edge_x_all.extend(curve_x + [None])
-        edge_y_all.extend(curve_y + [None])
+        # Simpler straight edges for better readability
+        edge_x_all.extend([x0, x1, None])
+        edge_y_all.extend([y0, y1, None])
         
         # Dynamic edge coloring based on weight and communities
         if communities and edge[0] in communities and edge[1] in communities:
@@ -951,17 +947,15 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             base_color = '#34495e'
             opacity = 0.3 + weight * 0.3
         
-        edge_colors.extend([f"rgba(52, 73, 94, {opacity})" for _ in range(20)] + [None])
+        edge_colors.extend([f"rgba(52, 73, 94, {opacity})", f"rgba(52, 73, 94, {opacity})", None])
     
-    # Add sophisticated edge trace
+    # Add clean edge trace with better visibility
     fig.add_trace(go.Scatter(
         x=edge_x_all, y=edge_y_all,
         mode='lines',
         line=dict(
-            width=1.5,
-            color='rgba(52, 73, 94, 0.3)',
-            shape='spline',
-            smoothing=1.0
+            width=2.0,
+            color='rgba(52, 73, 94, 0.4)'
         ),
         hoverinfo='skip',
         showlegend=False,
@@ -1009,22 +1003,22 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
         <span style="color: #95a5a6; font-size: 12px;">Click to analyze • Drag to reposition</span>
         """.strip()
 
-        # Enhanced node labeling
+        # Clear, readable node labeling
         if show_labels:
-            label = str(node)[:15] + "..." if len(str(node)) > 15 else str(node)
+            label = str(node)[:10] + "..." if len(str(node)) > 10 else str(node)
             if show_centrality:
-                label += f"\n★{centrality_value:.2f}"
+                label += f"\n{centrality_value:.2f}"
         else:
             label = ""
 
-        # Advanced node size with minimum and maximum bounds
+        # Larger node sizes for better readability
         if node_metrics and max_metric > 0:
             normalized_metric = (centrality_value - min_metric) / metric_range
-            base_size = 30 + normalized_metric * 50
+            base_size = 40 + normalized_metric * 40
         else:
-            base_size = 40
+            base_size = 50
         
-        final_size = max(25, min(80, base_size * node_size_multiplier))
+        final_size = max(35, min(90, base_size * node_size_multiplier))
 
         # Categorize nodes for different traces
         if anomaly_count > 0:
@@ -1093,7 +1087,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             hovertemplate='%{hovertext}<extra></extra>',
             hovertext=high_risk_nodes['info'],
             textposition="middle center",
-            textfont=dict(size=12, color='white', family='Roboto'),
+            textfont=dict(size=14, color='white', family='Arial Black'),
             marker=dict(
                 color=['#ff6b6b', '#ff5252', '#e74c3c', '#c0392b'],
                 size=high_risk_nodes['size'],
@@ -1127,7 +1121,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
                 hovertemplate='%{hovertext}<extra></extra>',
                 hovertext=comm_data['info'],
                 textposition="middle center",
-                textfont=dict(size=11, color='white', family='Roboto'),
+                textfont=dict(size=13, color='white', family='Arial Black'),
                 marker=dict(
                     color=gradient_colors[0],
                     size=comm_data['size'],
@@ -1149,7 +1143,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             hovertemplate='%{hovertext}<extra></extra>',
             hovertext=normal_nodes['info'],
             textposition="middle center",
-            textfont=dict(size=10, color='white', family='Arial'),
+            textfont=dict(size=12, color='white', family='Arial Black'),
             marker=dict(
                 color=normal_nodes['color'],
                 size=normal_nodes['size'],
@@ -1226,7 +1220,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             gridwidth=0.5,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 15, zoom_level * 15],
+            range=[-zoom_level * 30, zoom_level * 30],
             fixedrange=False,
             scaleanchor="y",
             scaleratio=1
@@ -1237,7 +1231,7 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             gridwidth=0.5,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 15, zoom_level * 15],
+            range=[-zoom_level * 30, zoom_level * 30],
             fixedrange=False
         ),
         plot_bgcolor='rgba(251, 252, 254, 1.0)',
