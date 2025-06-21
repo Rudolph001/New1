@@ -872,8 +872,7 @@ def create_network_graph(data, source_field, target_field, config):
             textfont=dict(
                 size=11, 
                 color='white', 
-                family='Arial Black',
-                shadow=dict(color='rgba(0,0,0,0.8)', blur=2, offset={'x': 1, 'y': 1})
+                family='Arial Black'
             ),
             marker=dict(
                 color=node_colors,
