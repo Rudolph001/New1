@@ -1250,32 +1250,45 @@ def followup_center_page():
             if st.button(f"📧 Generate Follow-up Email", key=f"generate_{i}"):
                 email_data = generate_followup_email(email)
                 
-                st.subheader("📧 Follow-up Email Generated")
-                
-                # Display email details
-                col_email1, col_email2 = st.columns(2)
-                with col_email1:
-                    st.write(f"**To:** {email_data['to']}")
-                    st.write(f"**Subject:** {email_data['subject']}")
-                
-                # Create mailto link for opening in Outlook
+                # Create mailto link for automatic opening in Outlook
                 import urllib.parse
                 mailto_subject = urllib.parse.quote(email_data['subject'])
                 mailto_body = urllib.parse.quote(email_data['body'])
                 mailto_to = urllib.parse.quote(email_data['to'])
                 mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
                 
-                with col_email2:
-                    st.markdown(f"[📧 Open in Outlook]({mailto_link})")
-                    st.caption("Click to open pre-filled email in Outlook")
-                    
-                # Display email body for copying to Outlook
-                st.text_area("Email Content (Copy to Outlook):", email_data['body'], height=300, key=f"template_{i}")
+                # Auto-open in Outlook using HTML redirect
+                st.markdown(f"""
+                <meta http-equiv="refresh" content="0; url={mailto_link}">
+                <p>Opening Outlook automatically...</p>
+                <script>
+                setTimeout(function(){{
+                    window.location.href = '{mailto_link}';
+                }}, 100);
+                </script>
+                """, unsafe_allow_html=True)
                 
-                # Download option for Outlook
+                st.success("Opening Outlook automatically...")
+                
+                # Display email details for reference
+                st.subheader("Follow-up Email Details")
+                col_email1, col_email2 = st.columns(2)
+                with col_email1:
+                    st.write(f"**To:** {email_data['to']}")
+                    st.write(f"**Subject:** {email_data['subject']}")
+                
+                # Backup link if auto-open doesn't work
+                with col_email2:
+                    st.markdown(f"**[Click here if Outlook didn't open]({mailto_link})**")
+                    st.caption("Backup link for manual opening")
+                    
+                # Display email body for reference
+                st.text_area("Email Content (Reference):", email_data['body'], height=200, key=f"template_{i}")
+                
+                # Download option
                 email_content = f"To: {email_data['to']}\nSubject: {email_data['subject']}\n\n{email_data['body']}"
                 st.download_button(
-                    label="💾 Download for Outlook",
+                    label="💾 Download Email",
                     data=email_content,
                     file_name=f"followup_email_{email_data['sender_name']}.txt",
                     mime="text/plain",
