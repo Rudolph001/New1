@@ -374,49 +374,175 @@ def network_analysis_page():
     if st.session_state.get('show_network', False):
         st.session_state.show_network = True
         
-        with st.spinner("Building network graph..."):
+        # Interactive Controls Panel
+        st.subheader("🎛️ Interactive Controls")
+        
+        # Real-time graph controls
+        control_col1, control_col2, control_col3, control_col4 = st.columns(4)
+        
+        with control_col1:
+            zoom_level = st.slider("Zoom Level", 0.5, 3.0, 1.0, 0.1, key="zoom_slider")
+            
+        with control_col2:
+            node_size_multiplier = st.slider("Node Size", 0.5, 2.0, 1.0, 0.1, key="node_size_slider")
+            
+        with control_col3:
+            edge_width = st.slider("Connection Width", 0.5, 3.0, 1.0, 0.1, key="edge_width_slider")
+            
+        with control_col4:
+            show_labels = st.checkbox("Show All Labels", value=True, key="show_labels_checkbox")
+        
+        # Filter Controls
+        st.write("**Filter Network:**")
+        filter_col1, filter_col2, filter_col3 = st.columns(3)
+        
+        with filter_col1:
+            min_connections = st.number_input("Min Connections", min_value=0, max_value=50, value=0, key="min_connections")
+            
+        with filter_col2:
+            risk_filter = st.selectbox(
+                "Risk Level Filter",
+                options=["All", "High Risk Only", "Medium+ Risk", "Low Risk Only"],
+                key="risk_filter_select"
+            )
+            
+        with filter_col3:
+            highlight_anomalies = st.checkbox("Highlight Anomalies", value=True, key="highlight_anomalies")
+        
+        # Update network config with user controls
+        st.session_state.network_config.update({
+            'zoom_level': zoom_level,
+            'node_size_multiplier': node_size_multiplier,
+            'edge_width': edge_width,
+            'show_labels': show_labels,
+            'min_connections': min_connections,
+            'risk_filter': risk_filter,
+            'highlight_anomalies': highlight_anomalies
+        })
+        
+        with st.spinner("Building interactive network graph..."):
             network_graph = create_network_graph(data, source_field, target_field, st.session_state.network_config)
             if network_graph:
-                # Enhanced clickable network with selection handling
-                event = st.plotly_chart(
+                
+                # Enhanced graph display with better interaction
+                st.subheader("📊 Interactive Network Graph")
+                st.info("💡 Click on any node to see detailed analysis | Drag to pan | Scroll to zoom")
+                
+                # Display the graph with enhanced interactivity
+                selected_data = st.plotly_chart(
                     network_graph, 
-                    use_container_width=True, 
-                    on_select="rerun",
-                    selection_mode="points",
-                    key="network_chart"
+                    use_container_width=True,
+                    config={
+                        'displayModeBar': True,
+                        'displaylogo': False,
+                        'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d'],
+                        'modeBarButtonsToRemove': ['autoScale2d'],
+                        'toImageButtonOptions': {
+                            'format': 'png',
+                            'filename': 'network_graph',
+                            'height': 800,
+                            'width': 1200,
+                            'scale': 2
+                        }
+                    },
+                    key="interactive_network_chart"
                 )
                 
-                # Node selection interface
-                st.subheader("🎯 Node Interaction")
+                # Enhanced Node Selection Interface
+                st.subheader("🎯 Node Analysis")
                 
-                # Manual node selection dropdown
                 G = build_network_from_data(data, source_field, target_field)
                 if len(G.nodes()) > 0:
                     all_nodes = sorted(list(G.nodes()))
                     
-                    col1, col2 = st.columns([2, 1])
-                    with col1:
+                    # Search and select interface
+                    search_col1, search_col2, search_col3 = st.columns([3, 1, 1])
+                    
+                    with search_col1:
+                        # Searchable dropdown
+                        node_search = st.text_input(
+                            "Search for a node:",
+                            placeholder="Type to search nodes...",
+                            key="node_search_input"
+                        )
+                        
+                        # Filter nodes based on search
+                        if node_search:
+                            filtered_nodes = [node for node in all_nodes if node_search.lower() in node.lower()]
+                        else:
+                            filtered_nodes = all_nodes
+                        
                         selected_node = st.selectbox(
-                            "Click on a node in the graph above or select manually:",
-                            options=["None"] + all_nodes,
+                            "Select a node to analyze:",
+                            options=["None"] + filtered_nodes[:50],  # Limit to first 50 for performance
                             index=0,
-                            key="manual_node_select"
+                            key="enhanced_node_select"
                         )
                     
-                    with col2:
+                    with search_col2:
                         if selected_node != "None":
-                            if st.button("🔍 Analyze Node", key="analyze_button"):
+                            if st.button("🔍 Analyze", key="enhanced_analyze_btn", type="primary"):
                                 st.session_state.selected_node = selected_node
                                 st.rerun()
                     
-                    # Clear selection button
-                    if st.session_state.selected_node:
-                        if st.button("❌ Clear Selection", key="clear_selection_btn"):
-                            st.session_state.selected_node = None
-                            st.rerun()
+                    with search_col3:
+                        if st.session_state.selected_node:
+                            if st.button("❌ Clear", key="enhanced_clear_btn"):
+                                st.session_state.selected_node = None
+                                st.rerun()
+                    
+                    # Quick stats for selected node
+                    if selected_node != "None" and selected_node in G.nodes():
+                        degree = G.degree(selected_node)
+                        st.info(f"**{selected_node}** has {degree} connections")
                 
-                # Display selected node details
+                # Real-time Network Statistics
+                st.subheader("📈 Network Insights")
+                
+                insight_col1, insight_col2, insight_col3, insight_col4 = st.columns(4)
+                
+                with insight_col1:
+                    total_nodes = len(list(G.nodes()))
+                    st.metric("Total Nodes", total_nodes)
+                
+                with insight_col2:
+                    total_edges = len(list(G.edges()))
+                    st.metric("Connections", total_edges)
+                
+                with insight_col3:
+                    avg_degree = sum(dict(G.degree()).values()) / len(G.nodes()) if len(G.nodes()) > 0 else 0
+                    st.metric("Avg Connections", f"{avg_degree:.1f}")
+                
+                with insight_col4:
+                    high_risk_nodes = sum(1 for node in G.nodes() 
+                                        if node_data.get(node, {}).get('anomalies', 0) > 0)
+                    st.metric("Anomaly Nodes", high_risk_nodes)
+                
+                # Network Health Summary
+                if total_nodes > 0:
+                    density = nx.density(G)
+                    components = nx.number_connected_components(G)
+                    
+                    health_col1, health_col2 = st.columns(2)
+                    with health_col1:
+                        st.info(f"🔗 Network Density: {density:.3f}")
+                        if density > 0.3:
+                            st.success("High connectivity - good communication flow")
+                        elif density > 0.1:
+                            st.warning("Medium connectivity - some isolated groups")
+                        else:
+                            st.error("Low connectivity - many isolated nodes")
+                    
+                    with health_col2:
+                        st.info(f"🏝️ Connected Groups: {components}")
+                        if components == 1:
+                            st.success("All nodes are connected")
+                        else:
+                            st.warning(f"Network has {components} separate groups")
+                
+                # Display selected node details with enhanced layout
                 if st.session_state.selected_node:
+                    st.markdown("---")
                     display_node_analysis(st.session_state.selected_node, data, source_field, target_field)
                 
                 # Network Statistics
@@ -464,19 +590,44 @@ def network_analysis_page():
                         )
 
 def create_network_graph(data, source_field, target_field, config):
-    """Create interactive network graph using Plotly and NetworkX"""
+    """Create interactive network graph using Plotly and NetworkX with enhanced user controls"""
     try:
-        # Build NetworkX graph
+        # Build NetworkX graph with filtering
         G = nx.Graph()
         edge_weights = defaultdict(int)
+        node_data = {}
         
-        # Add edges from data
-        for record in data:
+        # Apply risk filter to data first
+        filtered_data = data
+        risk_filter = config.get('risk_filter', 'All')
+        if risk_filter != 'All':
+            if risk_filter == 'High Risk Only':
+                filtered_data = [r for r in data if r.get('risk_level') in ['High', 'Critical']]
+            elif risk_filter == 'Medium+ Risk':
+                filtered_data = [r for r in data if r.get('risk_level') in ['Medium', 'High', 'Critical']]
+            elif risk_filter == 'Low Risk Only':
+                filtered_data = [r for r in data if r.get('risk_level') == 'Low']
+        
+        # Add edges from filtered data
+        for record in filtered_data:
             source = str(record.get(source_field, '')).strip()
             target_raw = str(record.get(target_field, '')).strip()
             
             if not source or not target_raw:
                 continue
+            
+            # Initialize node data if needed
+            if source not in node_data:
+                node_data[source] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+            
+            # Store node metadata for enhanced interactions
+            risk_score = record.get('risk_score', 0)
+            is_anomaly = record.get('is_anomaly', False)
+            
+            node_data[source]['risk_scores'].append(risk_score)
+            node_data[source]['emails'].append(record)
+            if is_anomaly:
+                node_data[source]['anomalies'] += 1
             
             # Handle multiple targets (comma-separated)
             targets = [t.strip() for t in target_raw.split(',') if t.strip()]
@@ -485,6 +636,16 @@ def create_network_graph(data, source_field, target_field, config):
                 if source != target:  # Avoid self-loops
                     edge_key = (source, target)
                     edge_weights[edge_key] += 1
+                    
+                    # Initialize target node data if needed
+                    if target not in node_data:
+                        node_data[target] = {'risk_scores': [], 'anomalies': 0, 'emails': []}
+                    
+                    # Store target metadata too
+                    node_data[target]['risk_scores'].append(risk_score)
+                    node_data[target]['emails'].append(record)
+                    if is_anomaly:
+                        node_data[target]['anomalies'] += 1
                     
                     # Add weight from weight field if specified
                     weight = 1
@@ -496,8 +657,14 @@ def create_network_graph(data, source_field, target_field, config):
                     
                     G.add_edge(source, target, weight=weight, count=edge_weights[edge_key])
         
+        # Apply minimum connections filter
+        min_connections = config.get('min_connections', 0)
+        if min_connections > 0:
+            nodes_to_remove = [node for node in G.nodes() if G.degree(node) < min_connections]
+            G.remove_nodes_from(nodes_to_remove)
+        
         if len(G.nodes()) == 0:
-            st.error("No valid network connections found. Please check your field selections.")
+            st.error("No nodes meet the current filter criteria. Try adjusting your filters.")
             return None
         
         # Calculate layout positions
@@ -539,91 +706,152 @@ def create_network_graph(data, source_field, target_field, config):
             count = G[edge[0]][edge[1]].get('count', 1)
             edge_info.append(f"Connection: {edge[0]} ↔ {edge[1]}<br>Weight: {weight}<br>Count: {count}")
         
+        # Enhanced edge styling with user controls
+        edge_width = config.get('edge_width', 1.0)
         fig.add_trace(go.Scatter(
             x=edge_x, y=edge_y,
-            line=dict(width=0.5, color='rgba(125,125,125,0.5)'),
+            line=dict(width=edge_width, color='rgba(125,125,125,0.6)'),
             hoverinfo='none',
             mode='lines',
             showlegend=False
         ))
         
-        # Add nodes
+        # Enhanced nodes with rich metadata
         node_x = []
         node_y = []
         node_text = []
         node_info = []
         node_sizes = []
         node_colors = []
+        node_size_multiplier = config.get('node_size_multiplier', 1.0)
+        show_labels = config.get('show_labels', True)
+        highlight_anomalies = config.get('highlight_anomalies', True)
         
         for node in G.nodes():
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
             
-            # Node information
+            # Enhanced node information with risk data
             adjacencies = list(G.neighbors(node))
-            node_info.append(f"Node: {node}<br>Connections: {len(adjacencies)}<br>Neighbors: {', '.join(adjacencies[:5])}")
-            node_text.append(str(node))
+            node_metadata = node_data.get(node, {'risk_scores': [], 'anomalies': 0, 'emails': []})
             
-            # Node size based on metric
+            avg_risk = sum(node_metadata['risk_scores']) / len(node_metadata['risk_scores']) if node_metadata['risk_scores'] else 0
+            total_emails = len(node_metadata['emails'])
+            anomaly_count = node_metadata['anomalies']
+            
+            # Rich hover information
+            hover_text = f"""
+            <b>{node}</b><br>
+            Connections: {len(adjacencies)}<br>
+            Total Emails: {total_emails}<br>
+            Avg Risk Score: {avg_risk:.1f}<br>
+            Anomalies: {anomaly_count}<br>
+            Top Connections: {', '.join(adjacencies[:3])}
+            """.strip()
+            
+            node_info.append(hover_text)
+            
+            # Enhanced node labeling
+            if show_labels:
+                if len(str(node)) > 20:
+                    node_text.append(str(node)[:17] + "...")
+                else:
+                    node_text.append(str(node))
+            else:
+                node_text.append("")
+            
+            # Enhanced node size based on metric and user controls
             metric_value = node_metrics.get(node, 1)
-            node_sizes.append(max(10, min(50, metric_value * 30)))
+            base_size = max(15, min(60, metric_value * 40)) * node_size_multiplier
+            node_sizes.append(base_size)
             
-            # Node color based on degree
-            degree = G.degree(node)
-            node_colors.append(degree)
+            # Enhanced node color based on risk and anomalies
+            if highlight_anomalies and anomaly_count > 0:
+                # Red for anomalies
+                node_colors.append(100)
+            elif avg_risk > 70:
+                # Orange for high risk
+                node_colors.append(80)
+            elif avg_risk > 40:
+                # Yellow for medium risk
+                node_colors.append(50)
+            else:
+                # Green/Blue for low risk, scaled by connections
+                degree = G.degree(node)
+                node_colors.append(min(30, degree * 5))
         
         fig.add_trace(go.Scatter(
             x=node_x, y=node_y,
-            mode='markers+text',
+            mode='markers+text' if show_labels else 'markers',
             hoverinfo='text',
             hovertext=node_info,
             text=node_text,
             textposition="middle center",
+            textfont=dict(size=10, color='white'),
             marker=dict(
                 showscale=True,
-                colorscale='Viridis',
-                reversescale=True,
+                colorscale='RdYlBu_r',  # Red for high risk, Blue for low risk
                 color=node_colors,
                 size=node_sizes,
                 colorbar=dict(
                     thickness=15,
                     len=0.5,
                     x=1.02,
-                    title="Node Degree"
+                    title="Risk Level",
+                    tickvals=[0, 25, 50, 75, 100],
+                    ticktext=['Low', 'Low-Med', 'Medium', 'High', 'Critical']
                 ),
-                line=dict(width=2, color='white')
+                line=dict(width=2, color='rgba(255,255,255,0.8)'),
+                opacity=0.8
             ),
             showlegend=False,
-            customdata=node_text,  # Store node names for click handling
-            selectedpoints=[]
+            customdata=node_text
         ))
         
-        # Update layout for dark theme
+        # Enhanced layout with user controls
+        zoom_level = config.get('zoom_level', 1.0)
+        
         fig.update_layout(
             title=dict(
-                text=f"Network Analysis: {source_field} → {target_field}",
+                text=f"Interactive Network: {source_field} → {target_field}",
                 x=0.5,
-                font=dict(size=20, color='white')
+                font=dict(size=16, color='#2c3e50')
             ),
             showlegend=False,
             hovermode='closest',
-            margin=dict(b=20,l=5,r=5,t=60),
+            margin=dict(b=40,l=20,r=80,t=60),
             annotations=[
                 dict(
-                    text=f"Nodes: {len(G.nodes())} | Edges: {len(G.edges())}",
+                    text=f"📊 {len(G.nodes())} nodes • {len(G.edges())} connections",
                     showarrow=False,
                     xref="paper", yref="paper",
-                    x=0.005, y=-0.002,
-                    xanchor='left', yanchor='bottom',
-                    font=dict(color='white', size=12)
+                    x=0.02, y=0.98,
+                    xanchor='left', yanchor='top',
+                    font=dict(color='#34495e', size=11),
+                    bgcolor='rgba(255,255,255,0.8)',
+                    bordercolor='#bdc3c7',
+                    borderwidth=1
                 )
             ],
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0.8)',
-            height=700
+            xaxis=dict(
+                showgrid=False, 
+                zeroline=False, 
+                showticklabels=False,
+                range=[-zoom_level, zoom_level],
+                fixedrange=False
+            ),
+            yaxis=dict(
+                showgrid=False, 
+                zeroline=False, 
+                showticklabels=False,
+                range=[-zoom_level, zoom_level],
+                fixedrange=False
+            ),
+            plot_bgcolor='rgba(248,249,250,0.9)',
+            paper_bgcolor='white',
+            height=600,
+            dragmode='pan'
         )
         
         return fig
