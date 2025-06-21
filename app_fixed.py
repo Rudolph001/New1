@@ -26,6 +26,8 @@ if 'processed_data' not in st.session_state:
 
 if 'followup_decisions' not in st.session_state:
     st.session_state.followup_decisions = {}
+if 'sender_review_status' not in st.session_state:
+    st.session_state.sender_review_status = {}
 if 'network_config' not in st.session_state:
     st.session_state.network_config = {
         'source_field': None,
@@ -1019,8 +1021,17 @@ def daily_checks_page():
         low_count = risk_counts.get('Low', 0)
         st.metric("🟢 Low Risk", low_count)
     
-    # Risk Events by Sender
+    # Risk Events by Sender with Tracking
     st.subheader("🎯 Risk Events (Grouped by Sender)")
+    
+    # Add tracking overview
+    col_track1, col_track2, col_track3, col_track4 = st.columns(4)
+    
+    # Calculate tracking statistics
+    total_senders = 0
+    completed_senders = 0
+    outstanding_senders = 0
+    in_progress_senders = 0
     
     # Group emails by sender
     sender_groups = defaultdict(list)
@@ -1043,10 +1054,57 @@ def daily_checks_page():
                 max_score = risk_score
         return (max_priority, max_score)
     
+    # Calculate tracking statistics before sorting
+    for sender, emails in sender_groups.items():
+        total_senders += 1
+        sender_status = st.session_state.sender_review_status.get(sender, 'outstanding')
+        
+        if sender_status == 'completed':
+            completed_senders += 1
+        elif sender_status == 'in_progress':
+            in_progress_senders += 1
+        else:
+            outstanding_senders += 1
+    
+    # Display tracking metrics
+    with col_track1:
+        st.metric("📊 Total Senders", total_senders)
+    with col_track2:
+        st.metric("✅ Completed", completed_senders)
+    with col_track3:
+        st.metric("🔄 In Progress", in_progress_senders)
+    with col_track4:
+        st.metric("⏳ Outstanding", outstanding_senders)
+    
+    # Add filter options
+    st.write("**Filter by Status:**")
+    filter_col1, filter_col2 = st.columns(2)
+    with filter_col1:
+        status_filter = st.selectbox(
+            "Show senders:",
+            options=['All', 'Outstanding', 'In Progress', 'Completed'],
+            index=0
+        )
+    with filter_col2:
+        sort_by = st.selectbox(
+            "Sort by:",
+            options=['Risk Level', 'Status', 'Email Count'],
+            index=0
+        )
+    
     # Sort senders by risk priority (Critical first)
     sorted_sender_groups = sorted(sender_groups.items(), 
                                  key=lambda x: get_sender_max_risk(x[1]), 
                                  reverse=True)
+    
+    # Apply status filter
+    if status_filter != 'All':
+        filter_map = {'Outstanding': 'outstanding', 'In Progress': 'in_progress', 'Completed': 'completed'}
+        filtered_status = filter_map[status_filter]
+        sorted_sender_groups = [
+            (sender, emails) for sender, emails in sorted_sender_groups 
+            if st.session_state.sender_review_status.get(sender, 'outstanding') == filtered_status
+        ]
     
     for sender, emails in sorted_sender_groups:
         if not emails:
@@ -1061,12 +1119,40 @@ def daily_checks_page():
         has_anomalies = any(email.get('is_anomaly', False) for email in emails)
         anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
         
-        # Create sender title with anomaly indicator
-        sender_title = f"📧 {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
+        # Get current sender status
+        current_status = st.session_state.sender_review_status.get(sender, 'outstanding')
+        status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
+        status_icon = status_icons.get(current_status, '⏳')
+        
+        # Create sender title with status and anomaly indicator
+        sender_title = f"{status_icon} {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
         if has_anomalies:
             sender_title += f" 🚨 {anomaly_count} Anomalies"
         
         with st.expander(sender_title):
+            # Add sender status controls at the top
+            st.write("**Review Status:**")
+            status_col1, status_col2, status_col3, status_col4 = st.columns(4)
+            
+            with status_col1:
+                if st.button("⏳ Outstanding", key=f"status_outstanding_{sender}"):
+                    st.session_state.sender_review_status[sender] = 'outstanding'
+                    st.rerun()
+            
+            with status_col2:
+                if st.button("🔄 In Progress", key=f"status_progress_{sender}"):
+                    st.session_state.sender_review_status[sender] = 'in_progress'
+                    st.rerun()
+            
+            with status_col3:
+                if st.button("✅ Completed", key=f"status_completed_{sender}"):
+                    st.session_state.sender_review_status[sender] = 'completed'
+                    st.rerun()
+            
+            with status_col4:
+                st.write(f"**Current:** {current_status.title()}")
+            
+            st.markdown("---")
             # Sort emails within sender group by risk level and score (Critical first)
             sorted_emails = sorted(emails, 
                                  key=lambda x: (risk_priority.get(x.get('risk_level', 'Low'), 0), 
