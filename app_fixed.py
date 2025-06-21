@@ -898,49 +898,75 @@ def calculate_node_metrics(G, metric_type):
 
 
 def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, config, source_field, target_field, community_colors):
-    """Create professional interactive network figure with enhanced styling"""
+    """Create stunning 3D-style network visualization with modern design"""
+    
+    # Check if 3D mode is enabled
+    enable_3d = config.get('enable_3d', False)
+    
+    if enable_3d:
+        return create_3d_network_figure(G, node_data, node_metrics, communities, config, source_field, target_field, community_colors)
+    
     fig = go.Figure()
     
-    # Professional edge styling with gradients and transparency
-    edge_traces = []
-    edge_weights = []
+    # Modern gradient background using shapes
+    fig.add_shape(
+        type="rect",
+        x0=-1000, y0=-1000, x1=1000, y1=1000,
+        fillcolor="rgba(240, 242, 247, 0.8)",
+        layer="below",
+        line_width=0
+    )
+    
+    # Create stunning edge visualization with curved paths
+    edge_x_all, edge_y_all = [], []
+    edge_colors = []
     
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
         weight = G[edge[0]][edge[1]].get('weight', 1)
         count = G[edge[0]][edge[1]].get('count', 1)
-        edge_weights.append(weight)
         
-        # Determine edge color based on communities and weight
+        # Create curved edge path
+        mid_x = (x0 + x1) / 2 + np.random.normal(0, 0.5)
+        mid_y = (y0 + y1) / 2 + np.random.normal(0, 0.5)
+        
+        # Bezier curve approximation with multiple points
+        t_values = np.linspace(0, 1, 20)
+        curve_x = [(1-t)**2 * x0 + 2*(1-t)*t * mid_x + t**2 * x1 for t in t_values]
+        curve_y = [(1-t)**2 * y0 + 2*(1-t)*t * mid_y + t**2 * y1 for t in t_values]
+        
+        edge_x_all.extend(curve_x + [None])
+        edge_y_all.extend(curve_y + [None])
+        
+        # Dynamic edge coloring based on weight and communities
         if communities and edge[0] in communities and edge[1] in communities:
             if communities[edge[0]]['id'] == communities[edge[1]]['id']:
-                # Same community - use community color with transparency
                 base_color = communities[edge[0]]['color']
-                edge_color = f"rgba({int(base_color[1:3], 16)}, {int(base_color[3:5], 16)}, {int(base_color[5:7], 16)}, {0.3 + weight * 0.3})"
+                opacity = 0.4 + weight * 0.4
             else:
-                # Different communities - neutral color
-                edge_color = f"rgba(99, 110, 114, {0.2 + weight * 0.2})"
+                base_color = '#95a5a6'
+                opacity = 0.2 + weight * 0.2
         else:
-            edge_color = f"rgba(99, 110, 114, {0.2 + weight * 0.2})"
+            base_color = '#34495e'
+            opacity = 0.3 + weight * 0.3
         
-        # Calculate edge width based on weight
-        edge_width = max(0.5, min(6.0, weight * config.get('edge_width', 1.0) + 0.5))
-        
-        # Create individual edge trace for better control
-        fig.add_trace(go.Scatter(
-            x=[x0, x1], y=[y0, y1],
-            mode='lines',
-            line=dict(
-                width=edge_width,
-                color=edge_color,
-                shape='spline',
-                smoothing=0.3
-            ),
-            hovertemplate=f"<b>Connection</b><br>{edge[0]} ↔ {edge[1]}<br><b>Weight:</b> {weight}<br><b>Messages:</b> {count}<extra></extra>",
-            showlegend=False,
-            name=f'edge_{edge[0]}_{edge[1]}'
-        ))
+        edge_colors.extend([f"rgba(52, 73, 94, {opacity})" for _ in range(20)] + [None])
+    
+    # Add sophisticated edge trace
+    fig.add_trace(go.Scatter(
+        x=edge_x_all, y=edge_y_all,
+        mode='lines',
+        line=dict(
+            width=1.5,
+            color='rgba(52, 73, 94, 0.3)',
+            shape='spline',
+            smoothing=1.0
+        ),
+        hoverinfo='skip',
+        showlegend=False,
+        name='connections'
+    ))
 
     # Professional nodes with enhanced interactivity and styling
     show_labels = config.get('show_labels', True)
@@ -1038,7 +1064,27 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             else:
                 normal_nodes['color'].append('#3498db')
 
-    # Add high-risk nodes with special styling
+    # Create stunning node visualizations with modern gradients and shadows
+    
+    # Add shadow effect for nodes (slightly offset darker circles)
+    shadow_offset = 2
+    for node_type, nodes in [('high_risk', high_risk_nodes), ('normal', normal_nodes)] + [(f'community_{comm_id}', comm_data) for comm_id, comm_data in community_nodes.items()]:
+        if nodes['x']:
+            fig.add_trace(go.Scatter(
+                x=[x + shadow_offset for x in nodes['x']],
+                y=[y - shadow_offset for y in nodes['y']],
+                mode='markers',
+                marker=dict(
+                    color='rgba(0, 0, 0, 0.15)',
+                    size=[s + 4 for s in nodes['size']],
+                    sizemode='diameter'
+                ),
+                hoverinfo='skip',
+                showlegend=False,
+                name='shadow'
+            ))
+    
+    # Add high-risk nodes with premium styling
     if high_risk_nodes['x']:
         fig.add_trace(go.Scatter(
             x=high_risk_nodes['x'], y=high_risk_nodes['y'],
@@ -1047,22 +1093,33 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             hovertemplate='%{hovertext}<extra></extra>',
             hovertext=high_risk_nodes['info'],
             textposition="middle center",
-            textfont=dict(size=11, color='white', family='Arial Black'),
+            textfont=dict(size=12, color='white', family='Roboto', style='bold'),
             marker=dict(
-                color='#e74c3c',
+                color=['#ff6b6b', '#ff5252', '#e74c3c', '#c0392b'],
                 size=high_risk_nodes['size'],
-                line=dict(width=3, color='rgba(231, 76, 60, 0.8)'),
+                line=dict(width=4, color='rgba(255, 255, 255, 0.9)'),
                 opacity=0.95,
                 symbol='diamond',
                 sizemode='diameter'
             ),
-            name='High Risk Nodes',
+            name='🚨 Critical Nodes',
             customdata=high_risk_nodes['ids']
         ))
 
-    # Add community-based nodes
+    # Add community nodes with gradient effects
+    community_symbols = ['circle', 'square', 'triangle-up', 'star', 'hexagon', 'pentagon', 'octagon']
     for comm_id, comm_data in community_nodes.items():
         if comm_data['x']:
+            symbol = community_symbols[comm_id % len(community_symbols)]
+            
+            # Create gradient effect with multiple shades
+            base_color = comm_data['color']
+            gradient_colors = [
+                base_color,
+                f"rgba({int(base_color[1:3], 16)}, {int(base_color[3:5], 16)}, {int(base_color[5:7], 16)}, 0.9)",
+                f"rgba({min(255, int(base_color[1:3], 16) + 30)}, {min(255, int(base_color[3:5], 16) + 30)}, {min(255, int(base_color[5:7], 16) + 30)}, 0.8)"
+            ]
+            
             fig.add_trace(go.Scatter(
                 x=comm_data['x'], y=comm_data['y'],
                 mode='markers+text' if show_labels else 'markers',
@@ -1070,19 +1127,20 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
                 hovertemplate='%{hovertext}<extra></extra>',
                 hovertext=comm_data['info'],
                 textposition="middle center",
-                textfont=dict(size=10, color='white', family='Arial Black'),
+                textfont=dict(size=11, color='white', family='Roboto', style='bold'),
                 marker=dict(
-                    color=comm_data['color'],
+                    color=gradient_colors[0],
                     size=comm_data['size'],
-                    line=dict(width=2, color='rgba(255,255,255,0.9)'),
+                    line=dict(width=3, color='rgba(255, 255, 255, 0.8)'),
                     opacity=0.9,
+                    symbol=symbol,
                     sizemode='diameter'
                 ),
-                name=f'Community {comm_id}',
+                name=f'🏘️ Community {comm_id}',
                 customdata=comm_data['ids']
             ))
 
-    # Add normal nodes
+    # Add premium normal nodes
     if normal_nodes['x']:
         fig.add_trace(go.Scatter(
             x=normal_nodes['x'], y=normal_nodes['y'],
@@ -1091,15 +1149,15 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             hovertemplate='%{hovertext}<extra></extra>',
             hovertext=normal_nodes['info'],
             textposition="middle center",
-            textfont=dict(size=10, color='white', family='Arial Black'),
+            textfont=dict(size=10, color='white', family='Roboto'),
             marker=dict(
                 color=normal_nodes['color'],
                 size=normal_nodes['size'],
-                line=dict(width=2, color='rgba(255,255,255,0.9)'),
+                line=dict(width=2, color='rgba(255, 255, 255, 0.9)'),
                 opacity=0.85,
                 sizemode='diameter'
             ),
-            name='Other Nodes',
+            name='📊 Standard Nodes',
             customdata=normal_nodes['ids']
         ))
 
@@ -1124,66 +1182,71 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
     
     fig.update_layout(
         title=dict(
-            text=f"<b style='color: #2c3e50; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);'>Professional Network Analysis</b><br><sub style='color: #7f8c8d;'>{source_field} → {target_field} • Interactive Communities • Advanced Metrics</sub>",
+            text=f"<b style='color: #2c3e50; font-size: 28px;'>🌐 Advanced Network Intelligence</b><br><span style='color: #7f8c8d; font-size: 16px;'>{source_field} → {target_field} • AI-Powered Analysis • Real-time Insights</span>",
             x=0.5,
-            y=0.95,
-            font=dict(size=20, family='Arial Black')
+            y=0.96,
+            font=dict(family='Roboto, Arial, sans-serif')
         ),
         showlegend=True,
         legend=dict(
-            x=0.02, y=0.98,
-            bgcolor='rgba(255,255,255,0.9)',
-            bordercolor='#bdc3c7',
-            borderwidth=1,
-            font=dict(size=10)
+            x=0.98, y=0.98,
+            xanchor='right',
+            bgcolor='rgba(255, 255, 255, 0.95)',
+            bordercolor='rgba(52, 73, 94, 0.2)',
+            borderwidth=2,
+            font=dict(size=11, family='Roboto'),
+            itemsizing='constant'
         ),
         hovermode='closest',
-        margin=dict(b=60, l=40, r=40, t=120),
+        margin=dict(b=60, l=40, r=40, t=140),
         annotations=[
+            # Modern info panel
             dict(
-                text=f"""<b style='color: #2c3e50;'>📊 Network Overview</b><br>
-                <span style='color: #34495e;'>🔸 <b>{len(G.nodes())}</b> nodes • <b>{len(G.edges())}</b> connections</span><br>
-                <span style='color: #8e44ad;'>🏘️ <b>{len(set(c['id'] for c in communities.values())) if communities else 0}</b> communities detected</span><br>
-                <span style='color: #27ae60;'>⚙️ Layout: <b>{config['layout'].replace('_', ' ').title()}</b></span><br>
-                <span style='color: #e67e22;'>📏 Metric: <b>{config['node_size_metric'].replace('_', ' ').title()}</b></span><br>
-                <br><span style='color: #95a5a6; font-size: 10px;'>💡 Click nodes to analyze • Drag to reposition • Use toolbar for advanced controls</span>""",
+                text=f"""<div style='background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(155, 89, 182, 0.1)); padding: 15px; border-radius: 10px;'>
+                <b style='color: #2c3e50; font-size: 14px;'>🔍 Network Intelligence</b><br>
+                <span style='color: #34495e;'>📊 <b>{len(G.nodes())}</b> entities • <b>{len(G.edges())}</b> relationships</span><br>
+                <span style='color: #8e44ad;'>🧠 <b>{len(set(c['id'] for c in communities.values())) if communities else 0}</b> AI-detected clusters</span><br>
+                <span style='color: #27ae60;'>⚡ Algorithm: <b>{config['layout'].replace('_', ' ').title()}</b></span><br>
+                <span style='color: #e67e22;'>📈 Centrality: <b>{config['node_size_metric'].replace('_', ' ').title()}</b></span><br>
+                <hr style='border: 1px solid rgba(189, 195, 199, 0.3); margin: 8px 0;'>
+                <span style='color: #95a5a6; font-size: 11px;'>🎯 Interactive • 📱 Responsive • 🚀 Real-time</span>
+                </div>""",
                 showarrow=False,
                 xref="paper", yref="paper",
                 x=0.02, y=0.02,
                 xanchor='left', yanchor='bottom',
-                font=dict(color='#2c3e50', size=11, family='Arial'),
-                bgcolor='rgba(255,255,255,0.95)',
-                bordercolor='#3498db',
-                borderwidth=2,
-                borderpad=10
+                font=dict(color='#2c3e50', size=12, family='Roboto'),
+                bgcolor='rgba(255, 255, 255, 0.0)',
+                borderwidth=0
             )
         ],
         xaxis=dict(
             showgrid=True, 
-            gridcolor='rgba(189, 195, 199, 0.3)',
-            gridwidth=1,
+            gridcolor='rgba(189, 195, 199, 0.2)',
+            gridwidth=0.5,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 12, zoom_level * 12],
+            range=[-zoom_level * 15, zoom_level * 15],
             fixedrange=False,
             scaleanchor="y",
             scaleratio=1
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor='rgba(189, 195, 199, 0.3)',
-            gridwidth=1,
+            gridcolor='rgba(189, 195, 199, 0.2)',
+            gridwidth=0.5,
             zeroline=False, 
             showticklabels=False,
-            range=[-zoom_level * 12, zoom_level * 12],
+            range=[-zoom_level * 15, zoom_level * 15],
             fixedrange=False
         ),
-        plot_bgcolor='rgba(248, 249, 250, 0.95)',
+        plot_bgcolor='rgba(251, 252, 254, 1.0)',
         paper_bgcolor='#ffffff',
-        height=900,
+        height=950,
         dragmode='pan',
         clickmode='event+select',
-        transition=dict(duration=500, easing='cubic-in-out')
+        transition=dict(duration=300, easing='ease-out'),
+        font=dict(family='Roboto, Arial, sans-serif')
     )
 
     return fig
