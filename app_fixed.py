@@ -426,7 +426,17 @@ def network_analysis_page():
 
                 # Enhanced graph display with better interaction
                 st.subheader("📊 Interactive Network Graph")
-                st.info("💡 Click on any node to see detailed analysis | Drag to pan | Scroll to zoom")
+                
+                # Color guide for better readability
+                guide_col1, guide_col2, guide_col3 = st.columns(3)
+                with guide_col1:
+                    st.markdown("🔴 **Red/Pink:** High Risk & Anomalies")
+                with guide_col2:
+                    st.markdown("🟡 **Yellow:** Medium Risk")
+                with guide_col3:
+                    st.markdown("🔵 **Blue/Purple:** Low Risk")
+                
+                st.info("🎯 Click nodes for analysis • Use toolbar to select/drag nodes • Scroll to zoom • Double-click to reset view")
 
                 # Display the graph with enhanced interactivity
                 selected_data = st.plotly_chart(
@@ -435,15 +445,19 @@ def network_analysis_page():
                     config={
                         'displayModeBar': True,
                         'displaylogo': False,
-                        'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d'],
-                        'modeBarButtonsToRemove': ['autoScale2d'],
+                        'modeBarButtonsToAdd': ['pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d'],
+                        'modeBarButtonsToRemove': ['autoScale2d', 'resetScale2d'],
+                        'scrollZoom': True,
+                        'doubleClick': 'reset+autosize',
                         'toImageButtonOptions': {
                             'format': 'png',
-                            'filename': 'network_graph',
-                            'height': 800,
-                            'width': 1200,
-                            'scale': 2
-                        }
+                            'filename': 'network_graph_enhanced',
+                            'height': 1000,
+                            'width': 1400,
+                            'scale': 3
+                        },
+                        'editable': True,
+                        'showTips': True
                     },
                     key="interactive_network_chart"
                 )
@@ -730,10 +744,11 @@ def create_network_graph(data, source_field, target_field, config):
         edge_width = config.get('edge_width', 1.0)
         fig.add_trace(go.Scatter(
             x=edge_x, y=edge_y,
-            line=dict(width=edge_width, color='rgba(125,125,125,0.6)'),
+            line=dict(width=edge_width * 2, color='rgba(150,150,150,0.4)'),
             hoverinfo='none',
             mode='lines',
-            showlegend=False
+            showlegend=False,
+            name='connections'
         ))
 
         # Enhanced nodes with rich metadata
@@ -808,25 +823,27 @@ def create_network_graph(data, source_field, target_field, config):
             hovertext=node_info,
             text=node_text,
             textposition="middle center",
-            textfont=dict(size=10, color='white'),
+            textfont=dict(size=12, color='black', family='Arial Black'),
             marker=dict(
                 showscale=True,
-                colorscale='RdYlBu_r',  # Red for high risk, Blue for low risk
+                colorscale='Plasma',  # Better contrast colorscale
                 color=node_colors,
                 size=node_sizes,
                 colorbar=dict(
-                    thickness=15,
-                    len=0.5,
+                    thickness=20,
+                    len=0.6,
                     x=1.02,
-                    title="Risk Level",
+                    title=dict(text="Risk Level", font=dict(size=14)),
                     tickvals=[0, 25, 50, 75, 100],
-                    ticktext=['Low', 'Low-Med', 'Medium', 'High', 'Critical']
+                    ticktext=['Low', 'Low-Med', 'Medium', 'High', 'Critical'],
+                    tickfont=dict(size=12)
                 ),
-                line=dict(width=2, color='rgba(255,255,255,0.8)'),
-                opacity=0.8
+                line=dict(width=3, color='black'),
+                opacity=0.9
             ),
             showlegend=False,
-            customdata=node_text
+            customdata=node_text,
+            name='nodes'
         ))
 
         # Enhanced layout with user controls
@@ -868,10 +885,10 @@ def create_network_graph(data, source_field, target_field, config):
                 range=[-zoom_level, zoom_level],
                 fixedrange=False
             ),
-            plot_bgcolor='rgba(248,249,250,0.9)',
-            paper_bgcolor='white',
-            height=600,
-            dragmode='pan'
+            plot_bgcolor='white',
+            paper_bgcolor='#f8f9fa',
+            height=650,
+            dragmode='select'
         )
 
         return fig
