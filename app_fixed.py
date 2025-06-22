@@ -1647,7 +1647,7 @@ def main():
         st.header("📋 Navigation")
         page = st.selectbox(
             "Select Section:",
-            ["📁 Data Upload", "📆 Daily Checks", "📨 Follow-up Center", "🔗 Network Analysis", "⚙️ Settings"]
+            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "⚙️ Settings"]
         )
 
         # Display data status
@@ -1659,7 +1659,7 @@ def main():
     # Route to selected page
     if page == "📁 Data Upload":
         data_upload_page()
-    elif page == "📆 Daily Checks":
+    elif page == "🛡️ Security Operations":
         daily_checks_page()
     elif page == "📨 Follow-up Center":
         followup_center_page()
@@ -1743,7 +1743,7 @@ def daily_checks_page():
         st.warning("⚠️ Please upload data first in the Data Upload section.")
         return
 
-    st.header("📆 Daily Security Checks")
+    st.header("🛡️ Security Operations Dashboard")
 
     data = st.session_state.processed_data
 
