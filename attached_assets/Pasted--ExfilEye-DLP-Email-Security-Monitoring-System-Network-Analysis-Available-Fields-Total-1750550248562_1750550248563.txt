@@ -1,0 +1,132 @@
+🛡️ ExfilEye - DLP Email Security Monitoring System
+🔗 Network Analysis
+📊 Available Fields
+Total Fields: 33
+
+Available Fields:
+
+• time: 6/1/2025 0:00...
+
+• sender: vanstadenrudolph@gmail.com...
+
+• sender_domain: fnb.co.za...
+
+• recipients: reedsamantha@fnb.co.za...
+
+• recipient_domain: fnb.co.za...
+
+• email_domain: yahoo.com...
+
+• word_list_match: doc...
+
+• recipient_status: external...
+
+• subject: Up-sized foreground monitoring...
+
+• attachments: doc1.pdf...
+
+Additional Fields:
+
+• act: send...
+
+• delivered: no...
+
+• deliveryErrors: SMTP timeout...
+
+• direction: outbound...
+
+• eventtype: email_sent...
+
+• aggreatedid: 1000...
+
+• tessian: TRUE...
+
+• tessian_response: ...
+
+• mimecast: mimecast...
+
+• tessian_outcome: blocked...
+
+• tessian_policy: ...
+
+• last_working_day: ...
+
+• bunit: Regulatory...
+
+• department: IT...
+
+• businessPillar: Strategy...
+
+• risk_score: 45...
+
+• risk_level: Medium...
+
+• risk_factors: Sensitive keywords, Has attach...
+
+• is_anomaly: True...
+
+• anomaly_type: Content...
+
+• anomaly_score: 0.8...
+
+• anomaly_reason: Sent during unusual hours (aft...
+
+• anomaly_details: Detected 2 anomaly indicators...
+
+🎯 Field Selection for Network Linking
+Source Nodes (From)
+
+Select source field:
+
+sender
+Target Nodes (To)
+
+Select target field:
+
+recipients
+Link Weight (Optional)
+
+Select weight field:
+
+None
+⚙️ Advanced Configuration
+
+
+🎛️ Interactive Controls
+Zoom Level
+
+0.50
+3.00
+Node Size
+
+0.50
+2.00
+Connection Width
+
+0.50
+3.00
+
+Filter Network:
+
+Min Connections
+
+0
+
+
+Risk Level Filter
+
+All
+
+🚀 Advanced Interactive Network Graph
+🎨 Community Colors: Auto-detected groups
+
+📊 Node Size: Advanced centrality metrics
+
+🔍 Smart Layout: Force-directed positioning
+
+⚡ Physics: Real-time interactions
+
+✨ Advanced Features: Community detection • Centrality analysis • Multi-layout algorithms • Enhanced interactions
+
+🎮 Interactive Controls
+🎯 Professional Interaction Guide: • 🖱️ Click Nodes: Detailed analysis & highlighting • 🤏 Drag Nodes: Reposition individual nodes • 📐 Pan Mode: Move entire network view • 🔍 Zoom: Scroll wheel or toolbar controls • 📊 Select Tool: Multi-node selection with lasso • 🎨 Legend: Click community types to filter
