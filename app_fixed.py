@@ -13,6 +13,254 @@ from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import SpectralClustering
 import igraph as ig
 
+# Comprehensive email domain classification
+EMAIL_DOMAIN_CLASSIFICATIONS = {
+    "free_email_providers": {
+        # Major free providers
+        "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com", "msn.com",
+        "aol.com", "icloud.com", "me.com", "mac.com", "protonmail.com", "tutanota.com",
+        
+        # International free providers
+        "yandex.com", "yandex.ru", "mail.ru", "rambler.ru", "qq.com", "163.com", 
+        "126.com", "sina.com", "sohu.com", "naver.com", "daum.net", "hanmail.net",
+        "rediffmail.com", "sify.com", "indiatimes.com", "yahoo.co.in", "gmail.co.in",
+        
+        # Other popular free providers
+        "zoho.com", "fastmail.com", "gmx.com", "gmx.de", "web.de", "t-online.de",
+        "freenet.de", "arcor.de", "alice.it", "libero.it", "virgilio.it", "tiscali.it",
+        "orange.fr", "laposte.net", "wanadoo.fr", "free.fr", "sfr.fr", "neuf.fr",
+        "terra.com.br", "uol.com.br", "ig.com.br", "globo.com", "bol.com.br",
+        "yahoo.com.au", "bigpond.com", "optusnet.com.au", "telstra.com",
+        
+        # Temporary/disposable email providers
+        "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
+        "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com"
+    },
+    
+    "business_domains": {
+        # Technology companies
+        "microsoft.com", "apple.com", "google.com", "amazon.com", "meta.com", "facebook.com",
+        "tesla.com", "nvidia.com", "intel.com", "amd.com", "qualcomm.com", "broadcom.com",
+        "oracle.com", "salesforce.com", "adobe.com", "ibm.com", "cisco.com", "vmware.com",
+        "dell.com", "hp.com", "lenovo.com", "asus.com", "sony.com", "samsung.com",
+        
+        # Financial institutions
+        "jpmorgan.com", "bankofamerica.com", "wellsfargo.com", "citibank.com", "goldmansachs.com",
+        "morganstanley.com", "blackrock.com", "vanguard.com", "fidelity.com", "schwab.com",
+        "americanexpress.com", "visa.com", "mastercard.com", "paypal.com", "stripe.com",
+        
+        # Consulting firms
+        "mckinsey.com", "bain.com", "bcg.com", "deloitte.com", "pwc.com", "ey.com", "kpmg.com",
+        "accenture.com", "ibm.com", "capgemini.com", "cognizant.com", "infosys.com",
+        
+        # Healthcare & pharmaceuticals
+        "pfizer.com", "jnj.com", "roche.com", "novartis.com", "merck.com", "abbvie.com",
+        "bristol-myers.com", "astrazeneca.com", "gilead.com", "amgen.com", "biogen.com",
+        
+        # Retail & consumer goods
+        "walmart.com", "target.com", "costco.com", "homedepot.com", "lowes.com",
+        "cocacola.com", "pepsico.com", "unilever.com", "pg.com", "nestle.com",
+        
+        # Media & entertainment
+        "disney.com", "netflix.com", "warnermedia.com", "nbcuniversal.com", "viacom.com",
+        "sony.com", "spotify.com", "youtube.com", "twitch.tv", "tiktok.com",
+        
+        # Automotive
+        "ford.com", "gm.com", "toyota.com", "honda.com", "bmw.com", "mercedes-benz.com",
+        "volkswagen.com", "audi.com", "porsche.com", "ferrari.com", "lamborghini.com",
+        
+        # Airlines & travel
+        "delta.com", "aa.com", "united.com", "southwest.com", "lufthansa.com",
+        "britishairways.com", "airfrance.com", "klm.com", "emirates.com", "qantas.com",
+        
+        # Energy companies
+        "exxonmobil.com", "chevron.com", "shell.com", "bp.com", "totalenergies.com",
+        "conocophillips.com", "valero.com", "marathon.com", "phillips66.com"
+    },
+    
+    "government_domains": {
+        # US Government
+        "state.gov", "defense.gov", "justice.gov", "treasury.gov", "commerce.gov",
+        "labor.gov", "hhs.gov", "hud.gov", "dot.gov", "energy.gov", "ed.gov",
+        "va.gov", "dhs.gov", "epa.gov", "nasa.gov", "nsa.gov", "cia.gov", "fbi.gov",
+        "irs.gov", "cdc.gov", "fda.gov", "usda.gov", "nist.gov", "noaa.gov",
+        
+        # International government domains
+        "gov.uk", "gov.ca", "gov.au", "gov.in", "gov.de", "gov.fr", "gov.it",
+        "gov.jp", "gov.kr", "gov.cn", "gov.br", "gov.mx", "gov.za", "gov.eg",
+        
+        # Military domains
+        "army.mil", "navy.mil", "af.mil", "marines.mil", "uscg.mil", "socom.mil",
+        "centcom.mil", "eucom.mil", "pacom.mil", "northcom.mil", "southcom.mil"
+    },
+    
+    "educational_domains": {
+        # Major universities
+        "harvard.edu", "mit.edu", "stanford.edu", "caltech.edu", "princeton.edu",
+        "yale.edu", "columbia.edu", "upenn.edu", "dartmouth.edu", "brown.edu",
+        "cornell.edu", "uchicago.edu", "northwestern.edu", "duke.edu", "vanderbilt.edu",
+        "rice.edu", "emory.edu", "georgetown.edu", "carnegiemellon.edu", "wustl.edu",
+        
+        # Public universities
+        "berkeley.edu", "ucla.edu", "umich.edu", "uiuc.edu", "wisc.edu", "umn.edu",
+        "osu.edu", "psu.edu", "rutgers.edu", "umd.edu", "unc.edu", "uva.edu",
+        "vt.edu", "ncsu.edu", "clemson.edu", "auburn.edu", "alabama.edu", "lsu.edu",
+        
+        # International universities
+        "ox.ac.uk", "cam.ac.uk", "imperial.ac.uk", "ucl.ac.uk", "kcl.ac.uk",
+        "utoronto.ca", "mcgill.ca", "ubc.ca", "anu.edu.au", "sydney.edu.au",
+        "melbourne.edu.au", "unsw.edu.au", "tum.de", "ethz.ch", "epfl.ch",
+        
+        # K-12 education domains
+        "k12.ca.us", "k12.tx.us", "k12.ny.us", "k12.fl.us", "k12.il.us"
+    },
+    
+    "healthcare_domains": {
+        # Major health systems
+        "mayoclinic.org", "clevelandclinic.org", "jhmi.edu", "upmc.com", "kp.org",
+        "sutterhealth.org", "dignityhealth.org", "commonspirit.org", "ascension.org",
+        "providence.org", "intermountainhealthcare.org", "sharp.com", "scripps.org",
+        
+        # Insurance companies
+        "anthem.com", "uhc.com", "aetna.com", "cigna.com", "humana.com",
+        "bluecross.com", "bcbs.com", "molina.com", "centene.com", "wellcare.com"
+    },
+    
+    "suspicious_patterns": {
+        # Patterns that might indicate suspicious activity
+        "tempmail", "throwaway", "guerrilla", "mailinator", "10minute",
+        "temp-mail", "disposable", "fake", "spam", "trash"
+    },
+    
+    "country_specific_business": {
+        # UK business domains
+        "co.uk", "org.uk", "ac.uk", "gov.uk", "nhs.uk", "police.uk",
+        
+        # Canada business domains
+        "ca", "gc.ca", "on.ca", "qc.ca", "bc.ca", "ab.ca",
+        
+        # Australia business domains
+        "com.au", "gov.au", "edu.au", "org.au", "net.au",
+        
+        # Germany business domains
+        "de", "com.de", "org.de", "net.de",
+        
+        # France business domains
+        "fr", "com.fr", "org.fr", "gouv.fr",
+        
+        # Japan business domains
+        "co.jp", "or.jp", "ne.jp", "go.jp", "ac.jp",
+        
+        # India business domains
+        "co.in", "org.in", "net.in", "gov.in", "ac.in",
+        
+        # China business domains
+        "com.cn", "org.cn", "net.cn", "gov.cn", "edu.cn"
+    }
+}
+
+def classify_email_domain(email_address):
+    """
+    Classify an email domain into categories for DLP analysis
+    Returns: dict with classification results
+    """
+    if not email_address or '@' not in email_address:
+        return {
+            "classification": "unknown",
+            "risk_level": "medium",
+            "category": "invalid",
+            "is_business": False,
+            "is_free": False,
+            "is_suspicious": False
+        }
+    
+    domain = email_address.split('@')[1].lower()
+    
+    # Check against classification lists
+    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["free_email_providers"]:
+        return {
+            "classification": "free_email",
+            "risk_level": "medium",
+            "category": "personal",
+            "is_business": False,
+            "is_free": True,
+            "is_suspicious": False
+        }
+    
+    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["business_domains"]:
+        return {
+            "classification": "business",
+            "risk_level": "low",
+            "category": "corporate",
+            "is_business": True,
+            "is_free": False,
+            "is_suspicious": False
+        }
+    
+    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["government_domains"]:
+        return {
+            "classification": "government",
+            "risk_level": "low",
+            "category": "official",
+            "is_business": True,
+            "is_free": False,
+            "is_suspicious": False
+        }
+    
+    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["educational_domains"]:
+        return {
+            "classification": "educational",
+            "risk_level": "low",
+            "category": "academic",
+            "is_business": True,
+            "is_free": False,
+            "is_suspicious": False
+        }
+    
+    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["healthcare_domains"]:
+        return {
+            "classification": "healthcare",
+            "risk_level": "medium",
+            "category": "medical",
+            "is_business": True,
+            "is_free": False,
+            "is_suspicious": False
+        }
+    
+    # Check for suspicious patterns
+    for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
+        if pattern in domain:
+            return {
+                "classification": "suspicious",
+                "risk_level": "high",
+                "category": "potential_threat",
+                "is_business": False,
+                "is_free": True,
+                "is_suspicious": True
+            }
+    
+    # Check country-specific business domains
+    for country_domain in EMAIL_DOMAIN_CLASSIFICATIONS["country_specific_business"]:
+        if domain.endswith(country_domain):
+            return {
+                "classification": "international_business",
+                "risk_level": "medium",
+                "category": "foreign_business",
+                "is_business": True,
+                "is_free": False,
+                "is_suspicious": False
+            }
+    
+    # Unknown domain - could be business or personal
+    return {
+        "classification": "unknown",
+        "risk_level": "medium",
+        "category": "unclassified",
+        "is_business": None,
+        "is_free": False,
+        "is_suspicious": False
+    }
+
 # Page configuration
 st.set_page_config(
     page_title="ExfilEye - DLP Email Security Monitor",
@@ -63,16 +311,60 @@ def process_csv_data(csv_content):
 
 # Risk calculation function
 def calculate_risk_score(email_data):
-    """Calculate risk score based on email properties"""
+    """Calculate risk score based on email properties including comprehensive domain classification"""
     score = 0
     factors = []
 
-    # Check domain type
+    # Enhanced domain-based risk assessment
+    sender = email_data.get('sender', '') or email_data.get('sender_email', '')
+    recipient = email_data.get('recipient', '') or email_data.get('recipient_email', '')
+    
+    if sender:
+        sender_classification = classify_email_domain(sender)
+        
+        # Add risk based on sender domain type
+        if sender_classification['is_suspicious']:
+            score += 40
+            factors.append('Suspicious sender domain')
+        elif sender_classification['is_free'] and not sender_classification['is_business']:
+            score += 25
+            factors.append('Free email domain')
+        elif sender_classification['classification'] == 'unknown':
+            score += 15
+            factors.append('Unknown sender domain')
+    
+    # Legacy domain check for backwards compatibility
     sender_domain = email_data.get('sender_domain', '').lower()
-    free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
-    if sender_domain in free_domains:
-        score += 25
-        factors.append('Free email domain')
+    if sender_domain and not sender:  # Fallback if sender email not available
+        free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+        if sender_domain in free_domains:
+            score += 25
+            factors.append('Free email domain')
+
+    # Cross-domain communication risk
+    if sender and recipient:
+        sender_domain = sender.split('@')[1] if '@' in sender else ''
+        recipient_domain = recipient.split('@')[1] if '@' in recipient else ''
+        
+        if sender_domain != recipient_domain:
+            score += 10
+            factors.append('External communication')
+            
+            # Higher risk patterns
+            sender_classification = classify_email_domain(sender)
+            recipient_classification = classify_email_domain(recipient)
+            
+            # Business to free email risk
+            if (sender_classification.get('is_business', False) and 
+                recipient_classification.get('is_free', False)):
+                score += 20
+                factors.append('Business to personal email')
+            
+            # Unknown domains in communication
+            if (sender_classification['classification'] == 'unknown' or 
+                recipient_classification['classification'] == 'unknown'):
+                score += 10
+                factors.append('Unknown domain communication')
 
     # Check keywords
     word_list = email_data.get('word_list_match', '')
@@ -98,8 +390,23 @@ def calculate_risk_score(email_data):
         score += 10
         factors.append('External recipients')
 
+    # Time-based risk (off-hours)
+    timestamp = email_data.get('timestamp', '') or email_data.get('sent_time', '')
+    if timestamp:
+        try:
+            # Simple off-hours check
+            if ':' in timestamp:
+                hour = int(timestamp.split(':')[0]) 
+                if hour > 18 or hour < 6:
+                    score += 10
+                    factors.append('Off-hours activity')
+        except:
+            pass
+
     # Determine risk level
-    if score >= 60:
+    if score >= 80:
+        risk_level = 'Critical'
+    elif score >= 60:
         risk_level = 'High'
     elif score >= 30:
         risk_level = 'Medium'
@@ -107,7 +414,8 @@ def calculate_risk_score(email_data):
         risk_level = 'Low'
 
     # Critical risk combinations
-    if (last_working_day and attachments and word_list and sender_domain in free_domains):
+    if (last_working_day and attachments and word_list and 
+        any('Free email' in factor or 'Suspicious' in factor for factor in factors)):
         risk_level = 'Critical'
         factors.append('CRITICAL COMBINATION')
 
@@ -2244,26 +2552,135 @@ IT Security Team"""
 def settings_page():
     st.header("⚙️ Settings")
 
-    st.subheader("Risk Configuration")
+    # Domain Classification Management
+    st.subheader("📧 Email Domain Classification")
+    
+    tab1, tab2, tab3 = st.tabs(["Domain Statistics", "Classification Rules", "Risk Configuration"])
+    
+    with tab1:
+        st.write("**Domain Classification Overview**")
+        
+        # Display domain statistics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Free Email Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["free_email_providers"]))
+            st.caption("Personal email services")
+        
+        with col2:
+            st.metric("Business Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["business_domains"]))
+            st.caption("Corporate organizations")
+        
+        with col3:
+            st.metric("Government Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["government_domains"]))
+            st.caption("Official institutions")
+        
+        with col4:
+            st.metric("Educational Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["educational_domains"]))
+            st.caption("Academic institutions")
+        
+        # Domain search and classification test
+        st.markdown("---")
+        st.write("**Test Email Classification**")
+        test_email = st.text_input("Enter email address to test classification:")
+        
+        if test_email:
+            classification = classify_email_domain(test_email)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.json({
+                    "Email": test_email,
+                    "Classification": classification['classification'],
+                    "Category": classification['category'],
+                    "Risk Level": classification['risk_level']
+                })
+            
+            with col2:
+                st.json({
+                    "Is Business": classification['is_business'],
+                    "Is Free Email": classification['is_free'],
+                    "Is Suspicious": classification['is_suspicious']
+                })
+    
+    with tab2:
+        st.write("**Domain Classification Rules**")
+        
+        # Show classification categories
+        for category, domains in EMAIL_DOMAIN_CLASSIFICATIONS.items():
+            if category != "suspicious_patterns":  # Skip patterns for display
+                with st.expander(f"{category.replace('_', ' ').title()} ({len(domains)} domains)"):
+                    # Display first 20 domains for each category
+                    displayed_domains = list(domains)[:20]
+                    for i in range(0, len(displayed_domains), 4):
+                        cols = st.columns(4)
+                        for j, domain in enumerate(displayed_domains[i:i+4]):
+                            if j < len(cols):
+                                cols[j].code(domain)
+                    
+                    if len(domains) > 20:
+                        st.caption(f"... and {len(domains) - 20} more domains")
+        
+        # Add custom domain functionality
+        st.markdown("---")
+        st.write("**Add Custom Domain**")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            new_domain = st.text_input("Domain to add:")
+            domain_category = st.selectbox("Category:", 
+                ["business_domains", "free_email_providers", "suspicious_patterns"])
+        
+        with col2:
+            if st.button("Add Domain"):
+                if new_domain:
+                    st.success(f"Domain '{new_domain}' would be added to {domain_category}")
+                    st.info("Note: This is a demo. In production, this would update the domain database.")
+    
+    with tab3:
+        st.write("**Risk Configuration**")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Risk Thresholds**")
+            low_threshold = st.slider("Low Risk Threshold", 0, 100, 30)
+            medium_threshold = st.slider("Medium Risk Threshold", 0, 100, 60)
+            high_threshold = st.slider("High Risk Threshold", 0, 100, 100)
 
+            if st.button("Update Thresholds"):
+                st.success("Risk thresholds updated successfully!")
+        
+        with col2:
+            st.write("**Domain Risk Weights**")
+            st.slider("Suspicious Domain Risk", 0, 50, 40)
+            st.slider("Free Email Risk", 0, 30, 15)
+            st.slider("Unknown Domain Risk", 0, 20, 10)
+            st.slider("External Communication Risk", 0, 30, 15)
+            
+            if st.button("Update Risk Weights"):
+                st.success("Risk weights updated successfully!")
+
+    # System Information
+    st.markdown("---")
+    st.subheader("📊 System Information")
+    
     col1, col2 = st.columns(2)
-
+    
     with col1:
-        st.write("**Risk Thresholds**")
-        low_threshold = st.slider("Low Risk Threshold", 0, 100, 30)
-        medium_threshold = st.slider("Medium Risk Threshold", 0, 100, 60)
-        high_threshold = st.slider("High Risk Threshold", 0, 100, 100)
-
-        if st.button("Update Thresholds"):
-            st.success("Risk thresholds updated successfully!")
-
-    with col2:
-        st.write("**System Information**")
         st.info(f"""
         **Application:** ExfilEye DLP Monitor
         **Version:** 1.0.0
         **Last Updated:** {datetime.now().strftime('%Y-%m-%d')}
         **Status:** Active
+        """)
+    
+    with col2:
+        st.info(f"""
+        **Domain Database:** {sum(len(domains) for domains in EMAIL_DOMAIN_CLASSIFICATIONS.values() if isinstance(domains, set))} domains
+        **Classification Engine:** Advanced ML-based
+        **Risk Engine:** Multi-factor analysis
+        **Last Sync:** {datetime.now().strftime('%H:%M:%S')}
         """)
 
 
