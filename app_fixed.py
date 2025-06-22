@@ -2269,302 +2269,385 @@ def settings_page():
 
 
 def workflow_guide_page():
-    """User-friendly workflow guide page"""
+    """Visual workflow guide with flowchart design"""
     
-    # Friendly welcome header
+    # Modern header
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                padding: 30px; 
-                border-radius: 12px; 
-                margin-bottom: 25px; 
+    <div style='background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); 
+                padding: 40px; 
+                border-radius: 16px; 
+                margin-bottom: 30px; 
                 text-align: center;'>
-        <h1 style='color: white; margin: 0; font-size: 2.2em;'>
-            🛡️ Welcome to ExfilEye!
+        <h1 style='color: white; margin: 0; font-size: 2.5em; font-weight: 700;'>
+            🛡️ ExfilEye Workflow
         </h1>
-        <p style='color: #e8f0fe; margin: 10px 0 0 0; font-size: 1.1em;'>
-            Your easy-to-use email security monitoring tool
+        <p style='color: #ecf0f1; margin: 15px 0 0 0; font-size: 1.2em; opacity: 0.9;'>
+            Visual Email Security Process Flow
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick overview section
+    # System Overview with modern cards
     st.markdown("""
-    <div style='background: #e3f2fd; padding: 25px; border-radius: 10px; margin-bottom: 25px;'>
-        <h2 style='color: #1976d2; margin-top: 0; display: flex; align-items: center;'>
-            <span style='margin-right: 10px;'>🎯</span> System Overview
+    <div style='margin: 30px 0;'>
+        <h2 style='color: #2c3e50; text-align: center; margin-bottom: 30px; font-size: 1.8em;'>
+            🎯 System Overview
         </h2>
-        <p style='font-size: 1.1em; line-height: 1.6; color: #424242; margin-bottom: 15px;'>
-            ExfilEye is like having a security guard for your emails. It watches all email activity in your company and 
-            alerts you when something suspicious happens - like someone sending sensitive files to external addresses 
-            or unusual activity from employees who are leaving the company.
-        </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # What it does cards
     overview_col1, overview_col2 = st.columns(2)
     
     with overview_col1:
         st.markdown("""
-        <div style='background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: 100%;'>
-            <h3 style='color: #2c3e50; margin-top: 0; display: flex; align-items: center;'>
-                <span style='margin-right: 10px;'>✨</span> What ExfilEye Does:
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 25px; 
+                    border-radius: 16px; 
+                    color: white; 
+                    height: 200px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;'>
+            <h3 style='color: white; margin: 0 0 15px 0; font-size: 1.4em;'>
+                🔍 What ExfilEye Does
             </h3>
-            
-            <div style='margin: 15px 0;'>
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
-                    <span style='color: #e74c3c; font-size: 1.1em; margin-right: 10px;'>🔍</span>
-                    <span style='color: #555;'>Automatically scans emails for suspicious activity</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
-                    <span style='color: #3498db; font-size: 1.1em; margin-right: 10px;'>📊</span>
-                    <span style='color: #555;'>Shows visual maps of who talks to whom</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
-                    <span style='color: #27ae60; font-size: 1.1em; margin-right: 10px;'>🚨</span>
-                    <span style='color: #555;'>Alerts you to unusual patterns and behaviors</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
-                    <span style='color: #f39c12; font-size: 1.1em; margin-right: 10px;'>📝</span>
-                    <span style='color: #555;'>Helps you follow up on security concerns</span>
-                </div>
-            </div>
+            <ul style='margin: 0; padding-left: 20px; line-height: 1.8;'>
+                <li>Monitors email traffic patterns</li>
+                <li>Detects suspicious activities</li>
+                <li>Visualizes communication networks</li>
+                <li>Generates security alerts</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
     
     with overview_col2:
         st.markdown("""
-        <div style='background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: 100%;'>
-            <h3 style='color: #2c3e50; margin-top: 0; display: flex; align-items: center;'>
-                <span style='margin-right: 10px;'>🛡️</span> What It Protects Against:
+        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                    padding: 25px; 
+                    border-radius: 16px; 
+                    color: white; 
+                    height: 200px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;'>
+            <h3 style='color: white; margin: 0 0 15px 0; font-size: 1.4em;'>
+                🛡️ Protection Areas
             </h3>
-            
-            <div style='margin: 15px 0;'>
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #e74c3c;'>
-                    <span style='color: #e74c3c; font-size: 1.1em; margin-right: 10px;'>⚠️</span>
-                    <span style='color: #555;'>Sensitive files being sent outside the company</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #e67e22;'>
-                    <span style='color: #e67e22; font-size: 1.1em; margin-right: 10px;'>📤</span>
-                    <span style='color: #555;'>Employees sending data before leaving</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #f39c12;'>
-                    <span style='color: #f39c12; font-size: 1.1em; margin-right: 10px;'>🕐</span>
-                    <span style='color: #555;'>Unusual activity during off-hours</span>
-                </div>
-                
-                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #9b59b6;'>
-                    <span style='color: #9b59b6; font-size: 1.1em; margin-right: 10px;'>🔗</span>
-                    <span style='color: #555;'>Suspicious communication patterns</span>
-                </div>
-            </div>
+            <ul style='margin: 0; padding-left: 20px; line-height: 1.8;'>
+                <li>Data exfiltration attempts</li>
+                <li>Insider threat detection</li>
+                <li>After-hours anomalies</li>
+                <li>External communications</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
-    
-    # How the process works section
+
+    # Visual workflow process with flowchart design
     st.markdown("""
-    <div style='background: #e8f5e8; padding: 25px; border-radius: 10px; margin: 30px 0;'>
-        <h2 style='color: #2e7d32; margin-top: 0; display: flex; align-items: center;'>
-            <span style='margin-right: 10px;'>🔄</span> Workflow Process
+    <div style='margin: 50px 0 30px 0;'>
+        <h2 style='color: #2c3e50; text-align: center; margin-bottom: 40px; font-size: 1.8em;'>
+            🔄 Workflow Process
         </h2>
-        <p style='color: #424242; font-size: 1.05em; margin-bottom: 15px;'>
-            Here's how ExfilEye keeps your emails secure in 4 simple steps:
-        </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Simple workflow steps - no technical details
-    workflow_steps = [
-        {
-            "step": "1",
-            "title": "Upload Your Email Data",
-            "icon": "📁",
-            "color": "#3498db",
-            "description": "Upload your company's email activity file and we'll analyze it for you.",
-            "benefits": [
-                "✅ Quick and secure upload process",
-                "✅ Data stays private and protected",
-                "✅ Works with standard email exports",
-                "✅ Instant processing and analysis"
-            ],
-            "user_action": "👆 Go to 'Data Upload' and select your file"
-        },
-        {
-            "step": "2", 
-            "title": "Review Security Alerts",
-            "icon": "🛡️",
-            "color": "#e74c3c",
-            "description": "See which emails need your attention, organized by risk level and sender.",
-            "benefits": [
-                "🔍 Smart risk scoring for every email",
-                "🎯 Focus on the most important issues first",
-                "📊 Clear visual indicators for quick decisions",
-                "⚡ Instant identification of problem areas"
-            ],
-            "user_action": "👁️ Check 'Security Operations' for alerts"
-        },
-        {
-            "step": "3",
-            "title": "Explore Communication Patterns",
-            "icon": "🔗",
-            "color": "#9b59b6",
-            "description": "See who talks to whom with easy-to-understand visual maps.",
-            "benefits": [
-                "🗺️ Visual network maps show relationships",
-                "🎨 Color-coded for different risk levels",
-                "🔍 Click on anyone to see their connections",
-                "📈 Spot unusual communication patterns"
-            ],
-            "user_action": "🗺️ Explore 'Network Analysis' for insights"
-        },
-        {
-            "step": "4",
-            "title": "Take Action on Issues",
-            "icon": "📨",
-            "color": "#27ae60",
-            "description": "Follow up on security concerns with built-in tools and templates.",
-            "benefits": [
-                "📧 Ready-made follow-up email templates",
-                "✅ Track what you've reviewed and resolved",
-                "📋 Keep records for compliance and reporting",
-                "⚡ Quick response to security incidents"
-            ],
-            "user_action": "✅ Use 'Follow-up Center' to resolve issues"
-        }
-    ]
-    
-    for i, step in enumerate(workflow_steps):
-        st.markdown(f"""
-        <div style='background: white; 
-                    border-radius: 12px; 
-                    box-shadow: 0 3px 15px rgba(0,0,0,0.1); 
-                    margin: 20px 0; 
-                    overflow: hidden;
-                    border-left: 6px solid {step["color"]};'>
+
+    # Flowchart-style workflow
+    st.markdown("""
+    <div style='background: #f8f9fa; 
+                padding: 40px; 
+                border-radius: 20px; 
+                margin: 30px 0;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                position: relative;'>
+        
+        <!-- Workflow Title -->
+        <div style='text-align: center; margin-bottom: 40px;'>
+            <h3 style='color: #2c3e50; margin: 0; font-size: 1.5em; font-weight: 600;'>
+                Email Security Monitoring Pipeline
+            </h3>
+        </div>
+        
+        <!-- Flow Container -->
+        <div style='display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    flex-wrap: wrap; 
+                    gap: 20px;
+                    margin: 40px 0;'>
             
-            <div style='padding: 25px;'>
-                <div style='display: flex; align-items: center; margin-bottom: 15px;'>
-                    <div style='background: {step["color"]}; 
+            <!-- Step 1: Data Upload -->
+            <div style='display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        min-width: 180px;'>
+                <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                            width: 120px; 
+                            height: 120px; 
+                            border-radius: 20px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+                            margin-bottom: 15px;
+                            position: relative;'>
+                    <span style='font-size: 2.5em;'>📁</span>
+                    <div style='position: absolute; 
+                                top: -10px; 
+                                right: -10px; 
+                                background: #667eea; 
                                 color: white; 
-                                width: 60px; 
-                                height: 60px; 
                                 border-radius: 50%; 
+                                width: 30px; 
+                                height: 30px; 
                                 display: flex; 
                                 align-items: center; 
                                 justify-content: center; 
-                                font-size: 1.8em;
-                                margin-right: 20px;'>
-                        {step["icon"]}
-                    </div>
-                    
-                    <div>
-                        <div style='display: flex; align-items: center; margin-bottom: 5px;'>
-                            <span style='background: {step["color"]}; 
-                                         color: white; 
-                                         padding: 3px 10px; 
-                                         border-radius: 15px; 
-                                         font-size: 0.8em; 
-                                         font-weight: bold;
-                                         margin-right: 12px;'>
-                                STEP {step["step"]}
-                            </span>
-                            <h3 style='color: #2c3e50; margin: 0; font-size: 1.3em;'>
-                                {step["title"]}
-                            </h3>
-                        </div>
-                        
-                        <p style='color: #666; font-size: 1.05em; margin: 8px 0 0 0;'>
-                            {step["description"]}
-                        </p>
-                    </div>
+                                font-size: 0.9em; 
+                                font-weight: bold;'>1</div>
+                </div>
+                <h4 style='color: #2c3e50; 
+                           margin: 10px 0 5px 0; 
+                           font-size: 1.1em; 
+                           text-align: center;
+                           font-weight: 600;'>Data Upload</h4>
+                <p style='color: #7f8c8d; 
+                          font-size: 0.9em; 
+                          text-align: center; 
+                          margin: 0;
+                          line-height: 1.4;'>Upload email<br>metadata files</p>
+            </div>
+            
+            <!-- Arrow 1 -->
+            <div style='color: #95a5a6; font-size: 2em; margin: 0 10px;'>→</div>
+            
+            <!-- Step 2: Processing -->
+            <div style='display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        min-width: 180px;'>
+                <div style='background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); 
+                            width: 120px; 
+                            height: 120px; 
+                            border-radius: 20px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            box-shadow: 0 8px 25px rgba(168, 237, 234, 0.3);
+                            margin-bottom: 15px;
+                            position: relative;'>
+                    <span style='font-size: 2.5em;'>⚙️</span>
+                    <div style='position: absolute; 
+                                top: -10px; 
+                                right: -10px; 
+                                background: #667eea; 
+                                color: white; 
+                                border-radius: 50%; 
+                                width: 30px; 
+                                height: 30px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                font-size: 0.9em; 
+                                font-weight: bold;'>2</div>
+                </div>
+                <h4 style='color: #2c3e50; 
+                           margin: 10px 0 5px 0; 
+                           font-size: 1.1em; 
+                           text-align: center;
+                           font-weight: 600;'>Analysis Engine</h4>
+                <p style='color: #7f8c8d; 
+                          font-size: 0.9em; 
+                          text-align: center; 
+                          margin: 0;
+                          line-height: 1.4;'>Risk scoring &<br>anomaly detection</p>
+            </div>
+            
+            <!-- Arrow 2 -->
+            <div style='color: #95a5a6; font-size: 2em; margin: 0 10px;'>→</div>
+            
+            <!-- Step 3: Visualization -->
+            <div style='display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        min-width: 180px;'>
+                <div style='background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); 
+                            width: 120px; 
+                            height: 120px; 
+                            border-radius: 20px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            box-shadow: 0 8px 25px rgba(252, 182, 159, 0.3);
+                            margin-bottom: 15px;
+                            position: relative;'>
+                    <span style='font-size: 2.5em;'>📊</span>
+                    <div style='position: absolute; 
+                                top: -10px; 
+                                right: -10px; 
+                                background: #667eea; 
+                                color: white; 
+                                border-radius: 50%; 
+                                width: 30px; 
+                                height: 30px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                font-size: 0.9em; 
+                                font-weight: bold;'>3</div>
+                </div>
+                <h4 style='color: #2c3e50; 
+                           margin: 10px 0 5px 0; 
+                           font-size: 1.1em; 
+                           text-align: center;
+                           font-weight: 600;'>Visualization</h4>
+                <p style='color: #7f8c8d; 
+                          font-size: 0.9em; 
+                          text-align: center; 
+                          margin: 0;
+                          line-height: 1.4;'>Interactive dashboards<br>& network maps</p>
+            </div>
+            
+            <!-- Arrow 3 -->
+            <div style='color: #95a5a6; font-size: 2em; margin: 0 10px;'>→</div>
+            
+            <!-- Step 4: Response -->
+            <div style='display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        min-width: 180px;'>
+                <div style='background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); 
+                            width: 120px; 
+                            height: 120px; 
+                            border-radius: 20px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            box-shadow: 0 8px 25px rgba(210, 153, 194, 0.3);
+                            margin-bottom: 15px;
+                            position: relative;'>
+                    <span style='font-size: 2.5em;'>📨</span>
+                    <div style='position: absolute; 
+                                top: -10px; 
+                                right: -10px; 
+                                background: #667eea; 
+                                color: white; 
+                                border-radius: 50%; 
+                                width: 30px; 
+                                height: 30px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                font-size: 0.9em; 
+                                font-weight: bold;'>4</div>
+                </div>
+                <h4 style='color: #2c3e50; 
+                           margin: 10px 0 5px 0; 
+                           font-size: 1.1em; 
+                           text-align: center;
+                           font-weight: 600;'>Response Center</h4>
+                <p style='color: #7f8c8d; 
+                          font-size: 0.9em; 
+                          text-align: center; 
+                          margin: 0;
+                          line-height: 1.4;'>Follow-up actions<br>& incident response</p>
+            </div>
+        </div>
+        
+        <!-- Process Details -->
+        <div style='margin-top: 40px; 
+                    background: white; 
+                    padding: 25px; 
+                    border-radius: 15px; 
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.05);'>
+            <h4 style='color: #2c3e50; 
+                       margin: 0 0 20px 0; 
+                       text-align: center; 
+                       font-size: 1.2em;'>Process Flow Details</h4>
+            
+            <div style='display: grid; 
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+                        gap: 20px;'>
+                <div style='text-align: center;'>
+                    <div style='color: #4facfe; font-size: 1.5em; margin-bottom: 8px;'>📁</div>
+                    <h5 style='color: #2c3e50; margin: 0 0 8px 0;'>Input</h5>
+                    <p style='color: #7f8c8d; font-size: 0.9em; margin: 0;'>CSV email metadata from your email system</p>
                 </div>
                 
-                <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
-                    <h4 style='color: #2c3e50; margin: 0 0 10px 0; font-size: 1em;'>What you get:</h4>
-                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 8px;'>
-        """, unsafe_allow_html=True)
-        
-        for benefit in step['benefits']:
-            st.markdown(f"""
-                        <div style='display: flex; align-items: center; margin: 5px 0;'>
-                            <span style='color: #555; font-size: 0.9em;'>{benefit}</span>
-                        </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-                    </div>
+                <div style='text-align: center;'>
+                    <div style='color: #a8edea; font-size: 1.5em; margin-bottom: 8px;'>⚙️</div>
+                    <h5 style='color: #2c3e50; margin: 0 0 8px 0;'>Processing</h5>
+                    <p style='color: #7f8c8d; font-size: 0.9em; margin: 0;'>AI-powered analysis and pattern recognition</p>
                 </div>
                 
-                <div style='background: linear-gradient(90deg, {step["color"]}15, {step["color"]}25); 
-                            padding: 12px 15px; 
-                            border-radius: 8px; 
-                            border-left: 3px solid {step["color"]};'>
-                    <strong style='color: #2c3e50;'>{step["user_action"]}</strong>
+                <div style='text-align: center;'>
+                    <div style='color: #ffecd2; font-size: 1.5em; margin-bottom: 8px;'>📊</div>
+                    <h5 style='color: #2c3e50; margin: 0 0 8px 0;'>Output</h5>
+                    <p style='color: #7f8c8d; font-size: 0.9em; margin: 0;'>Risk assessments and visual insights</p>
+                </div>
+                
+                <div style='text-align: center;'>
+                    <div style='color: #d299c2; font-size: 1.5em; margin-bottom: 8px;'>📨</div>
+                    <h5 style='color: #2c3e50; margin: 0 0 8px 0;'>Action</h5>
+                    <p style='color: #7f8c8d; font-size: 0.9em; margin: 0;'>Automated follow-up and incident management</p>
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        # Add friendly arrow between steps
-        if i < len(workflow_steps) - 1:
-            st.markdown(f"""
-            <div style='text-align: center; margin: 15px 0;'>
-                <div style='color: {step["color"]}; font-size: 1.5em;'>⬇️</div>
-                <div style='color: #999; font-size: 0.9em; margin-top: 5px;'>Next step...</div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # Getting started section
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Quick start guide
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #28a745, #20c997); 
-                padding: 25px; 
-                border-radius: 12px; 
-                margin: 30px 0; 
+    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                padding: 30px; 
+                border-radius: 16px; 
+                margin: 40px 0; 
                 text-align: center;
                 color: white;'>
-        <h2 style='color: white; margin: 0 0 15px 0;'>🚀 Ready to Get Started?</h2>
-        <p style='font-size: 1.1em; margin: 0 0 20px 0; opacity: 0.9;'>
-            It's simple! Just follow these quick steps:
-        </p>
+        <h2 style='color: white; margin: 0 0 20px 0; font-size: 1.6em;'>🚀 Quick Start Guide</h2>
         
-        <div style='background: rgba(255,255,255,0.1); 
-                    padding: 20px; 
-                    border-radius: 8px; 
-                    margin: 20px 0;
-                    text-align: left;'>
-            <div style='display: flex; align-items: center; margin: 10px 0;'>
-                <span style='background: white; color: #28a745; width: 30px; height: 30px; 
-                             border-radius: 50%; display: flex; align-items: center; 
-                             justify-content: center; font-weight: bold; margin-right: 15px;'>1</span>
-                <span style='font-size: 1.05em;'>Click "📁 Data Upload" in the sidebar</span>
+        <div style='display: grid; 
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                    gap: 20px; 
+                    margin: 25px 0;'>
+            <div style='background: rgba(255,255,255,0.1); 
+                        padding: 20px; 
+                        border-radius: 12px; 
+                        backdrop-filter: blur(10px);'>
+                <div style='font-size: 2em; margin-bottom: 10px;'>1️⃣</div>
+                <h4 style='color: white; margin: 0 0 8px 0;'>Upload Data</h4>
+                <p style='color: rgba(255,255,255,0.8); font-size: 0.9em; margin: 0;'>Go to Data Upload section</p>
             </div>
-            <div style='display: flex; align-items: center; margin: 10px 0;'>
-                <span style='background: white; color: #28a745; width: 30px; height: 30px; 
-                             border-radius: 50%; display: flex; align-items: center; 
-                             justify-content: center; font-weight: bold; margin-right: 15px;'>2</span>
-                <span style='font-size: 1.05em;'>Upload your email data file</span>
+            
+            <div style='background: rgba(255,255,255,0.1); 
+                        padding: 20px; 
+                        border-radius: 12px; 
+                        backdrop-filter: blur(10px);'>
+                <div style='font-size: 2em; margin-bottom: 10px;'>2️⃣</div>
+                <h4 style='color: white; margin: 0 0 8px 0;'>Review Alerts</h4>
+                <p style='color: rgba(255,255,255,0.8); font-size: 0.9em; margin: 0;'>Check Security Operations</p>
             </div>
-            <div style='display: flex; align-items: center; margin: 10px 0;'>
-                <span style='background: white; color: #28a745; width: 30px; height: 30px; 
-                             border-radius: 50%; display: flex; align-items: center; 
-                             justify-content: center; font-weight: bold; margin-right: 15px;'>3</span>
-                <span style='font-size: 1.05em;'>Review the results in "🛡️ Security Operations"</span>
+            
+            <div style='background: rgba(255,255,255,0.1); 
+                        padding: 20px; 
+                        border-radius: 12px; 
+                        backdrop-filter: blur(10px);'>
+                <div style='font-size: 2em; margin-bottom: 10px;'>3️⃣</div>
+                <h4 style='color: white; margin: 0 0 8px 0;'>Explore Networks</h4>
+                <p style='color: rgba(255,255,255,0.8); font-size: 0.9em; margin: 0;'>Analyze communication patterns</p>
             </div>
-            <div style='display: flex; align-items: center; margin: 10px 0;'>
-                <span style='background: white; color: #28a745; width: 30px; height: 30px; 
-                             border-radius: 50%; display: flex; align-items: center; 
-                             justify-content: center; font-weight: bold; margin-right: 15px;'>4</span>
-                <span style='font-size: 1.05em;'>Explore other sections for more insights!</span>
+            
+            <div style='background: rgba(255,255,255,0.1); 
+                        padding: 20px; 
+                        border-radius: 12px; 
+                        backdrop-filter: blur(10px);'>
+                <div style='font-size: 2em; margin-bottom: 10px;'>4️⃣</div>
+                <h4 style='color: white; margin: 0 0 8px 0;'>Take Action</h4>
+                <p style='color: rgba(255,255,255,0.8); font-size: 0.9em; margin: 0;'>Use Follow-up Center</p>
             </div>
         </div>
         
-        <p style='font-size: 0.95em; opacity: 0.8; margin-top: 15px;'>
-            💡 Tip: Each section has helpful explanations to guide you along the way!
+        <p style='color: rgba(255,255,255,0.9); margin: 20px 0 0 0; font-size: 1em;'>
+            💡 Each step builds on the previous one for comprehensive email security monitoring
         </p>
     </div>
     """, unsafe_allow_html=True)
