@@ -1914,12 +1914,158 @@ def daily_checks_page():
             # Show automatic status info
             st.write(f"**Review Status:** {auto_status.title()} ({decided_count}/{sender_emails_count} emails reviewed)")
             st.markdown("---")
+            
+            # Add detailed behavioral analysis view per sender
+            st.subheader(f"📊 Behavioral Analysis - {sender}")
+            
+            # Calculate sender-specific metrics
+            total_emails_sender = len(emails)
+            avg_risk_sender = sum(email.get('risk_score', 0) for email in emails) / total_emails_sender if total_emails_sender else 0
+            anomaly_count_sender = sum(1 for email in emails if email.get('is_anomaly', False))
+            
+            # Time analysis
+            after_hours_count = 0
+            time_patterns = []
+            for email in emails:
+                time_str = email.get('time', '')
+                if time_str:
+                    time_patterns.append(time_str)
+                    try:
+                        if ':' in time_str:
+                            hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                            hour = int(hour_part)
+                            if hour >= 18 or hour <= 6:
+                                after_hours_count += 1
+                    except:
+                        pass
+            
+            # Content analysis
+            attachment_count = sum(1 for email in emails if email.get('attachments', '').strip())
+            keyword_matches = sum(1 for email in emails if email.get('word_list_match', '').strip())
+            external_recipients = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
+            
+            # Domain analysis
+            sender_domain = sender.split('@')[1] if '@' in sender else 'unknown'
+            domain_type = "Free" if sender_domain.lower() in ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'] else "Corporate"
+            
+            # Risk indicators
+            risk_indicators = []
+            if after_hours_count > 0:
+                risk_indicators.append(f"After-hours activity ({after_hours_count})")
+            if 'external' in [email.get('recipient_status', '').lower() for email in emails]:
+                risk_indicators.append(f"External communication ({external_recipients})")
+            if attachment_count > 0 and keyword_matches > 0:
+                risk_indicators.append("Sensitive content + attachments")
+            if any(email.get('last_working_day', '').strip() for email in emails):
+                risk_indicators.append("Departing employee")
+            
+            # Create the detailed analysis view
+            analysis_col1, analysis_col2, analysis_col3 = st.columns(3)
+            
+            with analysis_col1:
+                st.markdown("**📧 Email Patterns**")
+                st.write(f"• Total emails: {total_emails_sender}")
+                st.write(f"• Average risk: {avg_risk_sender:.1f}")
+                st.write(f"• Anomalies: {anomaly_count_sender}")
+                st.write(f"• After hours: {after_hours_count}")
+            
+            with analysis_col2:
+                st.markdown("**🔍 Content Analysis**")
+                st.write(f"• With attachments: {attachment_count}")
+                st.write(f"• Keyword matches: {keyword_matches}")
+                st.write(f"• External recipients: {external_recipients}")
+                st.write(f"• Domain type: {domain_type}")
+            
+            with analysis_col3:
+                st.markdown("**⚠️ Risk Indicators**")
+                if risk_indicators:
+                    for indicator in risk_indicators:
+                        st.write(f"• {indicator}")
+                else:
+                    st.write("• No major risk indicators")
+            
+            # Temporal Behavior Analysis
+            if time_patterns:
+                st.markdown("**⏰ Temporal Behavior Analysis**")
+                
+                # Extract hours for visualization
+                hours = []
+                for time_str in time_patterns:
+                    try:
+                        if ':' in time_str:
+                            hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                            hours.append(int(hour_part))
+                    except:
+                        continue
+                
+                if hours:
+                    hour_counts = Counter(hours)
+                    
+                    # Create temporal analysis chart
+                    fig_temporal = go.Figure(data=[
+                        go.Bar(
+                            x=list(range(24)),
+                            y=[hour_counts.get(h, 0) for h in range(24)],
+                            marker=dict(
+                                color=['#e74c3c' if h >= 18 or h <= 6 else '#3498db' for h in range(24)],
+                                line=dict(color='rgba(0,0,0,0.3)', width=1)
+                            ),
+                            text=[hour_counts.get(h, 0) if hour_counts.get(h, 0) > 0 else '' for h in range(24)],
+                            textposition='auto',
+                            hovertemplate='<b>Hour %{x}:00</b><br>Emails: %{y}<extra></extra>'
+                        )
+                    ])
+                    
+                    fig_temporal.update_layout(
+                        title=f"Email Activity by Hour - {sender}",
+                        xaxis_title="Hour of Day",
+                        yaxis_title="Number of Emails",
+                        height=300,
+                        showlegend=False,
+                        plot_bgcolor='rgba(248, 249, 250, 1)',
+                        xaxis=dict(
+                            tickmode='linear',
+                            tick0=0,
+                            dtick=2,
+                            range=[-0.5, 23.5]
+                        ),
+                        yaxis=dict(
+                            gridcolor='rgba(200, 200, 200, 0.3)'
+                        ),
+                        margin=dict(l=40, r=40, t=50, b=40)
+                    )
+                    
+                    # Add annotations for business hours
+                    fig_temporal.add_vrect(
+                        x0=18, x1=24,
+                        fillcolor="rgba(231, 76, 60, 0.1)",
+                        layer="below",
+                        line_width=0,
+                        annotation_text="After Hours",
+                        annotation_position="top left"
+                    )
+                    
+                    fig_temporal.add_vrect(
+                        x0=0, x1=6,
+                        fillcolor="rgba(231, 76, 60, 0.1)",
+                        layer="below",
+                        line_width=0,
+                        annotation_text="After Hours",
+                        annotation_position="top right"
+                    )
+                    
+                    st.plotly_chart(fig_temporal, use_container_width=True)
+            
+            st.markdown("---")
+            
             # Sort emails within sender group by risk level and score (Critical first)
             sorted_emails = sorted(emails, 
                                  key=lambda x: (risk_priority.get(x.get('risk_level', 'Low'), 0), 
                                               x.get('risk_score', 0)), 
                                  reverse=True)
 
+            st.markdown("**📋 Individual Email Review**")
+            
             for i, email in enumerate(sorted_emails):
                 col_a, col_b, col_c = st.columns([3, 1, 1])
 
