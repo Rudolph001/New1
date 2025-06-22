@@ -276,30 +276,10 @@ def network_analysis_page():
 
     data = st.session_state.processed_data
 
-    # Automatically detect available columns
+    # Get available fields for dropdown options
     if data:
         available_fields = list(data[0].keys())
-        st.subheader("📊 Available Fields")
-
-        # Filter out internal fields and show user-friendly field names
         display_fields = [field for field in available_fields if not field.startswith('_')]
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"**Total Fields:** {len(display_fields)}")
-            st.write("**Available Fields:**")
-            for field in display_fields[:10]:  # Show first 10 fields
-                sample_value = str(data[0].get(field, 'N/A'))[:30]
-                st.write(f"• `{field}`: {sample_value}...")
-
-        with col2:
-            if len(display_fields) > 10:
-                st.write("**Additional Fields:**")
-                for field in display_fields[10:]:
-                    sample_value = str(data[0].get(field, 'N/A'))[:30]
-                    st.write(f"• `{field}`: {sample_value}...")
-
-    st.markdown("---")
 
     # Field Selection Interface
     st.subheader("🎯 Field Selection for Network Linking")
