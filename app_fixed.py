@@ -1647,7 +1647,7 @@ def main():
         st.header("📋 Navigation")
         page = st.selectbox(
             "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "📋 Workflow Guide", "⚙️ Settings"]
+            ["📁 Data Upload", "🛡️ Security Operations", "👤 Sender Behavior Analysis", "📨 Follow-up Center", "🔗 Network Analysis", "📋 Workflow Guide", "⚙️ Settings"]
         )
 
         # Display data status
@@ -1661,6 +1661,8 @@ def main():
         data_upload_page()
     elif page == "🛡️ Security Operations":
         daily_checks_page()
+    elif page == "👤 Sender Behavior Analysis":
+        sender_behavior_analysis_page()
     elif page == "📨 Follow-up Center":
         followup_center_page()
     elif page == "🔗 Network Analysis":
@@ -2345,6 +2347,390 @@ def workflow_guide_page():
         - Pattern evolution tracking
         - Performance metrics review
         """)
+
+def sender_behavior_analysis_page():
+    """Comprehensive sender behavior analysis dashboard"""
+    st.header("👤 Sender Behavior Analysis")
+    
+    if st.session_state.processed_data is None:
+        st.warning("⚠️ Please upload data first in the Data Upload section.")
+        return
+
+    data = st.session_state.processed_data
+
+    # Group emails by sender
+    sender_groups = defaultdict(list)
+    for email in data:
+        sender = email.get('sender', 'Unknown')
+        sender_groups[sender].append(email)
+
+    # Sender Overview Dashboard
+    st.subheader("📊 Sender Overview Dashboard")
+    
+    overview_col1, overview_col2, overview_col3, overview_col4 = st.columns(4)
+    
+    with overview_col1:
+        total_senders = len(sender_groups)
+        st.metric("Total Senders", total_senders)
+    
+    with overview_col2:
+        high_risk_senders = sum(1 for emails in sender_groups.values() 
+                               if any(e.get('risk_level') in ['High', 'Critical'] for e in emails))
+        st.metric("High Risk Senders", high_risk_senders)
+    
+    with overview_col3:
+        anomaly_senders = sum(1 for emails in sender_groups.values() 
+                             if any(e.get('is_anomaly', False) for e in emails))
+        st.metric("Anomaly Senders", anomaly_senders)
+    
+    with overview_col4:
+        departing_senders = sum(1 for emails in sender_groups.values() 
+                               if any(e.get('last_working_day', '').strip() for e in emails))
+        st.metric("Departing Employees", departing_senders)
+
+    # Sender Risk Distribution Chart
+    st.subheader("🎯 Sender Risk Distribution")
+    
+    # Calculate sender risk levels
+    sender_risk_data = []
+    for sender, emails in sender_groups.items():
+        max_risk_score = max(email.get('risk_score', 0) for email in emails)
+        max_risk_level = 'Low'
+        for email in emails:
+            if email.get('risk_score', 0) == max_risk_score:
+                max_risk_level = email.get('risk_level', 'Low')
+                break
+        
+        total_emails = len(emails)
+        anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
+        avg_risk = sum(email.get('risk_score', 0) for email in emails) / total_emails
+        
+        sender_risk_data.append({
+            'sender': sender,
+            'max_risk_level': max_risk_level,
+            'max_risk_score': max_risk_score,
+            'avg_risk_score': avg_risk,
+            'total_emails': total_emails,
+            'anomaly_count': anomaly_count
+        })
+
+    # Risk level pie chart
+    chart_col1, chart_col2 = st.columns(2)
+    
+    with chart_col1:
+        risk_level_counts = Counter(item['max_risk_level'] for item in sender_risk_data)
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=list(risk_level_counts.keys()),
+            values=list(risk_level_counts.values()),
+            hole=0.4,
+            marker_colors=['#e74c3c', '#e67e22', '#f39c12', '#27ae60']
+        )])
+        
+        fig_pie.update_layout(
+            title="Sender Risk Level Distribution",
+            height=400
+        )
+        
+        st.plotly_chart(fig_pie, use_container_width=True)
+    
+    with chart_col2:
+        # Risk score vs email count scatter plot
+        fig_scatter = px.scatter(
+            sender_risk_data,
+            x='total_emails',
+            y='avg_risk_score',
+            size='anomaly_count',
+            color='max_risk_level',
+            hover_data=['sender'],
+            title="Risk Score vs Email Volume",
+            labels={
+                'total_emails': 'Number of Emails',
+                'avg_risk_score': 'Average Risk Score',
+                'max_risk_level': 'Risk Level'
+            },
+            color_discrete_map={
+                'Critical': '#e74c3c',
+                'High': '#e67e22', 
+                'Medium': '#f39c12',
+                'Low': '#27ae60'
+            }
+        )
+        
+        fig_scatter.update_layout(height=400)
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+    # Behavioral Analysis Filters
+    st.subheader("🔍 Behavioral Analysis Filters")
+    
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
+    
+    with filter_col1:
+        risk_filter = st.selectbox(
+            "Risk Level Filter:",
+            options=["All", "Critical", "High", "Medium", "Low"],
+            key="behavior_risk_filter"
+        )
+    
+    with filter_col2:
+        anomaly_filter = st.selectbox(
+            "Anomaly Filter:",
+            options=["All", "Has Anomalies", "No Anomalies"],
+            key="behavior_anomaly_filter"
+        )
+    
+    with filter_col3:
+        email_volume_filter = st.selectbox(
+            "Email Volume:",
+            options=["All", "High Volume (>10)", "Medium Volume (5-10)", "Low Volume (<5)"],
+            key="behavior_volume_filter"
+        )
+    
+    with filter_col4:
+        domain_filter = st.selectbox(
+            "Domain Type:",
+            options=["All", "Free Domains", "Corporate Domains", "External Domains"],
+            key="behavior_domain_filter"
+        )
+
+    # Apply filters
+    filtered_sender_data = sender_risk_data.copy()
+    
+    if risk_filter != "All":
+        filtered_sender_data = [s for s in filtered_sender_data if s['max_risk_level'] == risk_filter]
+    
+    if anomaly_filter == "Has Anomalies":
+        filtered_sender_data = [s for s in filtered_sender_data if s['anomaly_count'] > 0]
+    elif anomaly_filter == "No Anomalies":
+        filtered_sender_data = [s for s in filtered_sender_data if s['anomaly_count'] == 0]
+    
+    if email_volume_filter == "High Volume (>10)":
+        filtered_sender_data = [s for s in filtered_sender_data if s['total_emails'] > 10]
+    elif email_volume_filter == "Medium Volume (5-10)":
+        filtered_sender_data = [s for s in filtered_sender_data if 5 <= s['total_emails'] <= 10]
+    elif email_volume_filter == "Low Volume (<5)":
+        filtered_sender_data = [s for s in filtered_sender_data if s['total_emails'] < 5]
+
+    # Sort by risk score
+    filtered_sender_data.sort(key=lambda x: x['max_risk_score'], reverse=True)
+
+    # Detailed Sender Analysis
+    st.subheader(f"📋 Detailed Sender Analysis ({len(filtered_sender_data)} senders)")
+    
+    if not filtered_sender_data:
+        st.info("No senders match the current filter criteria.")
+        return
+
+    # Display top risky senders
+    for i, sender_info in enumerate(filtered_sender_data[:20]):  # Show top 20
+        sender = sender_info['sender']
+        emails = sender_groups[sender]
+        
+        # Sender behavior metrics
+        time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+        after_hours_count = 0
+        for time_str in time_patterns:
+            try:
+                if ':' in time_str:
+                    hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                    hour = int(hour_part)
+                    if hour >= 18 or hour <= 6:
+                        after_hours_count += 1
+            except:
+                continue
+        
+        # Domain analysis
+        sender_domain = sender.split('@')[1] if '@' in sender else 'unknown'
+        free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+        is_free_domain = sender_domain.lower() in free_domains
+        
+        # External recipient analysis
+        external_emails = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
+        
+        # Attachment patterns
+        attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
+        
+        # Keyword matches
+        keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+        
+        # Create sender card
+        risk_color = {'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢'}.get(sender_info['max_risk_level'], '⚪')
+        
+        with st.expander(f"{risk_color} {sender} - Risk: {sender_info['max_risk_level']} ({sender_info['max_risk_score']:.0f}) - {sender_info['total_emails']} emails"):
+            
+            # Behavior summary
+            behavior_col1, behavior_col2, behavior_col3 = st.columns(3)
+            
+            with behavior_col1:
+                st.write("**📧 Email Patterns**")
+                st.write(f"• Total emails: {sender_info['total_emails']}")
+                st.write(f"• Average risk: {sender_info['avg_risk_score']:.1f}")
+                st.write(f"• Anomalies: {sender_info['anomaly_count']}")
+                st.write(f"• After hours: {after_hours_count}")
+            
+            with behavior_col2:
+                st.write("**🎯 Content Analysis**")
+                st.write(f"• With attachments: {attachment_emails}")
+                st.write(f"• Keyword matches: {keyword_emails}")
+                st.write(f"• External recipients: {external_emails}")
+                domain_type = "Free" if is_free_domain else "Corporate"
+                st.write(f"• Domain type: {domain_type}")
+            
+            with behavior_col3:
+                st.write("**⚠️ Risk Indicators**")
+                
+                # Calculate behavioral risk indicators
+                risk_indicators = []
+                if after_hours_count > 0:
+                    risk_indicators.append(f"After-hours activity ({after_hours_count})")
+                if is_free_domain:
+                    risk_indicators.append("Free email domain")
+                if external_emails > 0:
+                    risk_indicators.append(f"External communication ({external_emails})")
+                if attachment_emails > 0 and keyword_emails > 0:
+                    risk_indicators.append("Sensitive content + attachments")
+                if any(email.get('last_working_day', '').strip() for email in emails):
+                    risk_indicators.append("Departing employee")
+                
+                if risk_indicators:
+                    for indicator in risk_indicators:
+                        st.write(f"• {indicator}")
+                else:
+                    st.write("• No major risk indicators")
+            
+            # Time pattern analysis
+            if time_patterns:
+                st.write("**⏰ Temporal Behavior Analysis**")
+                
+                # Extract hours for time pattern visualization
+                hours = []
+                for time_str in time_patterns:
+                    try:
+                        if ':' in time_str:
+                            hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                            hours.append(int(hour_part))
+                    except:
+                        continue
+                
+                if hours:
+                    hour_counts = Counter(hours)
+                    
+                    fig_time = go.Figure(data=[
+                        go.Bar(
+                            x=list(range(24)),
+                            y=[hour_counts.get(h, 0) for h in range(24)],
+                            marker_color=['red' if h >= 18 or h <= 6 else 'blue' for h in range(24)]
+                        )
+                    ])
+                    
+                    fig_time.update_layout(
+                        title=f"Email Activity by Hour - {sender}",
+                        xaxis_title="Hour of Day",
+                        yaxis_title="Number of Emails",
+                        height=300,
+                        showlegend=False
+                    )
+                    
+                    st.plotly_chart(fig_time, use_container_width=True)
+            
+            # Recent high-risk emails
+            high_risk_emails = [e for e in emails if e.get('risk_level') in ['High', 'Critical'] or e.get('is_anomaly', False)]
+            if high_risk_emails:
+                st.write("**🚨 Recent High-Risk/Anomaly Emails**")
+                
+                # Sort by risk score and show top 3
+                high_risk_emails.sort(key=lambda x: x.get('risk_score', 0), reverse=True)
+                
+                for j, email in enumerate(high_risk_emails[:3]):
+                    email_col1, email_col2 = st.columns([3, 1])
+                    
+                    with email_col1:
+                        subject = email.get('subject', 'No Subject')[:50]
+                        recipients = email.get('recipients', 'N/A')[:30]
+                        risk_level = email.get('risk_level', 'Unknown')
+                        email_risk_color = {'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢'}.get(risk_level, '⚪')
+                        
+                        anomaly_indicator = " 🚨" if email.get('is_anomaly', False) else ""
+                        st.write(f"{email_risk_color} **{subject}...** → {recipients}...{anomaly_indicator}")
+                        
+                        if email.get('risk_factors'):
+                            st.caption(f"Risk factors: {email.get('risk_factors', '')[:80]}...")
+                    
+                    with email_col2:
+                        if st.button("📧 Details", key=f"sender_detail_{sender}_{j}"):
+                            show_email_details_modal(email)
+    
+    # Behavioral Insights Summary
+    st.subheader("🧠 Behavioral Insights Summary")
+    
+    insights_col1, insights_col2 = st.columns(2)
+    
+    with insights_col1:
+        st.write("**🔍 Top Risk Patterns Detected:**")
+        
+        # Calculate pattern frequencies
+        pattern_counts = {
+            'after_hours': 0,
+            'free_domains': 0,
+            'external_comms': 0,
+            'content_risk': 0,
+            'departing_employees': 0
+        }
+        
+        for sender_info in sender_risk_data:
+            sender = sender_info['sender']
+            emails = sender_groups[sender]
+            
+            # Count patterns
+            time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+            after_hours = any(
+                (':' in time_str and 
+                 (int(time_str.split(' ')[-1].split(':')[0]) >= 18 or int(time_str.split(' ')[-1].split(':')[0]) <= 6))
+                for time_str in time_patterns
+                if ':' in time_str
+            )
+            
+            sender_domain = sender.split('@')[1] if '@' in sender else ''
+            is_free = sender_domain.lower() in ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+            
+            has_external = any('external' in email.get('recipient_status', '').lower() for email in emails)
+            has_content_risk = any(email.get('attachments', '').strip() and email.get('word_list_match', '').strip() for email in emails)
+            is_departing = any(email.get('last_working_day', '').strip() for email in emails)
+            
+            if after_hours:
+                pattern_counts['after_hours'] += 1
+            if is_free:
+                pattern_counts['free_domains'] += 1
+            if has_external:
+                pattern_counts['external_comms'] += 1
+            if has_content_risk:
+                pattern_counts['content_risk'] += 1
+            if is_departing:
+                pattern_counts['departing_employees'] += 1
+        
+        for pattern, count in pattern_counts.items():
+            pattern_name = pattern.replace('_', ' ').title()
+            percentage = (count / len(sender_risk_data) * 100) if sender_risk_data else 0
+            st.write(f"• {pattern_name}: {count} senders ({percentage:.1f}%)")
+    
+    with insights_col2:
+        st.write("**📈 Recommendations:**")
+        
+        if pattern_counts['departing_employees'] > 0:
+            st.write("🔴 **Priority**: Monitor departing employee communications")
+        
+        if pattern_counts['content_risk'] > 0:
+            st.write("🟠 **Alert**: Review emails with sensitive content + attachments")
+        
+        if pattern_counts['after_hours'] > 0:
+            st.write("🟡 **Monitor**: Investigate after-hours email patterns")
+        
+        if pattern_counts['free_domains'] > 0:
+            st.write("🔵 **Review**: Validate free domain communications")
+        
+        st.write("✅ **Action**: Regular behavioral pattern monitoring recommended")
+
+
     
     # Performance Metrics
     st.markdown("---")
