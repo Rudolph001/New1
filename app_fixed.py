@@ -291,9 +291,26 @@ if 'network_config' not in st.session_state:
 if 'selected_node' not in st.session_state:
     st.session_state.selected_node = None
 
-# Simple CSV processing function
+def extract_domain_from_email(email_field):
+    """Extract domain from email address or email field"""
+    if not email_field:
+        return ""
+    
+    # Handle multiple emails separated by semicolon or comma
+    emails = re.split('[;,]', email_field)
+    domains = []
+    
+    for email in emails:
+        email = email.strip()
+        if '@' in email:
+            domain = email.split('@')[1].strip().lower()
+            domains.append(domain)
+    
+    return '; '.join(domains) if domains else ""
+
+# Enhanced CSV processing function
 def process_csv_data(csv_content):
-    """Process CSV content without pandas dependency"""
+    """Process CSV content with domain classification"""
     lines = csv_content.strip().split('\n')
     if len(lines) < 2:
         return []
@@ -305,6 +322,22 @@ def process_csv_data(csv_content):
         values = [v.strip() for v in line.split(',')]
         if len(values) == len(headers):
             row = dict(zip(headers, values))
+            
+            # Extract and classify domains
+            sender_email = row.get('sender', '') or row.get('sender_email', '') or row.get('from', '')
+            recipient_email = row.get('recipient', '') or row.get('recipient_email', '') or row.get('to', '') or row.get('recipients', '')
+            
+            # Extract domains
+            if sender_email:
+                row['sender_domain'] = extract_domain_from_email(sender_email)
+                row['sender_classification'] = classify_email_domain(sender_email)
+            
+            if recipient_email:
+                row['recipient_domain'] = extract_domain_from_email(recipient_email)
+                # For multiple recipients, classify the first one for simplicity
+                first_recipient = recipient_email.split(';')[0].split(',')[0].strip()
+                row['recipient_classification'] = classify_email_domain(first_recipient)
+            
             data.append(row)
 
     return data
@@ -2079,6 +2112,48 @@ def daily_checks_page():
     with col4:
         low_count = risk_counts.get('Low', 0)
         st.metric("🟢 Low Risk", low_count)
+
+    # Domain Classification Summary
+    st.subheader("🌐 Domain Classification Analysis")
+    
+    # Analyze sender and recipient domains
+    sender_domain_stats = defaultdict(int)
+    recipient_domain_stats = defaultdict(int)
+    external_communications = 0
+    suspicious_domains = 0
+    
+    for email in data:
+        sender_class = email.get('sender_classification', {})
+        recipient_class = email.get('recipient_classification', {})
+        
+        if sender_class:
+            sender_domain_stats[sender_class.get('classification', 'unknown')] += 1
+            if sender_class.get('is_suspicious', False):
+                suspicious_domains += 1
+        
+        if recipient_class:
+            recipient_domain_stats[recipient_class.get('classification', 'unknown')] += 1
+            if recipient_class.get('is_suspicious', False):
+                suspicious_domains += 1
+        
+        # Check for external communication
+        sender_domain = email.get('sender_domain', '')
+        recipient_domain = email.get('recipient_domain', '')
+        if sender_domain and recipient_domain and sender_domain != recipient_domain:
+            external_communications += 1
+    
+    domain_col1, domain_col2, domain_col3, domain_col4 = st.columns(4)
+    
+    with domain_col1:
+        st.metric("📧 External Communications", external_communications, help="Cross-domain email activity")
+    with domain_col2:
+        st.metric("⚠️ Suspicious Domains", suspicious_domains, help="Potentially risky domain activity")
+    with domain_col3:
+        free_email_count = sender_domain_stats.get('free_email', 0) + recipient_domain_stats.get('free_email', 0)
+        st.metric("🔓 Free Email Usage", free_email_count, help="Personal email service usage")
+    with domain_col4:
+        business_count = sender_domain_stats.get('business', 0) + recipient_domain_stats.get('business', 0)
+        st.metric("🏢 Business Communications", business_count, help="Corporate domain communications")
 
     # Risk Events by Sender with Tracking
     st.subheader("🎯 Risk Events (Grouped by Sender)")
