@@ -1647,7 +1647,7 @@ def main():
         st.header("📋 Navigation")
         page = st.selectbox(
             "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "⚙️ Settings"]
+            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "📋 Workflow Guide", "⚙️ Settings"]
         )
 
         # Display data status
@@ -1665,6 +1665,8 @@ def main():
         followup_center_page()
     elif page == "🔗 Network Analysis":
         network_analysis_page()
+    elif page == "📋 Workflow Guide":
+        workflow_guide_page()
     elif page == "⚙️ Settings":
         settings_page()
 
