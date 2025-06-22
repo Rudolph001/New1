@@ -2287,47 +2287,49 @@ def workflow_guide_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # What is ExfilEye section
+    # Quick overview section
     st.markdown("""
     <div style='background: #e3f2fd; padding: 25px; border-radius: 10px; margin-bottom: 25px;'>
         <h2 style='color: #1976d2; margin-top: 0; display: flex; align-items: center;'>
-            <span style='margin-right: 10px;'>🎯</span> What is ExfilEye?
+            <span style='margin-right: 10px;'>🎯</span> System Overview
         </h2>
         <p style='font-size: 1.1em; line-height: 1.6; color: #424242; margin-bottom: 15px;'>
-            ExfilEye helps you keep your company's emails safe! It watches for suspicious activity and alerts you when something looks wrong.
+            ExfilEye is like having a security guard for your emails. It watches all email activity in your company and 
+            alerts you when something suspicious happens - like someone sending sensitive files to external addresses 
+            or unusual activity from employees who are leaving the company.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick overview cards
+    # What it does cards
     overview_col1, overview_col2 = st.columns(2)
     
     with overview_col1:
         st.markdown("""
         <div style='background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: 100%;'>
             <h3 style='color: #2c3e50; margin-top: 0; display: flex; align-items: center;'>
-                <span style='margin-right: 10px;'>✨</span> What it does for you:
+                <span style='margin-right: 10px;'>✨</span> What ExfilEye Does:
             </h3>
             
             <div style='margin: 15px 0;'>
                 <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
                     <span style='color: #e74c3c; font-size: 1.1em; margin-right: 10px;'>🔍</span>
-                    <span style='color: #555;'>Finds risky emails automatically</span>
+                    <span style='color: #555;'>Automatically scans emails for suspicious activity</span>
                 </div>
                 
                 <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
                     <span style='color: #3498db; font-size: 1.1em; margin-right: 10px;'>📊</span>
-                    <span style='color: #555;'>Shows who emails whom</span>
+                    <span style='color: #555;'>Shows visual maps of who talks to whom</span>
                 </div>
                 
                 <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
                     <span style='color: #27ae60; font-size: 1.1em; margin-right: 10px;'>🚨</span>
-                    <span style='color: #555;'>Alerts you to unusual behavior</span>
+                    <span style='color: #555;'>Alerts you to unusual patterns and behaviors</span>
                 </div>
                 
                 <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;'>
                     <span style='color: #f39c12; font-size: 1.1em; margin-right: 10px;'>📝</span>
-                    <span style='color: #555;'>Helps you follow up on issues</span>
+                    <span style='color: #555;'>Helps you follow up on security concerns</span>
                 </div>
             </div>
         </div>
@@ -2337,114 +2339,102 @@ def workflow_guide_page():
         st.markdown("""
         <div style='background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: 100%;'>
             <h3 style='color: #2c3e50; margin-top: 0; display: flex; align-items: center;'>
-                <span style='margin-right: 10px;'>📈</span> Why you'll love it:
+                <span style='margin-right: 10px;'>🛡️</span> What It Protects Against:
             </h3>
             
             <div style='margin: 15px 0;'>
-                <div style='margin: 15px 0;'>
-                    <div style='display: flex; justify-content: space-between; margin-bottom: 5px;'>
-                        <span style='color: #555;'>Easy to use</span>
-                        <strong style='color: #27ae60;'>★★★★★</strong>
-                    </div>
+                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #e74c3c;'>
+                    <span style='color: #e74c3c; font-size: 1.1em; margin-right: 10px;'>⚠️</span>
+                    <span style='color: #555;'>Sensitive files being sent outside the company</span>
                 </div>
                 
-                <div style='margin: 15px 0;'>
-                    <div style='display: flex; justify-content: space-between; margin-bottom: 5px;'>
-                        <span style='color: #555;'>Catches threats</span>
-                        <strong style='color: #27ae60;'>99.7%</strong>
-                    </div>
+                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #e67e22;'>
+                    <span style='color: #e67e22; font-size: 1.1em; margin-right: 10px;'>📤</span>
+                    <span style='color: #555;'>Employees sending data before leaving</span>
                 </div>
                 
-                <div style='margin: 15px 0;'>
-                    <div style='display: flex; justify-content: space-between; margin-bottom: 5px;'>
-                        <span style='color: #555;'>Quick alerts</span>
-                        <strong style='color: #3498db;'>&lt; 3 minutes</strong>
-                    </div>
+                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #f39c12;'>
+                    <span style='color: #f39c12; font-size: 1.1em; margin-right: 10px;'>🕐</span>
+                    <span style='color: #555;'>Unusual activity during off-hours</span>
                 </div>
                 
-                <div style='margin: 15px 0;'>
-                    <div style='display: flex; justify-content: space-between; margin-bottom: 5px;'>
-                        <span style='color: #555;'>Few false alarms</span>
-                        <strong style='color: #27ae60;'>&lt; 0.5%</strong>
-                    </div>
+                <div style='display: flex; align-items: center; margin: 12px 0; padding: 8px; background: #fff5f5; border-radius: 6px; border-left: 3px solid #9b59b6;'>
+                    <span style='color: #9b59b6; font-size: 1.1em; margin-right: 10px;'>🔗</span>
+                    <span style='color: #555;'>Suspicious communication patterns</span>
                 </div>
-            </div>
-            
-            <div style='text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;'>
-                <span style='color: #27ae60; font-weight: bold;'>✅ Ready to use right now!</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # How it works section
+    # How the process works section
     st.markdown("""
     <div style='background: #e8f5e8; padding: 25px; border-radius: 10px; margin: 30px 0;'>
         <h2 style='color: #2e7d32; margin-top: 0; display: flex; align-items: center;'>
-            <span style='margin-right: 10px;'>🔄</span> How ExfilEye Works (Simple Steps!)
+            <span style='margin-right: 10px;'>🔄</span> Workflow Process
         </h2>
         <p style='color: #424242; font-size: 1.05em; margin-bottom: 15px;'>
-            Don't worry - it's easier than it looks! Here's what happens behind the scenes:
+            Here's how ExfilEye keeps your emails secure in 4 simple steps:
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Simple workflow steps
+    # Simple workflow steps - no technical details
     workflow_steps = [
         {
             "step": "1",
-            "title": "Upload Your Data",
+            "title": "Upload Your Email Data",
             "icon": "📁",
             "color": "#3498db",
-            "simple_description": "Just drop your email data file and we'll take care of the rest",
-            "what_happens": [
-                "We read your email information safely",
-                "Check that everything looks right", 
-                "Get it ready for analysis",
-                "Keep your data secure"
+            "description": "Upload your company's email activity file and we'll analyze it for you.",
+            "benefits": [
+                "✅ Quick and secure upload process",
+                "✅ Data stays private and protected",
+                "✅ Works with standard email exports",
+                "✅ Instant processing and analysis"
             ],
-            "user_action": "👆 Click 'Data Upload' and choose your CSV file"
+            "user_action": "👆 Go to 'Data Upload' and select your file"
         },
         {
             "step": "2", 
-            "title": "Check for Problems",
+            "title": "Review Security Alerts",
             "icon": "🛡️",
             "color": "#e74c3c",
-            "simple_description": "Our smart system looks for anything suspicious in your emails",
-            "what_happens": [
-                "Scan for risky emails automatically",
-                "Look for unusual patterns",
-                "Check if emails seem suspicious",
-                "Score how risky each email is"
+            "description": "See which emails need your attention, organized by risk level and sender.",
+            "benefits": [
+                "🔍 Smart risk scoring for every email",
+                "🎯 Focus on the most important issues first",
+                "📊 Clear visual indicators for quick decisions",
+                "⚡ Instant identification of problem areas"
             ],
-            "user_action": "👁️ Go to 'Security Operations' to see what we found"
+            "user_action": "👁️ Check 'Security Operations' for alerts"
         },
         {
             "step": "3",
-            "title": "See Who Talks to Whom",
+            "title": "Explore Communication Patterns",
             "icon": "🔗",
             "color": "#9b59b6",
-            "simple_description": "Visual maps show you email connections and communication patterns",
-            "what_happens": [
-                "Draw maps of who emails whom",
-                "Show groups of people who talk often",
-                "Highlight unusual connections",
-                "Make it easy to spot problems"
+            "description": "See who talks to whom with easy-to-understand visual maps.",
+            "benefits": [
+                "🗺️ Visual network maps show relationships",
+                "🎨 Color-coded for different risk levels",
+                "🔍 Click on anyone to see their connections",
+                "📈 Spot unusual communication patterns"
             ],
-            "user_action": "🗺️ Visit 'Network Analysis' to explore the connections"
+            "user_action": "🗺️ Explore 'Network Analysis' for insights"
         },
         {
             "step": "4",
-            "title": "Take Action",
+            "title": "Take Action on Issues",
             "icon": "📨",
             "color": "#27ae60",
-            "simple_description": "Get help following up on suspicious emails with ready-made actions",
-            "what_happens": [
-                "Create follow-up emails for you",
-                "Track what you've checked",
-                "Keep records of your actions",
-                "Make reporting easy"
+            "description": "Follow up on security concerns with built-in tools and templates.",
+            "benefits": [
+                "📧 Ready-made follow-up email templates",
+                "✅ Track what you've reviewed and resolved",
+                "📋 Keep records for compliance and reporting",
+                "⚡ Quick response to security incidents"
             ],
-            "user_action": "✅ Use 'Follow-up Center' to handle issues"
+            "user_action": "✅ Use 'Follow-up Center' to resolve issues"
         }
     ]
     
@@ -2489,21 +2479,20 @@ def workflow_guide_page():
                         </div>
                         
                         <p style='color: #666; font-size: 1.05em; margin: 8px 0 0 0;'>
-                            {step["simple_description"]}
+                            {step["description"]}
                         </p>
                     </div>
                 </div>
                 
                 <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
-                    <h4 style='color: #2c3e50; margin: 0 0 10px 0; font-size: 1em;'>What happens behind the scenes:</h4>
-                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;'>
+                    <h4 style='color: #2c3e50; margin: 0 0 10px 0; font-size: 1em;'>What you get:</h4>
+                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 8px;'>
         """, unsafe_allow_html=True)
         
-        for item in step['what_happens']:
+        for benefit in step['benefits']:
             st.markdown(f"""
                         <div style='display: flex; align-items: center; margin: 5px 0;'>
-                            <span style='color: {step["color"]}; margin-right: 8px;'>•</span>
-                            <span style='color: #555; font-size: 0.9em;'>{item}</span>
+                            <span style='color: #555; font-size: 0.9em;'>{benefit}</span>
                         </div>
             """, unsafe_allow_html=True)
         
@@ -2526,7 +2515,7 @@ def workflow_guide_page():
             st.markdown(f"""
             <div style='text-align: center; margin: 15px 0;'>
                 <div style='color: {step["color"]}; font-size: 1.5em;'>⬇️</div>
-                <div style='color: #999; font-size: 0.9em; margin-top: 5px;'>Then...</div>
+                <div style='color: #999; font-size: 0.9em; margin-top: 5px;'>Next step...</div>
             </div>
             """, unsafe_allow_html=True)
     
@@ -2540,7 +2529,7 @@ def workflow_guide_page():
                 color: white;'>
         <h2 style='color: white; margin: 0 0 15px 0;'>🚀 Ready to Get Started?</h2>
         <p style='font-size: 1.1em; margin: 0 0 20px 0; opacity: 0.9;'>
-            It's super easy! Just follow these steps to start protecting your emails:
+            It's simple! Just follow these quick steps:
         </p>
         
         <div style='background: rgba(255,255,255,0.1); 
@@ -2558,24 +2547,24 @@ def workflow_guide_page():
                 <span style='background: white; color: #28a745; width: 30px; height: 30px; 
                              border-radius: 50%; display: flex; align-items: center; 
                              justify-content: center; font-weight: bold; margin-right: 15px;'>2</span>
-                <span style='font-size: 1.05em;'>Upload your email data CSV file</span>
+                <span style='font-size: 1.05em;'>Upload your email data file</span>
             </div>
             <div style='display: flex; align-items: center; margin: 10px 0;'>
                 <span style='background: white; color: #28a745; width: 30px; height: 30px; 
                              border-radius: 50%; display: flex; align-items: center; 
                              justify-content: center; font-weight: bold; margin-right: 15px;'>3</span>
-                <span style='font-size: 1.05em;'>Check out "🛡️ Security Operations" to see the results</span>
+                <span style='font-size: 1.05em;'>Review the results in "🛡️ Security Operations"</span>
             </div>
             <div style='display: flex; align-items: center; margin: 10px 0;'>
                 <span style='background: white; color: #28a745; width: 30px; height: 30px; 
                              border-radius: 50%; display: flex; align-items: center; 
                              justify-content: center; font-weight: bold; margin-right: 15px;'>4</span>
-                <span style='font-size: 1.05em;'>Explore other sections to learn more!</span>
+                <span style='font-size: 1.05em;'>Explore other sections for more insights!</span>
             </div>
         </div>
         
         <p style='font-size: 0.95em; opacity: 0.8; margin-top: 15px;'>
-            Need help? Each section has tips and explanations to guide you!
+            💡 Tip: Each section has helpful explanations to guide you along the way!
         </p>
     </div>
     """, unsafe_allow_html=True)
