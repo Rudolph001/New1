@@ -1364,20 +1364,20 @@ def create_advanced_plotly_figure(G, pos, node_data, node_metrics, communities, 
             ],
             xaxis=dict(
                 showgrid=True, 
-                gridcolor='rgba(200, 200, 200, 0.3)',
+                gridcolor='rgba(255, 255, 255, 0.1)',
                 zeroline=False, 
                 showticklabels=False,
                 fixedrange=False
             ),
             yaxis=dict(
                 showgrid=True,
-                gridcolor='rgba(200, 200, 200, 0.3)', 
+                gridcolor='rgba(255, 255, 255, 0.1)', 
                 zeroline=False, 
                 showticklabels=False,
                 fixedrange=False
             ),
-            plot_bgcolor='rgba(248, 249, 250, 1.0)',
-            paper_bgcolor='#ffffff',
+            plot_bgcolor='rgba(45, 55, 72, 1.0)',
+            paper_bgcolor='#2d3748',
             height=700,
             dragmode='pan',
             clickmode='event+select'
@@ -1812,7 +1812,8 @@ def create_highlighted_network_graph(data, source_field, target_field, config, s
                 )
             ],
             xaxis=dict(
-                showgrid=False, 
+                showgrid=True, 
+                gridcolor='rgba(255, 255, 255, 0.1)',
                 zeroline=False, 
                 showticklabels=False,
                 range=[-zoom_level * 1.2, zoom_level * 1.2],
@@ -1821,14 +1822,15 @@ def create_highlighted_network_graph(data, source_field, target_field, config, s
                 scaleratio=1
             ),
             yaxis=dict(
-                showgrid=False, 
+                showgrid=True, 
+                gridcolor='rgba(255, 255, 255, 0.1)',
                 zeroline=False, 
                 showticklabels=False,
                 range=[-zoom_level * 1.2, zoom_level * 1.2],
                 fixedrange=False
             ),
-            plot_bgcolor='#f8f9fa',
-            paper_bgcolor='#ffffff',
+            plot_bgcolor='rgba(45, 55, 72, 1.0)',
+            paper_bgcolor='#2d3748',
             height=700,
             dragmode='pan',
             clickmode='event+select'
@@ -2405,7 +2407,7 @@ def daily_checks_page():
                         yaxis_title="Number of Emails",
                         height=300,
                         showlegend=False,
-                        plot_bgcolor='rgba(248, 249, 250, 1)',
+                        plot_bgcolor='rgba(45, 55, 72, 1.0)',
                         xaxis=dict(
                             tickmode='linear',
                             tick0=0,
@@ -2413,7 +2415,7 @@ def daily_checks_page():
                             range=[-0.5, 23.5]
                         ),
                         yaxis=dict(
-                            gridcolor='rgba(200, 200, 200, 0.3)'
+                            gridcolor='rgba(255, 255, 255, 0.1)'
                         ),
                         margin=dict(l=40, r=40, t=50, b=40)
                     )
