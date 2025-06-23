@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import io
+import pandas as pd
 from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 import re
@@ -3073,13 +3074,295 @@ def sender_behavior_analysis_page():
                         if st.button("📧 Details", key=f"sender_detail_{sender}_{j}"):
                             show_email_details_modal(email)
     
+    # Advanced Behavioral Analytics
+    st.subheader("🧠 Advanced Behavioral Analytics")
+    
+    # Communication Patterns Analysis
+    st.write("**📊 Communication Patterns**")
+    comm_col1, comm_col2, comm_col3 = st.columns(3)
+    
+    with comm_col1:
+        # Sender-Recipient Network Density
+        st.metric("Network Density", f"{len([e for e in data if e.get('recipients')])}/{len(data)}")
+        
+        # Peak Activity Hours
+        all_hours = []
+        for email in data:
+            time_str = email.get('time', '')
+            try:
+                if ':' in time_str:
+                    hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                    all_hours.append(int(hour_part))
+            except:
+                continue
+        
+        if all_hours:
+            peak_hour = Counter(all_hours).most_common(1)[0][0]
+            st.metric("Peak Activity Hour", f"{peak_hour}:00")
+    
+    with comm_col2:
+        # Domain Diversity Index
+        sender_domains = set()
+        for email in data:
+            sender = email.get('sender', '')
+            if '@' in sender:
+                sender_domains.add(sender.split('@')[1])
+        
+        st.metric("Unique Domains", len(sender_domains))
+        
+        # Average Risk Per Domain
+        domain_risks = defaultdict(list)
+        for email in data:
+            sender = email.get('sender', '')
+            if '@' in sender:
+                domain = sender.split('@')[1]
+                domain_risks[domain].append(email.get('risk_score', 0))
+        
+        if domain_risks:
+            avg_domain_risk = sum(sum(risks)/len(risks) for risks in domain_risks.values()) / len(domain_risks)
+            st.metric("Avg Domain Risk", f"{avg_domain_risk:.1f}")
+    
+    with comm_col3:
+        # Attachment Usage Rate
+        attachment_emails = len([e for e in data if e.get('attachments', '').strip()])
+        attachment_rate = (attachment_emails / len(data)) * 100 if data else 0
+        st.metric("Attachment Usage", f"{attachment_rate:.1f}%")
+        
+        # Keyword Alert Rate
+        keyword_emails = len([e for e in data if e.get('word_list_match', '').strip()])
+        keyword_rate = (keyword_emails / len(data)) * 100 if data else 0
+        st.metric("Keyword Alerts", f"{keyword_rate:.1f}%")
+
+    # Risk Trend Analysis
+    st.write("**📈 Risk Trend Analysis**")
+    
+    # Time-based risk evolution
+    time_risk_data = []
+    for email in data:
+        time_str = email.get('time', '')
+        risk_score = email.get('risk_score', 0)
+        if time_str and risk_score:
+            time_risk_data.append({'time': time_str, 'risk': risk_score})
+    
+    if time_risk_data:
+        # Group by hour for trend analysis
+        hourly_risks = defaultdict(list)
+        for item in time_risk_data:
+            try:
+                time_str = item['time']
+                if ':' in time_str:
+                    hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                    hour = int(hour_part)
+                    hourly_risks[hour].append(item['risk'])
+            except:
+                continue
+        
+        if hourly_risks:
+            hours = sorted(hourly_risks.keys())
+            avg_risks = [sum(hourly_risks[h])/len(hourly_risks[h]) for h in hours]
+            
+            fig_trend = go.Figure()
+            fig_trend.add_trace(go.Scatter(
+                x=hours,
+                y=avg_risks,
+                mode='lines+markers',
+                name='Average Risk Score',
+                line=dict(color='#e74c3c', width=3),
+                marker=dict(size=8)
+            ))
+            
+            # Add business hours indicator
+            fig_trend.add_vrect(x0=9, x1=17, fillcolor="rgba(39, 174, 96, 0.1)", layer="below", line_width=0)
+            
+            fig_trend.update_layout(
+                title="Risk Score Trends Throughout the Day",
+                xaxis_title="Hour of Day",
+                yaxis_title="Average Risk Score",
+                height=350,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+    # Behavioral Risk Matrix
+    st.write("**🎯 Behavioral Risk Matrix**")
+    
+    # Create risk matrix data
+    matrix_data = []
+    for sender_info in sender_risk_data:
+        sender = sender_info['sender']
+        emails = sender_groups[sender]
+        
+        # Calculate behavioral metrics
+        after_hours_ratio = 0
+        external_ratio = 0
+        attachment_ratio = 0
+        
+        time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+        after_hours_count = 0
+        for time_str in time_patterns:
+            try:
+                if ':' in time_str:
+                    hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                    hour = int(hour_part)
+                    if hour >= 18 or hour <= 6:
+                        after_hours_count += 1
+            except:
+                continue
+        
+        if time_patterns:
+            after_hours_ratio = after_hours_count / len(time_patterns)
+        
+        external_emails = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
+        external_ratio = external_emails / len(emails) if emails else 0
+        
+        attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
+        attachment_ratio = attachment_emails / len(emails) if emails else 0
+        
+        matrix_data.append({
+            'sender': sender.split('@')[0] if '@' in sender else sender,
+            'risk_score': sender_info['avg_risk_score'],
+            'after_hours_ratio': after_hours_ratio * 100,
+            'external_ratio': external_ratio * 100,
+            'attachment_ratio': attachment_ratio * 100,
+            'email_count': sender_info['total_emails']
+        })
+    
+    if matrix_data:
+        # Create bubble chart for risk matrix
+        fig_matrix = px.scatter(
+            matrix_data,
+            x='after_hours_ratio',
+            y='external_ratio',
+            size='email_count',
+            color='risk_score',
+            hover_data=['sender', 'attachment_ratio'],
+            title="Behavioral Risk Matrix: After-Hours vs External Communication",
+            labels={
+                'after_hours_ratio': 'After-Hours Activity (%)',
+                'external_ratio': 'External Communication (%)',
+                'risk_score': 'Risk Score'
+            },
+            color_continuous_scale='Reds'
+        )
+        
+        fig_matrix.update_layout(height=400)
+        st.plotly_chart(fig_matrix, use_container_width=True)
+
+    # Anomaly Detection Insights
+    st.write("**🚨 Anomaly Detection Insights**")
+    
+    anomaly_col1, anomaly_col2 = st.columns(2)
+    
+    with anomaly_col1:
+        # Anomaly type breakdown
+        anomaly_types = []
+        for email in data:
+            if email.get('is_anomaly', False):
+                anomaly_type = email.get('anomaly_type', 'Unknown')
+                anomaly_types.append(anomaly_type)
+        
+        if anomaly_types:
+            anomaly_counts = Counter(anomaly_types)
+            
+            fig_anomaly = go.Figure(data=[go.Bar(
+                x=list(anomaly_counts.keys()),
+                y=list(anomaly_counts.values()),
+                marker_color='#e74c3c'
+            )])
+            
+            fig_anomaly.update_layout(
+                title="Anomaly Types Distribution",
+                xaxis_title="Anomaly Type",
+                yaxis_title="Count",
+                height=300
+            )
+            
+            st.plotly_chart(fig_anomaly, use_container_width=True)
+    
+    with anomaly_col2:
+        # Risk vs Anomaly correlation
+        risk_anomaly_data = []
+        for sender_info in sender_risk_data:
+            risk_anomaly_data.append({
+                'risk_score': sender_info['avg_risk_score'],
+                'anomaly_ratio': (sender_info['anomaly_count'] / sender_info['total_emails']) * 100
+            })
+        
+        if risk_anomaly_data:
+            fig_correlation = px.scatter(
+                risk_anomaly_data,
+                x='risk_score',
+                y='anomaly_ratio',
+                title="Risk Score vs Anomaly Rate",
+                labels={
+                    'risk_score': 'Average Risk Score',
+                    'anomaly_ratio': 'Anomaly Rate (%)'
+                }
+            )
+            
+            fig_correlation.update_layout(height=300)
+            st.plotly_chart(fig_correlation, use_container_width=True)
+
+    # Departmental Analysis (if department data available)
+    st.write("**🏢 Departmental Risk Analysis**")
+    
+    # Attempt to infer departments from email domains or usernames
+    dept_analysis = defaultdict(lambda: {'emails': 0, 'risk_sum': 0, 'anomalies': 0})
+    
+    for email in data:
+        sender = email.get('sender', '')
+        risk_score = email.get('risk_score', 0)
+        is_anomaly = email.get('is_anomaly', False)
+        
+        # Simple department inference (could be enhanced with actual dept data)
+        dept = 'Unknown'
+        if '@' in sender:
+            username = sender.split('@')[0].lower()
+            if any(word in username for word in ['finance', 'accounting', 'fin']):
+                dept = 'Finance'
+            elif any(word in username for word in ['hr', 'human', 'recruiting']):
+                dept = 'HR'
+            elif any(word in username for word in ['it', 'tech', 'dev', 'sys']):
+                dept = 'IT'
+            elif any(word in username for word in ['sales', 'marketing', 'mkt']):
+                dept = 'Sales/Marketing'
+            elif any(word in username for word in ['legal', 'compliance', 'audit']):
+                dept = 'Legal/Compliance'
+            else:
+                dept = 'General'
+        
+        dept_analysis[dept]['emails'] += 1
+        dept_analysis[dept]['risk_sum'] += risk_score
+        if is_anomaly:
+            dept_analysis[dept]['anomalies'] += 1
+    
+    # Calculate departmental metrics
+    dept_metrics = []
+    for dept, stats in dept_analysis.items():
+        if stats['emails'] > 0:
+            avg_risk = stats['risk_sum'] / stats['emails']
+            anomaly_rate = (stats['anomalies'] / stats['emails']) * 100
+            dept_metrics.append({
+                'Department': dept,
+                'Email Count': stats['emails'],
+                'Avg Risk': f"{avg_risk:.1f}",
+                'Anomaly Rate': f"{anomaly_rate:.1f}%",
+                'Total Anomalies': stats['anomalies']
+            })
+    
+    if dept_metrics:
+        dept_df = pd.DataFrame(dept_metrics)
+        dept_df = dept_df.sort_values('Avg Risk', key=lambda x: x.astype(float), ascending=False)
+        st.dataframe(dept_df, use_container_width=True)
+
     # Behavioral Insights Summary
-    st.subheader("🧠 Behavioral Insights Summary")
+    st.subheader("🔍 Key Behavioral Insights")
     
     insights_col1, insights_col2 = st.columns(2)
     
     with insights_col1:
-        st.write("**🔍 Top Risk Patterns Detected:**")
+        st.write("**🚨 Top Risk Patterns Detected:**")
         
         # Calculate pattern frequencies
         pattern_counts = {
@@ -3095,6 +3378,225 @@ def sender_behavior_analysis_page():
             emails = sender_groups[sender]
             
             # Count patterns
+            time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+            after_hours_count = 0
+            for time_str in time_patterns:
+                try:
+                    if ':' in time_str:
+                        hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                        hour = int(hour_part)
+                        if hour >= 18 or hour <= 6:
+                            after_hours_count += 1
+                except:
+                    continue
+            
+            if after_hours_count > 0:
+                pattern_counts['after_hours'] += 1
+            
+            # Free domain check
+            sender_domain = sender.split('@')[1] if '@' in sender else ''
+            free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+            if sender_domain.lower() in free_domains:
+                pattern_counts['free_domains'] += 1
+            
+            # External communications
+            external_emails = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
+            if external_emails > 0:
+                pattern_counts['external_comms'] += 1
+            
+            # Content risk (attachments + keywords)
+            attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
+            keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+            if attachment_emails > 0 and keyword_emails > 0:
+                pattern_counts['content_risk'] += 1
+            
+            # Departing employees
+            if any(email.get('last_working_day', '').strip() for email in emails):
+                pattern_counts['departing_employees'] += 1
+        
+        # Display top patterns
+        sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)
+        for pattern, count in sorted_patterns[:5]:
+            pattern_name = {
+                'after_hours': 'After-hours activity',
+                'free_domains': 'Free email domains',
+                'external_comms': 'External communications',
+                'content_risk': 'High-risk content',
+                'departing_employees': 'Departing employees'
+            }.get(pattern, pattern)
+            
+            st.write(f"• {pattern_name}: {count} senders")
+    
+    with insights_col2:
+        st.write("**📈 Risk Recommendations:**")
+        
+        # Generate actionable recommendations
+        recommendations = []
+        
+        if pattern_counts['after_hours'] > 0:
+            recommendations.append("Monitor after-hours email activity for data exfiltration risks")
+        
+        if pattern_counts['free_domains'] > 0:
+            recommendations.append("Review policy on free email domain usage")
+        
+        if pattern_counts['external_comms'] > 0:
+            recommendations.append("Implement additional controls for external communications")
+        
+        if pattern_counts['content_risk'] > 0:
+            recommendations.append("Enhanced scanning for sensitive content in attachments")
+        
+        if pattern_counts['departing_employees'] > 0:
+            recommendations.append("Immediate review of departing employee activities")
+        
+        # Add general recommendations based on overall risk levels
+        high_risk_count = len([s for s in sender_risk_data if s['max_risk_level'] in ['High', 'Critical']])
+        total_senders = len(sender_risk_data)
+        
+        if high_risk_count > total_senders * 0.1:  # More than 10% high risk
+            recommendations.append("Consider implementing stricter email policies")
+        
+        if sum(s['anomaly_count'] for s in sender_risk_data) > total_senders * 0.05:  # High anomaly rate
+            recommendations.append("Review anomaly detection thresholds and rules")
+        
+        for i, rec in enumerate(recommendations[:7], 1):
+            st.write(f"{i}. {rec}")
+
+    # Export Options for Sender Analysis
+    st.subheader("💾 Export & Reporting")
+    
+    export_col1, export_col2, export_col3 = st.columns(3)
+    
+    with export_col1:
+        if st.button("📊 Export Risk Summary", key="export_risk_summary"):
+            # Create summary report
+            summary_data = {
+                'Total Senders': len(sender_risk_data),
+                'High Risk Senders': len([s for s in sender_risk_data if s['max_risk_level'] in ['High', 'Critical']]),
+                'Anomaly Senders': len([s for s in sender_risk_data if s['anomaly_count'] > 0]),
+                'After Hours Activity': pattern_counts['after_hours'],
+                'Free Domain Usage': pattern_counts['free_domains'],
+                'External Communications': pattern_counts['external_comms']
+            }
+            
+            summary_text = "SENDER BEHAVIOR ANALYSIS SUMMARY\n" + "="*40 + "\n\n"
+            for key, value in summary_data.items():
+                summary_text += f"{key}: {value}\n"
+            
+            summary_text += "\nTOP RISK PATTERNS:\n" + "-"*20 + "\n"
+            for pattern, count in sorted_patterns[:5]:
+                pattern_name = {
+                    'after_hours': 'After-hours activity',
+                    'free_domains': 'Free email domains', 
+                    'external_comms': 'External communications',
+                    'content_risk': 'High-risk content',
+                    'departing_employees': 'Departing employees'
+                }.get(pattern, pattern)
+                summary_text += f"• {pattern_name}: {count} senders\n"
+            
+            st.download_button(
+                label="Download Summary",
+                data=summary_text,
+                file_name="sender_behavior_summary.txt",
+                mime="text/plain",
+                key="download_summary"
+            )
+    
+    with export_col2:
+        if st.button("📈 Export Detailed Report", key="export_detailed_report"):
+            # Create detailed CSV report
+            detailed_data = []
+            for sender_info in sender_risk_data:
+                sender = sender_info['sender']
+                emails = sender_groups[sender]
+                
+                # Calculate additional metrics
+                time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+                after_hours_count = 0
+                for time_str in time_patterns:
+                    try:
+                        if ':' in time_str:
+                            hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                            hour = int(hour_part)
+                            if hour >= 18 or hour <= 6:
+                                after_hours_count += 1
+                    except:
+                        continue
+                
+                external_emails = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
+                attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
+                keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+                
+                detailed_data.append({
+                    'Sender': sender,
+                    'Total_Emails': sender_info['total_emails'],
+                    'Max_Risk_Level': sender_info['max_risk_level'],
+                    'Max_Risk_Score': sender_info['max_risk_score'],
+                    'Avg_Risk_Score': f"{sender_info['avg_risk_score']:.2f}",
+                    'Anomaly_Count': sender_info['anomaly_count'],
+                    'After_Hours_Emails': after_hours_count,
+                    'External_Emails': external_emails,
+                    'Attachment_Emails': attachment_emails,
+                    'Keyword_Emails': keyword_emails
+                })
+            
+            # Convert to CSV
+            import csv
+            import io
+            
+            output = io.StringIO()
+            writer = csv.DictWriter(output, fieldnames=detailed_data[0].keys())
+            writer.writeheader()
+            writer.writerows(detailed_data)
+            csv_data = output.getvalue()
+            
+            st.download_button(
+                label="Download CSV Report",
+                data=csv_data,
+                file_name="sender_behavior_detailed.csv",
+                mime="text/csv",
+                key="download_detailed"
+            )
+    
+    with export_col3:
+        if st.button("📋 Generate Action Items", key="generate_actions"):
+            # Generate prioritized action items
+            action_items = []
+            
+            # High priority actions
+            critical_senders = [s for s in sender_risk_data if s['max_risk_level'] == 'Critical']
+            if critical_senders:
+                action_items.append(f"URGENT: Review {len(critical_senders)} critical risk senders immediately")
+            
+            departing_employees = [s for s in sender_risk_data if any(email.get('last_working_day', '').strip() for email in sender_groups[s['sender']])]
+            if departing_employees:
+                action_items.append(f"HIGH: Monitor {len(departing_employees)} departing employees for data exfiltration")
+            
+            # Medium priority actions
+            high_anomaly_senders = [s for s in sender_risk_data if s['anomaly_count'] >= 3]
+            if high_anomaly_senders:
+                action_items.append(f"MEDIUM: Investigate {len(high_anomaly_senders)} senders with multiple anomalies")
+            
+            after_hours_senders = pattern_counts['after_hours']
+            if after_hours_senders > 0:
+                action_items.append(f"MEDIUM: Review after-hours activity for {after_hours_senders} senders")
+            
+            # Low priority actions
+            if pattern_counts['free_domains'] > 0:
+                action_items.append(f"LOW: Policy review for {pattern_counts['free_domains']} free domain users")
+            
+            action_text = "SENDER BEHAVIOR ACTION ITEMS\n" + "="*30 + "\n\n"
+            action_text += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            
+            for i, action in enumerate(action_items, 1):
+                action_text += f"{i}. {action}\n"
+            
+            st.download_button(
+                label="Download Action Items",
+                data=action_text,
+                file_name="sender_behavior_actions.txt",
+                mime="text/plain",
+                key="download_actions"
+            )
             time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
             after_hours = any(
                 (':' in time_str and 
