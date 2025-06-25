@@ -3002,7 +3002,7 @@ def analyze_domain_queries(question, data):
         title="Top Email Domains",
         labels={'x': 'Domain', 'y': 'Email Count'}
     )
-    fig.update_xaxis(tickangle=45)
+    fig.update_layout(xaxis_tickangle=45)
     
     return answer, fig
 
