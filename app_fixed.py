@@ -1991,7 +1991,7 @@ def main():
         st.header("📋 Navigation")
         page = st.radio(
             "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "🤖 Q&A Assistant", "⚙️ Settings"],
+            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "🤖 Q&A Assistant", "📊 System Workflow", "⚙️ Settings"],
             label_visibility="collapsed"
         )
 
@@ -2013,6 +2013,8 @@ def main():
         network_analysis_page()
     elif page == "🤖 Q&A Assistant":
         qa_assistant_page()
+    elif page == "📊 System Workflow":
+        system_workflow_page()
     elif page == "⚙️ Settings":
         settings_page()
 
@@ -3285,6 +3287,304 @@ def analyze_recipient_domain_queries(question, data):
 def analyze_general_queries(question, data):
     """Handle general overview questions"""
     return analyze_risk_overview(data)
+
+def system_workflow_page():
+    """Professional system workflow and process documentation"""
+    st.header("ExfilEye DLP System - Professional Workflow Documentation")
+    
+    # Main Process Flow
+    st.subheader("Complete Process Flow: Data Import to Security Results")
+    
+    # Create workflow visualization
+    workflow_fig = create_main_workflow_diagram()
+    st.plotly_chart(workflow_fig, use_container_width=True, key="main_workflow")
+    
+    # Process Details
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### Stage 1: Data Input")
+        st.markdown("""
+        **CSV File Upload**
+        - Secure file upload interface
+        - Email data validation
+        - Field mapping and parsing
+        
+        **Data Validation**
+        - Email format verification
+        - Required field checking
+        - Data integrity validation
+        
+        **Email Parsing**
+        - Sender/recipient extraction
+        - Domain identification
+        - Attachment detection
+        """)
+        
+        st.markdown("### Stage 2: Data Processing")
+        st.markdown("""
+        **Domain Classification**
+        - Internal/external domain analysis
+        - Risk-based domain categorization
+        - Trusted domain identification
+        
+        **Risk Scoring**
+        - Multi-factor risk assessment
+        - Behavioral pattern analysis
+        - Threat level calculation
+        
+        **Anomaly Detection**
+        - Statistical pattern analysis
+        - Unusual behavior identification
+        - Security threat detection
+        
+        **Network Graph Building**
+        - Communication relationship mapping
+        - Network topology construction
+        - Interactive graph generation
+        """)
+    
+    with col2:
+        st.markdown("### Stage 3: Analysis & Intelligence")
+        st.markdown("""
+        **Sender Behavior Analysis**
+        - Communication pattern analysis
+        - Risk trend identification
+        - Behavioral matrix generation
+        - Department-based insights
+        
+        **Q&A Processing**
+        - Natural language query processing
+        - Pre-built question execution
+        - Smart pattern recognition
+        - Custom insight generation
+        """)
+        
+        st.markdown("### Stage 4: Results & Actions")
+        st.markdown("""
+        **Interactive Dashboards**
+        - Real-time security metrics
+        - Visual analytics displays
+        - Risk distribution charts
+        - Behavior trend visualizations
+        
+        **Security Reports**
+        - Comprehensive security assessments
+        - Anomaly detection results
+        - Risk analysis summaries
+        - Actionable intelligence reports
+        
+        **Follow-up Tracking**
+        - Security decision tracking
+        - Follow-up action management
+        - Outlook integration
+        - Incident response workflow
+        
+        **Export Capabilities**
+        - CSV data export
+        - Report generation
+        - Dashboard sharing
+        - Compliance documentation
+        """)
+    
+    st.markdown("---")
+    
+    # Feature Matrix
+    st.subheader("Feature Capabilities Matrix")
+    
+    features_fig = create_feature_matrix_diagram()
+    st.plotly_chart(features_fig, use_container_width=True, key="feature_matrix")
+    
+    # Technology Stack
+    st.markdown("---")
+    st.subheader("Technology Stack & Architecture")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Frontend Technologies**")
+        st.markdown("""
+        - Streamlit Web Framework
+        - Plotly Interactive Visualizations
+        - NetworkX Graph Analysis
+        - HTML/CSS Interface Components
+        """)
+    
+    with col2:
+        st.markdown("**Backend Processing**")
+        st.markdown("""
+        - Python 3.11 Runtime
+        - NumPy Numerical Computing
+        - Scikit-learn Machine Learning
+        - Custom Algorithm Implementation
+        """)
+    
+    with col3:
+        st.markdown("**Security & Analytics**")
+        st.markdown("""
+        - Real-time Anomaly Detection
+        - Risk Scoring Algorithms
+        - Behavioral Pattern Analysis
+        - Domain Classification Engine
+        """)
+
+def create_main_workflow_diagram():
+    """Create the main workflow process diagram"""
+    fig = go.Figure()
+    
+    # Define workflow stages
+    stages = [
+        # Input Stage
+        {"name": "CSV Upload", "x": 1, "y": 4, "color": "#3498db", "size": 100},
+        {"name": "Data Validation", "x": 1, "y": 3, "color": "#3498db", "size": 90},
+        {"name": "Email Parsing", "x": 1, "y": 2, "color": "#3498db", "size": 90},
+        
+        # Processing Stage
+        {"name": "Domain\nClassification", "x": 3, "y": 4, "color": "#e67e22", "size": 90},
+        {"name": "Risk Scoring", "x": 3, "y": 3, "color": "#e67e22", "size": 90},
+        {"name": "Anomaly\nDetection", "x": 3, "y": 2, "color": "#e67e22", "size": 90},
+        {"name": "Network Graph\nBuilding", "x": 3, "y": 1, "color": "#e67e22", "size": 85},
+        
+        # Analysis Stage
+        {"name": "Sender Behavior\nAnalysis", "x": 5, "y": 4, "color": "#9b59b6", "size": 85},
+        {"name": "Communication\nPatterns", "x": 5, "y": 3, "color": "#9b59b6", "size": 85},
+        {"name": "Risk Trend\nAnalysis", "x": 5, "y": 2, "color": "#9b59b6", "size": 85},
+        {"name": "Q&A Processing", "x": 5, "y": 1, "color": "#9b59b6", "size": 90},
+        
+        # Results Stage
+        {"name": "Interactive\nDashboards", "x": 7, "y": 4, "color": "#27ae60", "size": 85},
+        {"name": "Security\nReports", "x": 7, "y": 3, "color": "#27ae60", "size": 90},
+        {"name": "Follow-up\nTracking", "x": 7, "y": 2, "color": "#27ae60", "size": 85},
+        {"name": "Export\nCapabilities", "x": 7, "y": 1, "color": "#27ae60", "size": 85},
+    ]
+    
+    # Add workflow boxes
+    for i, stage in enumerate(stages):
+        fig.add_trace(go.Scatter(
+            x=[stage["x"]],
+            y=[stage["y"]],
+            mode='markers+text',
+            marker=dict(
+                size=stage["size"],
+                color=stage["color"],
+                symbol='square',
+                line=dict(width=3, color='white')
+            ),
+            text=stage["name"],
+            textposition="middle center",
+            textfont=dict(size=9, color='white', family='Arial Black'),
+            hovertemplate=f"<b>{stage['name']}</b><extra></extra>",
+            showlegend=False
+        ))
+    
+    # Add stage headers
+    headers = [
+        {"text": "DATA INPUT", "x": 1, "y": 5, "color": "#3498db"},
+        {"text": "PROCESSING", "x": 3, "y": 5, "color": "#e67e22"},
+        {"text": "ANALYSIS", "x": 5, "y": 5, "color": "#9b59b6"},
+        {"text": "RESULTS", "x": 7, "y": 5, "color": "#27ae60"},
+    ]
+    
+    for header in headers:
+        fig.add_trace(go.Scatter(
+            x=[header["x"]],
+            y=[header["y"]],
+            mode='text',
+            text=header["text"],
+            textfont=dict(size=16, color=header["color"], family='Arial Black'),
+            showlegend=False
+        ))
+    
+    # Add flow arrows
+    arrow_paths = [
+        # Input to Processing
+        (1.5, 4, 2.5, 4), (1.5, 3, 2.5, 3), (1.5, 2, 2.5, 2),
+        # Processing to Analysis  
+        (3.5, 4, 4.5, 4), (3.5, 3, 4.5, 3), (3.5, 2, 4.5, 2), (3.5, 1, 4.5, 1),
+        # Analysis to Results
+        (5.5, 4, 6.5, 4), (5.5, 3, 6.5, 3), (5.5, 2, 6.5, 2), (5.5, 1, 6.5, 1),
+    ]
+    
+    for x1, y1, x2, y2 in arrow_paths:
+        fig.add_annotation(
+            x=x2, y=y2, ax=x1, ay=y1,
+            xref='x', yref='y', axref='x', ayref='y',
+            arrowhead=3, arrowsize=1.5, arrowwidth=3, arrowcolor='#34495e'
+        )
+    
+    fig.update_layout(
+        title={
+            'text': "ExfilEye DLP Email Security Monitor - Complete Process Flow",
+            'x': 0.5, 'xanchor': 'center',
+            'font': {'size': 20, 'family': 'Arial Black', 'color': '#2c3e50'}
+        },
+        xaxis=dict(range=[0, 8], showgrid=False, showticklabels=False, zeroline=False),
+        yaxis=dict(range=[0, 6], showgrid=False, showticklabels=False, zeroline=False),
+        plot_bgcolor='white', paper_bgcolor='#f8f9fa',
+        width=1200, height=500, margin=dict(l=50, r=50, t=80, b=50)
+    )
+    
+    return fig
+
+def create_feature_matrix_diagram():
+    """Create feature capability matrix"""
+    
+    # Define features for each navigation item
+    features_data = {
+        'Data Upload': ['CSV Validation', 'Email Parsing', 'Domain Classification', 'Risk Scoring', 'Anomaly Detection', 'Data Preview'],
+        'Sender Behavior Analysis': ['Communication Patterns', 'Risk Trends', 'Behavioral Matrix', 'Department Analysis', 'Anomaly Insights', 'Export Functions'],
+        'Follow-up Center': ['Decision Tracking', 'Follow-up Templates', 'Outlook Integration', 'Action Status', 'Security Workflow', 'Incident Response'],
+        'Q&A Assistant': ['Natural Language Queries', 'Pre-built Questions', 'Smart Analytics', 'Interactive Charts', 'Pattern Recognition', 'Custom Insights']
+    }
+    
+    colors = ['#3498db', '#9b59b6', '#e74c3c', '#27ae60']
+    
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=list(features_data.keys()),
+        vertical_spacing=0.15, horizontal_spacing=0.1
+    )
+    
+    positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
+    
+    for idx, (section, features) in enumerate(features_data.items()):
+        row, col = positions[idx]
+        
+        # Create feature visualization
+        y_positions = list(range(len(features), 0, -1))
+        
+        fig.add_trace(go.Scatter(
+            x=[1] * len(features),
+            y=y_positions,
+            mode='markers+text',
+            marker=dict(size=25, color=colors[idx], symbol='circle'),
+            text=features,
+            textposition="middle right",
+            textfont=dict(size=10, color='#2c3e50'),
+            showlegend=False
+        ), row=row, col=col)
+        
+        # Update subplot axes
+        fig.update_xaxes(
+            range=[0.5, 4], showgrid=False, showticklabels=False, zeroline=False,
+            row=row, col=col
+        )
+        fig.update_yaxes(
+            range=[0, len(features)+1], showgrid=False, showticklabels=False, zeroline=False,
+            row=row, col=col
+        )
+    
+    fig.update_layout(
+        title={
+            'text': "ExfilEye Navigation Features - Capability Matrix",
+            'x': 0.5, 'xanchor': 'center',
+            'font': {'size': 18, 'family': 'Arial Black', 'color': '#2c3e50'}
+        },
+        plot_bgcolor='white', paper_bgcolor='#f8f9fa',
+        width=1200, height=600, margin=dict(l=50, r=50, t=100, b=50)
+    )
+    
+    return fig
 
 
 def analyze_risk_overview(data):

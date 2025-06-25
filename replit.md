@@ -87,10 +87,13 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 - **Port Binding**: 0.0.0.0 address for external accessibility
 - **Parallel Workflows**: Support for concurrent task execution
 
-## Changelog
+## Recent Changes
 
-Changelog:
-- June 21, 2025. Initial setup
+- June 25, 2025: Added comprehensive System Workflow documentation page with professional process flow diagrams
+- June 25, 2025: Enhanced Q&A Assistant with editable pre-built questions and advanced query processing
+- June 25, 2025: Fixed Plotly chart duplicate ID errors and improved visualization stability
+- June 25, 2025: Implemented attachment analysis, department analysis, and multi-domain recipient tracking
+- June 21, 2025: Initial system setup and core functionality implementation
 
 ## User Preferences
 
