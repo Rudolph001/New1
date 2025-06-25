@@ -3641,24 +3641,75 @@ def generate_workflow_pdf():
     import base64
     
     # Create HTML content for the workflow documentation
-    html_content = """
+    timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    
+    html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <title>ExfilEye DLP System - Workflow Documentation</title>
         <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
-            .header { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { color: #2c3e50; font-size: 24px; font-weight: bold; margin: 0; }
-            .subtitle { color: #7f8c8d; font-size: 14px; margin: 5px 0 0 0; }
-            .stage { margin: 30px 0; }
-            .stage-title { color: #2c3e50; font-size: 18px; font-weight: bold; border-left: 4px solid #3498db; padding-left: 15px; }
-            .stage-content { margin: 15px 0 15px 20px; }
-            .feature-list { list-style-type: none; padding: 0; }
-            .feature-item { background: #f8f9fa; margin: 5px 0; padding: 10px; border-left: 3px solid #3498db; }
-            .tech-section { background: #ecf0f1; padding: 20px; margin: 20px 0; border-radius: 5px; }
-            .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #bdc3c7; color: #7f8c8d; font-size: 12px; }
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 40px;
+                line-height: 1.6;
+                color: #333;
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 3px solid #3498db;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }}
+            .title {{
+                color: #2c3e50;
+                font-size: 24px;
+                font-weight: bold;
+                margin: 0;
+            }}
+            .subtitle {{
+                color: #7f8c8d;
+                font-size: 14px;
+                margin: 5px 0 0 0;
+            }}
+            .stage {{
+                margin: 30px 0;
+            }}
+            .stage-title {{
+                color: #2c3e50;
+                font-size: 18px;
+                font-weight: bold;
+                border-left: 4px solid #3498db;
+                padding-left: 15px;
+            }}
+            .stage-content {{
+                margin: 15px 0 15px 20px;
+            }}
+            .feature-list {{
+                list-style-type: none;
+                padding: 0;
+            }}
+            .feature-item {{
+                background: #f8f9fa;
+                margin: 5px 0;
+                padding: 10px;
+                border-left: 3px solid #3498db;
+            }}
+            .tech-section {{
+                background: #ecf0f1;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+            }}
+            .footer {{
+                text-align: center;
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #bdc3c7;
+                color: #7f8c8d;
+                font-size: 12px;
+            }}
         </style>
     </head>
     <body>
@@ -3727,7 +3778,7 @@ def generate_workflow_pdf():
         </div>
     </body>
     </html>
-    """.format(timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p"))
+    """
     
     try:
         # Try to use weasyprint for better PDF generation
