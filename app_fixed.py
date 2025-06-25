@@ -3429,87 +3429,94 @@ def system_workflow_page():
         """)
 
 def create_main_workflow_diagram():
-    """Create the main workflow process diagram"""
+    """Create the main workflow process diagram with improved readability"""
     fig = go.Figure()
     
-    # Define workflow stages
+    # Define workflow stages with better sizing and positioning
     stages = [
         # Input Stage
-        {"name": "CSV Upload", "x": 1, "y": 4, "color": "#3498db", "size": 100},
-        {"name": "Data Validation", "x": 1, "y": 3, "color": "#3498db", "size": 90},
-        {"name": "Email Parsing", "x": 1, "y": 2, "color": "#3498db", "size": 90},
+        {"name": "CSV Upload", "x": 1, "y": 4.5, "color": "#3498db", "width": 0.7, "height": 0.4},
+        {"name": "Data Validation", "x": 1, "y": 3.5, "color": "#3498db", "width": 0.7, "height": 0.4},
+        {"name": "Email Parsing", "x": 1, "y": 2.5, "color": "#3498db", "width": 0.7, "height": 0.4},
         
         # Processing Stage
-        {"name": "Domain\nClassification", "x": 3, "y": 4, "color": "#e67e22", "size": 90},
-        {"name": "Risk Scoring", "x": 3, "y": 3, "color": "#e67e22", "size": 90},
-        {"name": "Anomaly\nDetection", "x": 3, "y": 2, "color": "#e67e22", "size": 90},
-        {"name": "Network Graph\nBuilding", "x": 3, "y": 1, "color": "#e67e22", "size": 85},
+        {"name": "Domain<br>Classification", "x": 3, "y": 4.5, "color": "#e67e22", "width": 0.7, "height": 0.4},
+        {"name": "Risk Scoring", "x": 3, "y": 3.5, "color": "#e67e22", "width": 0.7, "height": 0.4},
+        {"name": "Anomaly<br>Detection", "x": 3, "y": 2.5, "color": "#e67e22", "width": 0.7, "height": 0.4},
+        {"name": "Network Graph<br>Building", "x": 3, "y": 1.5, "color": "#e67e22", "width": 0.7, "height": 0.4},
         
         # Analysis Stage
-        {"name": "Sender Behavior\nAnalysis", "x": 5, "y": 4, "color": "#9b59b6", "size": 85},
-        {"name": "Communication\nPatterns", "x": 5, "y": 3, "color": "#9b59b6", "size": 85},
-        {"name": "Risk Trend\nAnalysis", "x": 5, "y": 2, "color": "#9b59b6", "size": 85},
-        {"name": "Q&A Processing", "x": 5, "y": 1, "color": "#9b59b6", "size": 90},
+        {"name": "Sender Behavior<br>Analysis", "x": 5, "y": 4.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
+        {"name": "Communication<br>Patterns", "x": 5, "y": 3.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
+        {"name": "Risk Trend<br>Analysis", "x": 5, "y": 2.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
+        {"name": "Q&A Processing", "x": 5, "y": 1.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
         
         # Results Stage
-        {"name": "Interactive\nDashboards", "x": 7, "y": 4, "color": "#27ae60", "size": 85},
-        {"name": "Security\nReports", "x": 7, "y": 3, "color": "#27ae60", "size": 90},
-        {"name": "Follow-up\nTracking", "x": 7, "y": 2, "color": "#27ae60", "size": 85},
-        {"name": "Export\nCapabilities", "x": 7, "y": 1, "color": "#27ae60", "size": 85},
+        {"name": "Interactive<br>Dashboards", "x": 7, "y": 4.5, "color": "#27ae60", "width": 0.7, "height": 0.4},
+        {"name": "Security<br>Reports", "x": 7, "y": 3.5, "color": "#27ae60", "width": 0.7, "height": 0.4},
+        {"name": "Follow-up<br>Tracking", "x": 7, "y": 2.5, "color": "#27ae60", "width": 0.7, "height": 0.4},
+        {"name": "Export<br>Capabilities", "x": 7, "y": 1.5, "color": "#27ae60", "width": 0.7, "height": 0.4},
     ]
     
-    # Add workflow boxes
+    # Add workflow boxes as rectangles with better visibility
     for i, stage in enumerate(stages):
-        fig.add_trace(go.Scatter(
-            x=[stage["x"]],
-            y=[stage["y"]],
-            mode='markers+text',
-            marker=dict(
-                size=stage["size"],
-                color=stage["color"],
-                symbol='square',
-                line=dict(width=3, color='white')
-            ),
-            text=stage["name"],
-            textposition="middle center",
-            textfont=dict(size=9, color='white', family='Arial Black'),
-            hovertemplate=f"<b>{stage['name']}</b><extra></extra>",
-            showlegend=False
-        ))
+        # Add rectangle shape
+        fig.add_shape(
+            type="rect",
+            x0=stage["x"] - stage["width"]/2,
+            y0=stage["y"] - stage["height"]/2,
+            x1=stage["x"] + stage["width"]/2,
+            y1=stage["y"] + stage["height"]/2,
+            fillcolor=stage["color"],
+            line=dict(color="white", width=3),
+            opacity=0.9
+        )
+        
+        # Add text with better positioning
+        fig.add_annotation(
+            x=stage["x"],
+            y=stage["y"],
+            text=f"<b>{stage['name']}</b>",
+            showarrow=False,
+            font=dict(color="white", size=11, family="Arial"),
+            align="center",
+            bgcolor="rgba(0,0,0,0)",
+            bordercolor="rgba(0,0,0,0)"
+        )
     
-    # Add stage headers
+    # Add stage headers with better positioning
     headers = [
-        {"text": "DATA INPUT", "x": 1, "y": 5, "color": "#3498db"},
-        {"text": "PROCESSING", "x": 3, "y": 5, "color": "#e67e22"},
-        {"text": "ANALYSIS", "x": 5, "y": 5, "color": "#9b59b6"},
-        {"text": "RESULTS", "x": 7, "y": 5, "color": "#27ae60"},
+        {"text": "DATA INPUT", "x": 1, "y": 5.5, "color": "#3498db"},
+        {"text": "PROCESSING", "x": 3, "y": 5.5, "color": "#e67e22"},
+        {"text": "ANALYSIS", "x": 5, "y": 5.5, "color": "#9b59b6"},
+        {"text": "RESULTS", "x": 7, "y": 5.5, "color": "#27ae60"},
     ]
     
     for header in headers:
-        fig.add_trace(go.Scatter(
-            x=[header["x"]],
-            y=[header["y"]],
-            mode='text',
-            text=header["text"],
-            textfont=dict(size=16, color=header["color"], family='Arial Black'),
-            showlegend=False
-        ))
+        fig.add_annotation(
+            x=header["x"],
+            y=header["y"],
+            text=f"<b>{header['text']}</b>",
+            showarrow=False,
+            font=dict(color=header["color"], size=16, family="Arial Black"),
+            align="center"
+        )
     
-    # Add flow arrows
+    # Add flow arrows with better positioning
     arrow_paths = [
         # Input to Processing
-        (1.5, 4, 2.5, 4), (1.5, 3, 2.5, 3), (1.5, 2, 2.5, 2),
+        (1.35, 4.5, 2.65, 4.5), (1.35, 3.5, 2.65, 3.5), (1.35, 2.5, 2.65, 2.5),
         # Processing to Analysis  
-        (3.5, 4, 4.5, 4), (3.5, 3, 4.5, 3), (3.5, 2, 4.5, 2), (3.5, 1, 4.5, 1),
+        (3.35, 4.5, 4.65, 4.5), (3.35, 3.5, 4.65, 3.5), (3.35, 2.5, 4.65, 2.5), (3.35, 1.5, 4.65, 1.5),
         # Analysis to Results
-        (5.5, 4, 6.5, 4), (5.5, 3, 6.5, 3), (5.5, 2, 6.5, 2), (5.5, 1, 6.5, 1),
+        (5.35, 4.5, 6.65, 4.5), (5.35, 3.5, 6.65, 3.5), (5.35, 2.5, 6.65, 2.5), (5.35, 1.5, 6.65, 1.5),
     ]
     
     for x1, y1, x2, y2 in arrow_paths:
         fig.add_annotation(
             x=x2, y=y2, ax=x1, ay=y1,
             xref='x', yref='y', axref='x', ayref='y',
-            arrowhead=3, arrowsize=1.5, arrowwidth=3, arrowcolor='#34495e'
+            arrowhead=3, arrowsize=1.8, arrowwidth=3, arrowcolor='#34495e'
         )
     
     fig.update_layout(
@@ -3519,17 +3526,20 @@ def create_main_workflow_diagram():
             'font': {'size': 20, 'family': 'Arial Black', 'color': '#2c3e50'}
         },
         xaxis=dict(range=[0, 8], showgrid=False, showticklabels=False, zeroline=False),
-        yaxis=dict(range=[0, 6], showgrid=False, showticklabels=False, zeroline=False),
-        plot_bgcolor='white', paper_bgcolor='#f8f9fa',
-        width=1200, height=500, margin=dict(l=50, r=50, t=80, b=50)
+        yaxis=dict(range=[0.5, 6.5], showgrid=False, showticklabels=False, zeroline=False),
+        plot_bgcolor='white', 
+        paper_bgcolor='#f8f9fa',
+        width=1400, 
+        height=600, 
+        margin=dict(l=50, r=50, t=80, b=50)
     )
     
     return fig
 
 def create_feature_matrix_diagram():
-    """Create feature capability matrix"""
+    """Create feature capability matrix with improved readability"""
     
-    # Define features for each navigation item
+    # Define features for each navigation item with shorter, clearer names
     features_data = {
         'Data Upload': ['CSV Validation', 'Email Parsing', 'Domain Classification', 'Risk Scoring', 'Anomaly Detection', 'Data Preview'],
         'Sender Behavior Analysis': ['Communication Patterns', 'Risk Trends', 'Behavioral Matrix', 'Department Analysis', 'Anomaly Insights', 'Export Functions'],
@@ -3542,31 +3552,45 @@ def create_feature_matrix_diagram():
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=list(features_data.keys()),
-        vertical_spacing=0.15, horizontal_spacing=0.1
+        vertical_spacing=0.2, horizontal_spacing=0.15,
+        specs=[[{"type": "xy"}, {"type": "xy"}],
+               [{"type": "xy"}, {"type": "xy"}]]
     )
     
     positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
     
     for idx, (section, features) in enumerate(features_data.items()):
         row, col = positions[idx]
+        color = colors[idx]
         
-        # Create feature visualization
-        y_positions = list(range(len(features), 0, -1))
+        # Create rectangular boxes for each feature
+        for i, feature in enumerate(features):
+            y_pos = len(features) - i
+            
+            # Add rectangle shape for feature
+            fig.add_shape(
+                type="rect",
+                x0=0.2, y0=y_pos - 0.35,
+                x1=3.8, y1=y_pos + 0.35,
+                fillcolor=color,
+                line=dict(color="white", width=2),
+                opacity=0.8,
+                row=row, col=col
+            )
+            
+            # Add feature text
+            fig.add_annotation(
+                x=2, y=y_pos,
+                text=f"<b>{feature}</b>",
+                showarrow=False,
+                font=dict(color="white", size=11, family="Arial"),
+                align="center",
+                row=row, col=col
+            )
         
-        fig.add_trace(go.Scatter(
-            x=[1] * len(features),
-            y=y_positions,
-            mode='markers+text',
-            marker=dict(size=25, color=colors[idx], symbol='circle'),
-            text=features,
-            textposition="middle right",
-            textfont=dict(size=10, color='#2c3e50'),
-            showlegend=False
-        ), row=row, col=col)
-        
-        # Update subplot axes
+        # Update subplot axes with better spacing
         fig.update_xaxes(
-            range=[0.5, 4], showgrid=False, showticklabels=False, zeroline=False,
+            range=[0, 4], showgrid=False, showticklabels=False, zeroline=False,
             row=row, col=col
         )
         fig.update_yaxes(
@@ -3580,8 +3604,11 @@ def create_feature_matrix_diagram():
             'x': 0.5, 'xanchor': 'center',
             'font': {'size': 18, 'family': 'Arial Black', 'color': '#2c3e50'}
         },
-        plot_bgcolor='white', paper_bgcolor='#f8f9fa',
-        width=1200, height=600, margin=dict(l=50, r=50, t=100, b=50)
+        plot_bgcolor='white', 
+        paper_bgcolor='#f8f9fa',
+        width=1400, 
+        height=700, 
+        margin=dict(l=50, r=50, t=120, b=50)
     )
     
     return fig
