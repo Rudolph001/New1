@@ -3292,6 +3292,28 @@ def system_workflow_page():
     """Professional system workflow and process documentation"""
     st.header("ExfilEye DLP System - Professional Workflow Documentation")
     
+    # Export options
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col2:
+        if st.button("📄 Export Workflow PDF", type="primary"):
+            pdf_content = generate_workflow_pdf()
+            st.download_button(
+                label="⬇️ Download PDF",
+                data=pdf_content,
+                file_name=f"ExfilEye_Workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf"
+            )
+    
+    with col3:
+        if st.button("📊 Export Charts PDF"):
+            charts_pdf = generate_charts_pdf()
+            st.download_button(
+                label="⬇️ Download Charts PDF",
+                data=charts_pdf,
+                file_name=f"ExfilEye_Charts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf"
+            )
+    
     # Main Process Flow
     st.subheader("Complete Process Flow: Data Import to Security Results")
     
@@ -3612,6 +3634,219 @@ def create_feature_matrix_diagram():
     )
     
     return fig
+
+def generate_workflow_pdf():
+    """Generate comprehensive workflow documentation as PDF"""
+    from io import BytesIO
+    import base64
+    
+    # Create HTML content for the workflow documentation
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>ExfilEye DLP System - Workflow Documentation</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
+            .header { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { color: #2c3e50; font-size: 24px; font-weight: bold; margin: 0; }
+            .subtitle { color: #7f8c8d; font-size: 14px; margin: 5px 0 0 0; }
+            .stage { margin: 30px 0; }
+            .stage-title { color: #2c3e50; font-size: 18px; font-weight: bold; border-left: 4px solid #3498db; padding-left: 15px; }
+            .stage-content { margin: 15px 0 15px 20px; }
+            .feature-list { list-style-type: none; padding: 0; }
+            .feature-item { background: #f8f9fa; margin: 5px 0; padding: 10px; border-left: 3px solid #3498db; }
+            .tech-section { background: #ecf0f1; padding: 20px; margin: 20px 0; border-radius: 5px; }
+            .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #bdc3c7; color: #7f8c8d; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1 class="title">🛡️ ExfilEye DLP Email Security Monitor</h1>
+            <p class="subtitle">Professional Workflow Documentation & Process Flow</p>
+            <p class="subtitle">Generated on {timestamp}</p>
+        </div>
+
+        <div class="stage">
+            <h2 class="stage-title">Stage 1: Data Input</h2>
+            <div class="stage-content">
+                <ul class="feature-list">
+                    <li class="feature-item"><strong>CSV File Upload:</strong> Secure file upload interface with email data validation and field mapping</li>
+                    <li class="feature-item"><strong>Data Validation:</strong> Email format verification, required field checking, and data integrity validation</li>
+                    <li class="feature-item"><strong>Email Parsing:</strong> Sender/recipient extraction, domain identification, and attachment detection</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="stage">
+            <h2 class="stage-title">Stage 2: Data Processing</h2>
+            <div class="stage-content">
+                <ul class="feature-list">
+                    <li class="feature-item"><strong>Domain Classification:</strong> Internal/external domain analysis, risk-based categorization, and trusted domain identification</li>
+                    <li class="feature-item"><strong>Risk Scoring:</strong> Multi-factor risk assessment, behavioral pattern analysis, and threat level calculation</li>
+                    <li class="feature-item"><strong>Anomaly Detection:</strong> Statistical pattern analysis, unusual behavior identification, and security threat detection</li>
+                    <li class="feature-item"><strong>Network Graph Building:</strong> Communication relationship mapping, network topology construction, and interactive graph generation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="stage">
+            <h2 class="stage-title">Stage 3: Analysis & Intelligence</h2>
+            <div class="stage-content">
+                <ul class="feature-list">
+                    <li class="feature-item"><strong>Sender Behavior Analysis:</strong> Communication pattern analysis, risk trend identification, behavioral matrix generation, and department-based insights</li>
+                    <li class="feature-item"><strong>Q&A Processing:</strong> Natural language query processing, pre-built question execution, smart pattern recognition, and custom insight generation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="stage">
+            <h2 class="stage-title">Stage 4: Results & Actions</h2>
+            <div class="stage-content">
+                <ul class="feature-list">
+                    <li class="feature-item"><strong>Interactive Dashboards:</strong> Real-time security metrics, visual analytics displays, risk distribution charts, and behavior trend visualizations</li>
+                    <li class="feature-item"><strong>Security Reports:</strong> Comprehensive security assessments, anomaly detection results, risk analysis summaries, and actionable intelligence reports</li>
+                    <li class="feature-item"><strong>Follow-up Tracking:</strong> Security decision tracking, follow-up action management, Outlook integration, and incident response workflow</li>
+                    <li class="feature-item"><strong>Export Capabilities:</strong> CSV data export, report generation, dashboard sharing, and compliance documentation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tech-section">
+            <h2 class="stage-title">Technology Stack & Architecture</h2>
+            <div class="stage-content">
+                <p><strong>Frontend Technologies:</strong> Streamlit Web Framework, Plotly Interactive Visualizations, NetworkX Graph Analysis, HTML/CSS Interface Components</p>
+                <p><strong>Backend Processing:</strong> Python 3.11 Runtime, NumPy Numerical Computing, Scikit-learn Machine Learning, Custom Algorithm Implementation</p>
+                <p><strong>Security & Analytics:</strong> Real-time Anomaly Detection, Risk Scoring Algorithms, Behavioral Pattern Analysis, Domain Classification Engine</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>ExfilEye DLP Email Security Monitoring System | Professional Documentation</p>
+        </div>
+    </body>
+    </html>
+    """.format(timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p"))
+    
+    try:
+        # Try to use weasyprint for better PDF generation
+        import weasyprint
+        pdf_buffer = BytesIO()
+        weasyprint.HTML(string=html_content).write_pdf(pdf_buffer)
+        return pdf_buffer.getvalue()
+    except ImportError:
+        # Fallback to basic HTML to PDF conversion using reportlab
+        try:
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.units import inch
+            
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+            
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=20, textColor='#2c3e50', alignment=1)
+            heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'], fontSize=14, textColor='#3498db')
+            
+            story = []
+            
+            # Title
+            story.append(Paragraph("ExfilEye DLP Email Security Monitor", title_style))
+            story.append(Paragraph("Professional Workflow Documentation", styles['Normal']))
+            story.append(Spacer(1, 20))
+            
+            # Content sections
+            sections = [
+                ("Stage 1: Data Input", [
+                    "CSV File Upload: Secure file upload interface with validation",
+                    "Data Validation: Email format verification and integrity checks",
+                    "Email Parsing: Sender/recipient extraction and domain identification"
+                ]),
+                ("Stage 2: Data Processing", [
+                    "Domain Classification: Internal/external analysis and risk categorization",
+                    "Risk Scoring: Multi-factor assessment and threat level calculation",
+                    "Anomaly Detection: Statistical analysis and threat detection",
+                    "Network Graph Building: Communication mapping and topology construction"
+                ]),
+                ("Stage 3: Analysis & Intelligence", [
+                    "Sender Behavior Analysis: Pattern analysis and behavioral insights",
+                    "Q&A Processing: Natural language queries and smart recognition"
+                ]),
+                ("Stage 4: Results & Actions", [
+                    "Interactive Dashboards: Real-time metrics and visual analytics",
+                    "Security Reports: Comprehensive assessments and intelligence",
+                    "Follow-up Tracking: Decision tracking and incident response",
+                    "Export Capabilities: Data export and compliance documentation"
+                ])
+            ]
+            
+            for section_title, items in sections:
+                story.append(Paragraph(section_title, heading_style))
+                story.append(Spacer(1, 10))
+                for item in items:
+                    story.append(Paragraph(f"• {item}", styles['Normal']))
+                story.append(Spacer(1, 15))
+            
+            doc.build(story)
+            return buffer.getvalue()
+            
+        except ImportError:
+            # Final fallback - return HTML content as text
+            return html_content.encode('utf-8')
+
+def generate_charts_pdf():
+    """Generate workflow charts as PDF"""
+    from io import BytesIO
+    
+    try:
+        # Create the workflow diagram
+        workflow_fig = create_main_workflow_diagram()
+        features_fig = create_feature_matrix_diagram()
+        
+        # Convert to images and create PDF
+        workflow_img = workflow_fig.to_image(format="png", width=1400, height=600)
+        features_img = features_fig.to_image(format="png", width=1400, height=700)
+        
+        try:
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.lib.utils import ImageReader
+            
+            buffer = BytesIO()
+            c = canvas.Canvas(buffer, pagesize=landscape(A4))
+            
+            # Page 1 - Workflow diagram
+            c.setTitle("ExfilEye Workflow Charts")
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(50, 550, "ExfilEye DLP System - Complete Process Flow")
+            
+            # Add workflow image
+            workflow_image = ImageReader(BytesIO(workflow_img))
+            c.drawImage(workflow_image, 50, 200, width=700, height=300)
+            
+            c.showPage()
+            
+            # Page 2 - Feature matrix
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(50, 550, "ExfilEye Navigation Features - Capability Matrix")
+            
+            # Add features image
+            features_image = ImageReader(BytesIO(features_img))
+            c.drawImage(features_image, 50, 150, width=700, height=350)
+            
+            c.save()
+            return buffer.getvalue()
+            
+        except ImportError:
+            # Fallback - return the first chart as PNG
+            return workflow_img
+            
+    except Exception as e:
+        # Return error message as text
+        return f"Error generating charts PDF: {str(e)}".encode('utf-8')
 
 
 def analyze_risk_overview(data):
