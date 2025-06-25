@@ -2854,8 +2854,66 @@ def qa_assistant_page():
                 st.write(f"**Answer:** {qa['answer']}")
                 
                 if qa['chart']:
-                    st.plotly_chart(qa['chart'], use_container_width=True)
+                    st.plotly_chart(qa['chart'], use_container_width=True, key=f"qa_chart_{i}")
     
+    # Pre-built Questions Section
+    st.subheader("📝 Pre-built Questions")
+    
+    # Initialize pre-built questions in session state
+    if 'prebuilt_questions' not in st.session_state:
+        st.session_state.prebuilt_questions = [
+            "Count emails with attachments vs without",
+            "Which departments sent the most 'business'-tagged emails?",
+            "Which recipients received emails from more than one sender domain?",
+            "Show me the risk distribution by domain",
+            "What are the peak email sending hours?",
+            "How many anomalies were detected this week?",
+            "Which senders have the highest risk scores?",
+            "Show external vs internal email patterns"
+        ]
+    
+    # Display editable questions
+    st.write("**Click to ask these questions or edit them:**")
+    
+    # Questions management
+    question_col1, question_col2 = st.columns([3, 1])
+    
+    with question_col1:
+        new_question = st.text_input("Add new pre-built question:", placeholder="Enter a new question...", key="new_prebuilt_q")
+    
+    with question_col2:
+        if st.button("➕ Add Question") and new_question:
+            st.session_state.prebuilt_questions.append(new_question)
+            st.rerun()
+    
+    # Display questions in a grid
+    questions_per_row = 2
+    for i in range(0, len(st.session_state.prebuilt_questions), questions_per_row):
+        cols = st.columns(questions_per_row + 1)  # Extra column for delete button
+        
+        for j, question in enumerate(st.session_state.prebuilt_questions[i:i+questions_per_row]):
+            question_idx = i + j
+            with cols[j]:
+                if st.button(f"❓ {question}", key=f"prebuilt_{question_idx}"):
+                    with st.spinner("Processing question..."):
+                        answer, chart = process_natural_language_query(question, data)
+                        st.session_state.qa_history.append({
+                            'question': question,
+                            'answer': answer,
+                            'chart': chart,
+                            'timestamp': datetime.now().strftime('%H:%M:%S')
+                        })
+                        st.rerun()
+            
+            # Delete button for each question
+            with cols[questions_per_row]:
+                if j == 0:  # Only show delete button on first question of each row
+                    if st.button(f"🗑️", key=f"delete_{question_idx}", help=f"Delete: {question}"):
+                        st.session_state.prebuilt_questions.pop(question_idx)
+                        st.rerun()
+
+    st.markdown("---")
+
     # Quick analysis buttons
     st.subheader("🚀 Quick Analysis")
     
@@ -2910,8 +2968,20 @@ def process_natural_language_query(question, data):
     """Process natural language questions and return answers with charts"""
     question_lower = question.lower()
     
+    # Attachment-related queries
+    if any(word in question_lower for word in ['attachment', 'attachments', 'with attachments', 'without attachments']):
+        return analyze_attachment_queries(question_lower, data)
+    
+    # Department-related queries
+    elif any(word in question_lower for word in ['department', 'departments', 'business', 'tagged']):
+        return analyze_department_queries(question_lower, data)
+    
+    # Recipients and domains queries
+    elif any(word in question_lower for word in ['recipient', 'recipients', 'received emails', 'sender domain', 'multiple domains']):
+        return analyze_recipient_domain_queries(question_lower, data)
+    
     # Risk-related queries
-    if any(word in question_lower for word in ['risk', 'dangerous', 'threat', 'high']):
+    elif any(word in question_lower for word in ['risk', 'dangerous', 'threat', 'high']):
         return analyze_risk_queries(question_lower, data)
     
     # Domain-related queries
@@ -3095,6 +3165,121 @@ def analyze_count_queries(question, data):
     
     return answer, None
 
+
+def analyze_attachment_queries(question, data):
+    """Analyze attachment-related queries"""
+    emails_with_attachments = len([email for email in data if email.get('attachments', '').strip() and email.get('attachments', '').strip() != 'None'])
+    emails_without_attachments = len(data) - emails_with_attachments
+    
+    answer = f"Out of {len(data)} total emails:\n• {emails_with_attachments} emails have attachments\n• {emails_without_attachments} emails have no attachments\n• Attachment rate: {(emails_with_attachments/len(data)*100):.1f}%"
+    
+    fig = px.pie(
+        values=[emails_with_attachments, emails_without_attachments],
+        names=['With Attachments', 'Without Attachments'],
+        title="Emails with vs without Attachments",
+        color_discrete_map={'With Attachments': '#e74c3c', 'Without Attachments': '#27ae60'}
+    )
+    
+    return answer, fig
+
+def analyze_department_queries(question, data):
+    """Analyze department-related queries"""
+    dept_business_counts = defaultdict(int)
+    dept_total_counts = defaultdict(int)
+    
+    for email in data:
+        sender = email.get('sender', '')
+        tags = email.get('tags', '').lower()
+        keywords = email.get('word_list_match', '').lower()
+        subject = email.get('subject', '').lower()
+        
+        # Infer department
+        dept = 'Unknown'
+        if '@' in sender:
+            username = sender.split('@')[0].lower()
+            if any(word in username for word in ['finance', 'accounting', 'fin']):
+                dept = 'Finance'
+            elif any(word in username for word in ['hr', 'human', 'recruiting']):
+                dept = 'HR'
+            elif any(word in username for word in ['it', 'tech', 'dev', 'sys']):
+                dept = 'IT'
+            elif any(word in username for word in ['sales', 'marketing', 'mkt']):
+                dept = 'Sales/Marketing'
+            elif any(word in username for word in ['legal', 'compliance', 'audit']):
+                dept = 'Legal/Compliance'
+            else:
+                dept = 'General'
+        
+        dept_total_counts[dept] += 1
+        
+        # Check for business-related content
+        if any(word in tags for word in ['business', 'corporate', 'official']) or \
+           any(word in keywords for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']) or \
+           any(word in subject for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']):
+            dept_business_counts[dept] += 1
+    
+    sorted_depts = sorted(dept_business_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    answer = "Departments ranked by 'business'-tagged emails:\n"
+    for dept, count in sorted_depts[:5]:
+        total = dept_total_counts[dept]
+        percentage = (count/total*100) if total > 0 else 0
+        answer += f"• {dept}: {count} business emails ({percentage:.1f}% of {total} total)\n"
+    
+    if sorted_depts:
+        fig = px.bar(
+            x=[dept for dept, count in sorted_depts],
+            y=[count for dept, count in sorted_depts],
+            title="Business-Tagged Emails by Department",
+            labels={'x': 'Department', 'y': 'Business Email Count'}
+        )
+        fig.update_layout(xaxis_tickangle=45)
+    else:
+        fig = None
+    
+    return answer, fig
+
+def analyze_recipient_domain_queries(question, data):
+    """Analyze recipients who received emails from multiple sender domains"""
+    recipient_domains = defaultdict(set)
+    
+    for email in data:
+        sender = email.get('sender', '')
+        recipients_raw = email.get('recipients', '')
+        
+        if '@' in sender:
+            sender_domain = sender.split('@')[1]
+            
+            if recipients_raw:
+                recipients = [r.strip() for r in recipients_raw.split(',') if r.strip()]
+                for recipient in recipients:
+                    if '@' in recipient:
+                        recipient_domains[recipient].add(sender_domain)
+    
+    multi_domain_recipients = {recipient: domains for recipient, domains in recipient_domains.items() if len(domains) > 1}
+    
+    answer = f"Found {len(multi_domain_recipients)} recipients who received emails from multiple sender domains:\n"
+    
+    sorted_recipients = sorted(multi_domain_recipients.items(), key=lambda x: len(x[1]), reverse=True)
+    
+    for recipient, domains in sorted_recipients[:10]:
+        answer += f"• {recipient}: {len(domains)} domains ({', '.join(list(domains)[:3])}{'...' if len(domains) > 3 else ''})\n"
+    
+    if sorted_recipients:
+        domain_counts = [len(domains) for domains in multi_domain_recipients.values()]
+        count_distribution = Counter(domain_counts)
+        
+        fig = px.bar(
+            x=list(count_distribution.keys()),
+            y=list(count_distribution.values()),
+            title="Recipients by Number of Sender Domains",
+            labels={'x': 'Number of Sender Domains', 'y': 'Number of Recipients'}
+        )
+    else:
+        fig = None
+        answer += "No recipients found who received emails from multiple sender domains."
+    
+    return answer, fig
 
 def analyze_general_queries(question, data):
     """Handle general overview questions"""
