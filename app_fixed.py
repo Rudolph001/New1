@@ -1991,7 +1991,7 @@ def main():
         st.header("📋 Navigation")
         page = st.radio(
             "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "👤 Sender Behavior Analysis", "🔗 Network Analysis", "🤖 Q&A Assistant", "⚙️ Settings"],
+            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "🤖 Q&A Assistant", "⚙️ Settings"],
             label_visibility="collapsed"
         )
 
@@ -2008,8 +2008,7 @@ def main():
         daily_checks_page()
     elif page == "📨 Follow-up Center":
         followup_center_page()
-    elif page == "👤 Sender Behavior Analysis":
-        sender_behavior_analysis_page()
+    
     elif page == "🔗 Network Analysis":
         network_analysis_page()
     elif page == "🤖 Q&A Assistant":
