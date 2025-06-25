@@ -1991,7 +1991,7 @@ def main():
         st.header("📋 Navigation")
         page = st.radio(
             "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "👤 Sender Behavior Analysis", "🔗 Network Analysis", "⚙️ Settings"],
+            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "👤 Sender Behavior Analysis", "🔗 Network Analysis", "🤖 Q&A Assistant", "⚙️ Settings"],
             label_visibility="collapsed"
         )
 
@@ -2012,6 +2012,8 @@ def main():
         sender_behavior_analysis_page()
     elif page == "🔗 Network Analysis":
         network_analysis_page()
+    elif page == "🤖 Q&A Assistant":
+        qa_assistant_page()
     elif page == "⚙️ Settings":
         settings_page()
 
@@ -2795,6 +2797,391 @@ def sender_behavior_analysis_page():
         high_risk_senders = sum(1 for emails in sender_groups.values() 
                                if any(e.get('risk_level') in ['High', 'Critical'] for e in emails))
         st.metric("High Risk Senders", high_risk_senders)
+
+
+def qa_assistant_page():
+    """Q&A Assistant for natural language queries on email data"""
+    st.header("🤖 Q&A Assistant - Ask Questions About Your Data")
+    
+    if st.session_state.processed_data is None:
+        st.warning("⚠️ Please upload data first in the Data Upload section.")
+        return
+
+    data = st.session_state.processed_data
+    
+    # Initialize chat history
+    if 'qa_history' not in st.session_state:
+        st.session_state.qa_history = []
+    
+    st.subheader("💬 Ask Questions About Your Email Data")
+    st.info("Examples: 'Show me high risk emails', 'What domains send the most emails?', 'Chart emails by risk level'")
+    
+    # Question input
+    user_question = st.text_input(
+        "Ask a question about your email data:",
+        placeholder="e.g., How many emails are from gmail.com?",
+        key="qa_input"
+    )
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        ask_button = st.button("🔍 Ask", type="primary")
+    with col2:
+        if st.button("🗑️ Clear History"):
+            st.session_state.qa_history = []
+            st.rerun()
+    
+    if ask_button and user_question:
+        with st.spinner("Analyzing your question..."):
+            answer, chart = process_natural_language_query(user_question, data)
+            
+            # Add to history
+            st.session_state.qa_history.append({
+                'question': user_question,
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            
+            st.rerun()
+    
+    # Display chat history
+    if st.session_state.qa_history:
+        st.subheader("📊 Q&A History")
+        
+        for i, qa in enumerate(reversed(st.session_state.qa_history)):
+            with st.expander(f"Q: {qa['question'][:80]}... - {qa['timestamp']}", expanded=(i==0)):
+                st.write(f"**Question:** {qa['question']}")
+                st.write(f"**Answer:** {qa['answer']}")
+                
+                if qa['chart']:
+                    st.plotly_chart(qa['chart'], use_container_width=True)
+    
+    # Quick analysis buttons
+    st.subheader("🚀 Quick Analysis")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        if st.button("📊 Risk Overview"):
+            answer, chart = analyze_risk_overview(data)
+            st.session_state.qa_history.append({
+                'question': 'Show me a risk overview',
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            st.rerun()
+    
+    with col2:
+        if st.button("🌐 Domain Analysis"):
+            answer, chart = analyze_domains(data)
+            st.session_state.qa_history.append({
+                'question': 'Analyze email domains',
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            st.rerun()
+    
+    with col3:
+        if st.button("⏰ Time Patterns"):
+            answer, chart = analyze_time_patterns(data)
+            st.session_state.qa_history.append({
+                'question': 'Show time patterns in emails',
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            st.rerun()
+    
+    with col4:
+        if st.button("🚨 Anomalies"):
+            answer, chart = analyze_anomalies(data)
+            st.session_state.qa_history.append({
+                'question': 'Show me anomaly analysis',
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            st.rerun()
+
+
+def process_natural_language_query(question, data):
+    """Process natural language questions and return answers with charts"""
+    question_lower = question.lower()
+    
+    # Risk-related queries
+    if any(word in question_lower for word in ['risk', 'dangerous', 'threat', 'high']):
+        return analyze_risk_queries(question_lower, data)
+    
+    # Domain-related queries
+    elif any(word in question_lower for word in ['domain', 'gmail', 'yahoo', 'email', 'sender']):
+        return analyze_domain_queries(question_lower, data)
+    
+    # Time-related queries
+    elif any(word in question_lower for word in ['time', 'hour', 'when', 'after hours', 'night']):
+        return analyze_time_queries(question_lower, data)
+    
+    # Anomaly-related queries
+    elif any(word in question_lower for word in ['anomaly', 'anomalies', 'unusual', 'strange']):
+        return analyze_anomaly_queries(question_lower, data)
+    
+    # Count/statistics queries
+    elif any(word in question_lower for word in ['how many', 'count', 'number of', 'total']):
+        return analyze_count_queries(question_lower, data)
+    
+    # General overview
+    elif any(word in question_lower for word in ['overview', 'summary', 'show me', 'all']):
+        return analyze_general_queries(question_lower, data)
+    
+    else:
+        # Default response with basic stats
+        total_emails = len(data)
+        high_risk = len([e for e in data if e.get('risk_level') in ['High', 'Critical']])
+        anomalies = len([e for e in data if e.get('is_anomaly', False)])
+        
+        answer = f"I found {total_emails} total emails in your dataset. {high_risk} are high/critical risk and {anomalies} are anomalies. Try asking about 'risk levels', 'domains', 'time patterns', or 'anomalies' for more specific analysis."
+        
+        return answer, None
+
+
+def analyze_risk_queries(question, data):
+    """Handle risk-related questions"""
+    risk_counts = Counter(email.get('risk_level', 'Unknown') for email in data)
+    
+    if 'high' in question or 'critical' in question:
+        high_risk_emails = [e for e in data if e.get('risk_level') in ['High', 'Critical']]
+        answer = f"Found {len(high_risk_emails)} high/critical risk emails out of {len(data)} total."
+        
+        if high_risk_emails:
+            # Top high risk senders
+            sender_counts = Counter(email.get('sender', 'Unknown') for email in high_risk_emails)
+            top_senders = sender_counts.most_common(5)
+            answer += f" Top senders: {', '.join([f'{sender} ({count})' for sender, count in top_senders])}"
+    else:
+        answer = f"Risk distribution: Critical: {risk_counts.get('Critical', 0)}, High: {risk_counts.get('High', 0)}, Medium: {risk_counts.get('Medium', 0)}, Low: {risk_counts.get('Low', 0)}"
+    
+    # Create risk distribution chart
+    fig = px.pie(
+        values=list(risk_counts.values()),
+        names=list(risk_counts.keys()),
+        title="Email Risk Level Distribution",
+        color_discrete_map={
+            'Critical': '#e74c3c',
+            'High': '#e67e22', 
+            'Medium': '#f39c12',
+            'Low': '#27ae60'
+        }
+    )
+    
+    return answer, fig
+
+
+def analyze_domain_queries(question, data):
+    """Handle domain-related questions"""
+    domain_counts = Counter()
+    
+    for email in data:
+        sender = email.get('sender', '')
+        if '@' in sender:
+            domain = sender.split('@')[1].lower()
+            domain_counts[domain] += 1
+    
+    top_domains = domain_counts.most_common(10)
+    
+    if 'gmail' in question:
+        gmail_count = domain_counts.get('gmail.com', 0)
+        answer = f"Found {gmail_count} emails from gmail.com ({gmail_count/len(data)*100:.1f}% of total emails)."
+    else:
+        answer = f"Top email domains: {', '.join([f'{domain} ({count})' for domain, count in top_domains[:5]])}"
+    
+    # Create domain chart
+    fig = px.bar(
+        x=[domain for domain, count in top_domains],
+        y=[count for domain, count in top_domains],
+        title="Top Email Domains",
+        labels={'x': 'Domain', 'y': 'Email Count'}
+    )
+    fig.update_xaxis(tickangle=45)
+    
+    return answer, fig
+
+
+def analyze_time_queries(question, data):
+    """Handle time-related questions"""
+    hour_counts = Counter()
+    after_hours_count = 0
+    
+    for email in data:
+        time_str = email.get('time', '')
+        if time_str and ':' in time_str:
+            try:
+                hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                hour = int(hour_part)
+                hour_counts[hour] += 1
+                
+                if hour >= 18 or hour <= 6:
+                    after_hours_count += 1
+            except:
+                continue
+    
+    if 'after hours' in question or 'night' in question:
+        answer = f"Found {after_hours_count} emails sent after hours (6 PM - 6 AM), which is {after_hours_count/len(data)*100:.1f}% of all emails."
+    else:
+        peak_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
+        answer = f"Peak email activity is at {peak_hour[0]}:00 with {peak_hour[1]} emails. {after_hours_count} emails were sent after hours."
+    
+    # Create hourly activity chart
+    hours = list(range(24))
+    counts = [hour_counts.get(h, 0) for h in hours]
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=hours,
+            y=counts,
+            marker_color=['red' if h >= 18 or h <= 6 else 'blue' for h in hours]
+        )
+    ])
+    
+    fig.update_layout(
+        title="Email Activity by Hour of Day",
+        xaxis_title="Hour",
+        yaxis_title="Number of Emails"
+    )
+    
+    return answer, fig
+
+
+def analyze_anomaly_queries(question, data):
+    """Handle anomaly-related questions"""
+    anomaly_emails = [e for e in data if e.get('is_anomaly', False)]
+    anomaly_types = Counter(email.get('anomaly_type', 'Unknown') for email in anomaly_emails)
+    
+    answer = f"Found {len(anomaly_emails)} anomalous emails ({len(anomaly_emails)/len(data)*100:.1f}% of total). "
+    
+    if anomaly_types:
+        top_types = anomaly_types.most_common(3)
+        answer += f"Most common anomaly types: {', '.join([f'{atype} ({count})' for atype, count in top_types])}"
+    
+    # Create anomaly type chart
+    if anomaly_types:
+        fig = px.bar(
+            x=list(anomaly_types.keys()),
+            y=list(anomaly_types.values()),
+            title="Anomaly Types Distribution",
+            color_discrete_sequence=['#e74c3c']
+        )
+    else:
+        fig = None
+        answer += "No anomalies detected in the dataset."
+    
+    return answer, fig
+
+
+def analyze_count_queries(question, data):
+    """Handle counting/statistics questions"""
+    total_emails = len(data)
+    
+    if 'sender' in question:
+        unique_senders = len(set(email.get('sender', '') for email in data))
+        answer = f"Total emails: {total_emails}, Unique senders: {unique_senders}"
+    elif 'attachment' in question:
+        with_attachments = len([e for e in data if e.get('attachments', '').strip()])
+        answer = f"Emails with attachments: {with_attachments} out of {total_emails} ({with_attachments/total_emails*100:.1f}%)"
+    else:
+        high_risk = len([e for e in data if e.get('risk_level') in ['High', 'Critical']])
+        anomalies = len([e for e in data if e.get('is_anomaly', False)])
+        answer = f"Total emails: {total_emails}, High risk: {high_risk}, Anomalies: {anomalies}"
+    
+    return answer, None
+
+
+def analyze_general_queries(question, data):
+    """Handle general overview questions"""
+    return analyze_risk_overview(data)
+
+
+def analyze_risk_overview(data):
+    """Generate risk overview"""
+    risk_counts = Counter(email.get('risk_level', 'Unknown') for email in data)
+    total = len(data)
+    
+    answer = f"Dataset Overview: {total} total emails. Risk distribution - Critical: {risk_counts.get('Critical', 0)}, High: {risk_counts.get('High', 0)}, Medium: {risk_counts.get('Medium', 0)}, Low: {risk_counts.get('Low', 0)}"
+    
+    fig = px.pie(
+        values=list(risk_counts.values()),
+        names=list(risk_counts.keys()),
+        title="Risk Level Distribution",
+        color_discrete_map={'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f39c12', 'Low': '#27ae60'}
+    )
+    
+    return answer, fig
+
+
+def analyze_domains(data):
+    """Generate domain analysis"""
+    domain_counts = Counter()
+    for email in data:
+        sender = email.get('sender', '')
+        if '@' in sender:
+            domain_counts[sender.split('@')[1].lower()] += 1
+    
+    top_domains = domain_counts.most_common(10)
+    answer = f"Top domains: {', '.join([f'{domain} ({count})' for domain, count in top_domains[:5]])}"
+    
+    fig = px.bar(
+        x=[domain for domain, count in top_domains],
+        y=[count for domain, count in top_domains],
+        title="Top Email Domains"
+    )
+    
+    return answer, fig
+
+
+def analyze_time_patterns(data):
+    """Generate time pattern analysis"""
+    hour_counts = Counter()
+    for email in data:
+        time_str = email.get('time', '')
+        if time_str and ':' in time_str:
+            try:
+                hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
+                hour_counts[int(hour_part)] += 1
+            except:
+                continue
+    
+    peak_hour = hour_counts.most_common(1)[0] if hour_counts else (0, 0)
+    answer = f"Peak activity at {peak_hour[0]}:00 with {peak_hour[1]} emails"
+    
+    hours = list(range(24))
+    counts = [hour_counts.get(h, 0) for h in hours]
+    
+    fig = go.Figure(data=[go.Bar(x=hours, y=counts)])
+    fig.update_layout(title="Email Activity by Hour")
+    
+    return answer, fig
+
+
+def analyze_anomalies(data):
+    """Generate anomaly analysis"""
+    anomaly_emails = [e for e in data if e.get('is_anomaly', False)]
+    anomaly_types = Counter(email.get('anomaly_type', 'Unknown') for email in anomaly_emails)
+    
+    answer = f"Found {len(anomaly_emails)} anomalies ({len(anomaly_emails)/len(data)*100:.1f}% of total)"
+    
+    if anomaly_types:
+        fig = px.bar(
+            x=list(anomaly_types.keys()),
+            y=list(anomaly_types.values()),
+            title="Anomaly Types"
+        )
+    else:
+        fig = None
+    
+    return answer, fig
+
+
     
     with overview_col3:
         anomaly_senders = sum(1 for emails in sender_groups.values() 
