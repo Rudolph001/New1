@@ -89,6 +89,9 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- June 25, 2025: Enhanced Q&A Assistant with advanced natural language processing, categorized questions, deep analysis options, and comprehensive pattern matching
+- June 25, 2025: Added PDF export functionality for System Workflow documentation with professional formatting
+- June 25, 2025: Improved workflow diagram readability with properly sized rectangular boxes and better text visibility
 - June 25, 2025: Added comprehensive System Workflow documentation page with professional process flow diagrams
 - June 25, 2025: Enhanced Q&A Assistant with editable pre-built questions and advanced query processing
 - June 25, 2025: Fixed Plotly chart duplicate ID errors and improved visualization stability

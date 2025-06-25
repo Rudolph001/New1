@@ -3284,9 +3284,310 @@ def analyze_recipient_domain_queries(question, data):
     
     return answer, fig
 
+def analyze_behavior_queries(question, data):
+    """Analyze sender behavior and communication patterns"""
+    if not data:
+        return "No data available for behavior analysis", None
+    
+    # Extract sender information
+    senders = {}
+    for email in data:
+        sender = email.get('Sender', 'Unknown')
+        if sender not in senders:
+            senders[sender] = {
+                'total_emails': 0,
+                'recipients': set(),
+                'domains': set(),
+                'risk_scores': [],
+                'times': []
+            }
+        
+        senders[sender]['total_emails'] += 1
+        if 'Recipient' in email:
+            senders[sender]['recipients'].add(email['Recipient'])
+        if 'Sender' in email:
+            sender_domain = email['Sender'].split('@')[-1] if '@' in email['Sender'] else 'unknown'
+            senders[sender]['domains'].add(sender_domain)
+        if 'Risk_Score' in email:
+            try:
+                senders[sender]['risk_scores'].append(float(email['Risk_Score']))
+            except:
+                pass
+    
+    # Create behavior analysis chart
+    sender_names = list(senders.keys())[:10]  # Top 10 senders
+    email_counts = [senders[sender]['total_emails'] for sender in sender_names]
+    recipient_counts = [len(senders[sender]['recipients']) for sender in sender_names]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name='Total Emails',
+        x=sender_names,
+        y=email_counts,
+        marker_color='#3498db'
+    ))
+    fig.add_trace(go.Bar(
+        name='Unique Recipients',
+        x=sender_names,
+        y=recipient_counts,
+        marker_color='#e74c3c'
+    ))
+    
+    fig.update_layout(
+        title='Sender Communication Behavior Analysis',
+        xaxis_title='Senders',
+        yaxis_title='Count',
+        barmode='group',
+        height=500
+    )
+    
+    # Generate insights
+    most_active = max(senders.keys(), key=lambda x: senders[x]['total_emails'])
+    most_recipients = max(senders.keys(), key=lambda x: len(senders[x]['recipients']))
+    
+    analysis = f"""
+    **Sender Behavior Analysis Results:**
+    
+    - **Most Active Sender**: {most_active} ({senders[most_active]['total_emails']} emails)
+    - **Highest Recipient Count**: {most_recipients} ({len(senders[most_recipients]['recipients'])} unique recipients)
+    - **Total Active Senders**: {len(senders)}
+    - **Average Emails per Sender**: {sum(s['total_emails'] for s in senders.values()) / len(senders):.1f}
+    """
+    
+    return analysis, fig
+
+def analyze_compliance_queries(question, data):
+    """Analyze compliance and policy-related questions"""
+    if not data:
+        return "No data available for compliance analysis", None
+    
+    # Define compliance metrics
+    compliance_issues = {
+        'external_communications': 0,
+        'high_risk_emails': 0,
+        'attachment_violations': 0,
+        'domain_violations': 0
+    }
+    
+    total_emails = len(data)
+    
+    for email in data:
+        # External communication check
+        sender_domain = email.get('Sender', '').split('@')[-1] if '@' in email.get('Sender', '') else ''
+        if any(ext in sender_domain.lower() for ext in ['gmail', 'yahoo', 'hotmail', 'outlook']):
+            compliance_issues['external_communications'] += 1
+        
+        # High risk email check
+        risk_score = email.get('Risk_Score', 0)
+        try:
+            if float(risk_score) > 7:
+                compliance_issues['high_risk_emails'] += 1
+        except:
+            pass
+        
+        # Attachment check
+        if email.get('Has_Attachments', '').lower() == 'yes':
+            compliance_issues['attachment_violations'] += 1
+    
+    # Create compliance dashboard
+    metrics = list(compliance_issues.keys())
+    values = list(compliance_issues.values())
+    percentages = [v/total_emails*100 for v in values]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=metrics,
+        y=percentages,
+        marker_color=['#e74c3c' if p > 20 else '#f39c12' if p > 10 else '#27ae60' for p in percentages],
+        text=[f'{v} ({p:.1f}%)' for v, p in zip(values, percentages)],
+        textposition='auto'
+    ))
+    
+    fig.update_layout(
+        title='Email Compliance Analysis Dashboard',
+        xaxis_title='Compliance Categories',
+        yaxis_title='Percentage of Total Emails',
+        height=500
+    )
+    
+    analysis = f"""
+    **Compliance Analysis Results:**
+    
+    - **External Communications**: {compliance_issues['external_communications']} emails ({percentages[0]:.1f}%)
+    - **High Risk Emails**: {compliance_issues['high_risk_emails']} emails ({percentages[1]:.1f}%)
+    - **Emails with Attachments**: {compliance_issues['attachment_violations']} emails ({percentages[2]:.1f}%)
+    - **Total Emails Analyzed**: {total_emails}
+    
+    **Compliance Status**: {'⚠️ Attention Required' if max(percentages) > 20 else '✅ Within Normal Range'}
+    """
+    
+    return analysis, fig
+
+def analyze_comparison_queries(question, data):
+    """Handle comparison and correlation questions"""
+    if not data:
+        return "No data available for comparison analysis", None
+    
+    # Extract domains for comparison
+    domain_stats = {}
+    for email in data:
+        sender = email.get('Sender', '')
+        if '@' in sender:
+            domain = sender.split('@')[1]
+            if domain not in domain_stats:
+                domain_stats[domain] = {
+                    'count': 0,
+                    'risk_scores': [],
+                    'attachments': 0,
+                    'recipients': set()
+                }
+            
+            domain_stats[domain]['count'] += 1
+            
+            if 'Risk_Score' in email:
+                try:
+                    domain_stats[domain]['risk_scores'].append(float(email['Risk_Score']))
+                except:
+                    pass
+            
+            if email.get('Has_Attachments', '').lower() == 'yes':
+                domain_stats[domain]['attachments'] += 1
+            
+            if 'Recipient' in email:
+                domain_stats[domain]['recipients'].add(email['Recipient'])
+    
+    # Create comparison visualization
+    domains = list(domain_stats.keys())[:8]  # Top 8 domains
+    email_counts = [domain_stats[d]['count'] for d in domains]
+    avg_risk_scores = [
+        sum(domain_stats[d]['risk_scores'])/len(domain_stats[d]['risk_scores']) 
+        if domain_stats[d]['risk_scores'] else 0 
+        for d in domains
+    ]
+    
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=['Email Volume by Domain', 'Average Risk Score by Domain'],
+        vertical_spacing=0.15
+    )
+    
+    fig.add_trace(go.Bar(
+        x=domains,
+        y=email_counts,
+        name='Email Count',
+        marker_color='#3498db'
+    ), row=1, col=1)
+    
+    fig.add_trace(go.Bar(
+        x=domains,
+        y=avg_risk_scores,
+        name='Avg Risk Score',
+        marker_color='#e74c3c'
+    ), row=2, col=1)
+    
+    fig.update_layout(
+        title='Domain Comparison Analysis',
+        height=600,
+        showlegend=False
+    )
+    
+    # Find interesting comparisons
+    highest_volume = max(domains, key=lambda d: domain_stats[d]['count'])
+    highest_risk = max(domains, key=lambda d: sum(domain_stats[d]['risk_scores'])/len(domain_stats[d]['risk_scores']) if domain_stats[d]['risk_scores'] else 0)
+    
+    analysis = f"""
+    **Domain Comparison Results:**
+    
+    - **Highest Email Volume**: {highest_volume} ({domain_stats[highest_volume]['count']} emails)
+    - **Highest Average Risk**: {highest_risk} (Risk Score: {sum(domain_stats[highest_risk]['risk_scores'])/len(domain_stats[highest_risk]['risk_scores']) if domain_stats[highest_risk]['risk_scores'] else 0:.2f})
+    - **Total Domains Analyzed**: {len(domain_stats)}
+    
+    **Key Insights**:
+    - Volume and risk don't always correlate
+    - External domains may show different patterns than internal ones
+    """
+    
+    return analysis, fig
+
+def analyze_advanced_general_queries(question, data):
+    """Enhanced general query handling with context awareness"""
+    if not data:
+        return "No email data available for analysis. Please upload a CSV file first.", None
+    
+    # Comprehensive overview analysis
+    total_emails = len(data)
+    
+    # Extract key metrics
+    senders = set(email.get('Sender', '') for email in data)
+    recipients = set(email.get('Recipient', '') for email in data)
+    
+    # Risk analysis
+    risk_scores = []
+    for email in data:
+        try:
+            risk_scores.append(float(email.get('Risk_Score', 0)))
+        except:
+            pass
+    
+    # Domain analysis
+    sender_domains = set()
+    for email in data:
+        sender = email.get('Sender', '')
+        if '@' in sender:
+            sender_domains.add(sender.split('@')[1])
+    
+    # Attachment analysis
+    attachments = sum(1 for email in data if email.get('Has_Attachments', '').lower() == 'yes')
+    
+    # Create comprehensive overview chart
+    metrics = ['Total Emails', 'Unique Senders', 'Unique Recipients', 'Sender Domains', 'With Attachments']
+    values = [total_emails, len(senders), len(recipients), len(sender_domains), attachments]
+    
+    fig = go.Figure(data=go.Bar(
+        x=metrics,
+        y=values,
+        marker_color=['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6'],
+        text=values,
+        textposition='auto'
+    ))
+    
+    fig.update_layout(
+        title='Email Communication Overview Dashboard',
+        xaxis_title='Metrics',
+        yaxis_title='Count',
+        height=500
+    )
+    
+    # Advanced insights
+    avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0
+    high_risk_count = sum(1 for score in risk_scores if score > 7)
+    
+    analysis = f"""
+    **Comprehensive Email Analysis Overview:**
+    
+    **Volume Metrics:**
+    - Total Emails: {total_emails:,}
+    - Unique Senders: {len(senders):,}
+    - Unique Recipients: {len(recipients):,}
+    - Active Domains: {len(sender_domains)}
+    
+    **Security Metrics:**
+    - Average Risk Score: {avg_risk:.2f}/10
+    - High Risk Emails (>7): {high_risk_count} ({high_risk_count/total_emails*100:.1f}%)
+    - Emails with Attachments: {attachments} ({attachments/total_emails*100:.1f}%)
+    
+    **Communication Patterns:**
+    - Average Emails per Sender: {total_emails/len(senders):.1f}
+    - Sender-to-Recipient Ratio: 1:{len(recipients)/len(senders):.1f}
+    
+    This overview provides the foundation for deeper security analysis and monitoring.
+    """
+    
+    return analysis, fig
+
 def analyze_general_queries(question, data):
     """Handle general overview questions"""
-    return analyze_risk_overview(data)
+    return analyze_advanced_general_queries(question, data)
 
 def system_workflow_page():
     """Professional system workflow and process documentation"""
