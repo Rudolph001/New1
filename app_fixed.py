@@ -2854,7 +2854,7 @@ def qa_assistant_page():
                 st.write(f"**Answer:** {qa['answer']}")
                 
                 if qa['chart']:
-                    st.plotly_chart(qa['chart'], use_container_width=True, key=f"qa_chart_{i}")
+                    st.plotly_chart(qa['chart'], use_container_width=True, key=f"qa_chart_{len(st.session_state.qa_history)-1-i}_{datetime.now().timestamp()}")
     
     # Pre-built Questions Section
     st.subheader("📝 Pre-built Questions")
@@ -3043,6 +3043,7 @@ def analyze_risk_queries(question, data):
             'Low': '#27ae60'
         }
     )
+    fig.update_layout(showlegend=True)
     
     return answer, fig
 
@@ -3293,12 +3294,14 @@ def analyze_risk_overview(data):
     
     answer = f"Dataset Overview: {total} total emails. Risk distribution - Critical: {risk_counts.get('Critical', 0)}, High: {risk_counts.get('High', 0)}, Medium: {risk_counts.get('Medium', 0)}, Low: {risk_counts.get('Low', 0)}"
     
+    # Create unique figure with timestamp to avoid conflicts
     fig = px.pie(
         values=list(risk_counts.values()),
         names=list(risk_counts.keys()),
-        title="Risk Level Distribution",
+        title=f"Risk Level Distribution - {datetime.now().strftime('%H:%M:%S')}",
         color_discrete_map={'Critical': '#e74c3c', 'High': '#e67e22', 'Medium': '#f39c12', 'Low': '#27ae60'}
     )
+    fig.update_layout(showlegend=True)
     
     return answer, fig
 
@@ -3317,8 +3320,9 @@ def analyze_domains(data):
     fig = px.bar(
         x=[domain for domain, count in top_domains],
         y=[count for domain, count in top_domains],
-        title="Top Email Domains"
+        title=f"Top Email Domains - {datetime.now().strftime('%H:%M:%S')}"
     )
+    fig.update_layout(showlegend=False)
     
     return answer, fig
 
@@ -3342,7 +3346,7 @@ def analyze_time_patterns(data):
     counts = [hour_counts.get(h, 0) for h in hours]
     
     fig = go.Figure(data=[go.Bar(x=hours, y=counts)])
-    fig.update_layout(title="Email Activity by Hour")
+    fig.update_layout(title=f"Email Activity by Hour - {datetime.now().strftime('%H:%M:%S')}")
     
     return answer, fig
 
@@ -3358,8 +3362,9 @@ def analyze_anomalies(data):
         fig = px.bar(
             x=list(anomaly_types.keys()),
             y=list(anomaly_types.values()),
-            title="Anomaly Types"
+            title=f"Anomaly Types - {datetime.now().strftime('%H:%M:%S')}"
         )
+        fig.update_layout(showlegend=False)
     else:
         fig = None
     
