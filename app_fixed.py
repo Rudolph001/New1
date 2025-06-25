@@ -2606,10 +2606,14 @@ Email Details:
 - Attachments: {attachments}
 
 Required Actions:
-
+1. Confirm you sent this email and it was intentional
 2. Verify that the recipients were intended
-3. Confirm the necessity of any attachments
+3. Confirm the necessity of any attachments sent
 
+Security Concerns Identified:
+- Risk Level: {risk_level}
+- Risk Factors: {risk_factors}
+- Attachments: {attachments}
 
 Please respond to this email within 2 hours to confirm the legitimacy of this communication.
 
