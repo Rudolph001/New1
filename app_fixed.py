@@ -2586,6 +2586,7 @@ def generate_followup_email(email):
     risk_factors = email.get('risk_factors', 'General security review')
     time = email.get('time', 'Unknown')
     recipients = email.get('recipients', 'Unknown')
+    attachments = email.get('attachments', 'None')
 
     # Clean sender name for display
     sender_name = sender.split('@')[0].title() if '@' in sender else sender
@@ -2602,16 +2603,13 @@ Email Details:
 - Subject: {subject}
 - Sent to: {recipients}
 - Date/Time: {time}
-- Risk Level: {risk_level}
-
-Security Concerns Identified:
-{risk_factors}
+- Attachments: {attachments}
 
 Required Actions:
-1. Please confirm if this email was sent by you
+
 2. Verify that the recipients were intended
 3. Confirm the necessity of any attachments
-4. Report if your account may have been compromised
+
 
 Please respond to this email within 2 hours to confirm the legitimacy of this communication.
 
