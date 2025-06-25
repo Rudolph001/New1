@@ -12,16 +12,7 @@ import networkx as nx
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import SpectralClustering
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import igraph as ig
-
-# For better semantic understanding
-try:
-    from sentence_transformers import SentenceTransformer
-    SENTENCE_TRANSFORMER_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMER_AVAILABLE = False
 
 # Comprehensive email domain classification
 EMAIL_DOMAIN_CLASSIFICATIONS = {
@@ -2811,190 +2802,49 @@ def sender_behavior_analysis_page():
 
 def qa_assistant_page():
     """Q&A Assistant for natural language queries on email data"""
-    st.header("Q&A Assistant for Email Data Analysis")
+    st.header("🤖 Q&A Assistant - Ask Questions About Your Data")
     
-    if not st.session_state.get('uploaded_data'):
-        st.warning("Please upload data first in the Data Upload section.")
+    if st.session_state.processed_data is None:
+        st.warning("⚠️ Please upload data first in the Data Upload section.")
         return
 
-    data = st.session_state.get('uploaded_data', [])
+    data = st.session_state.processed_data
     
-    # Advanced pre-built questions with categorization
-    default_questions = {
-        "Security & Risk Analysis": [
-            "What are the highest risk emails in the dataset?",
-            "Show me potential security threats and vulnerabilities",
-            "Which emails require immediate security attention?",
-            "Analyze suspicious communication patterns"
-        ],
-        "Communication Patterns": [
-            "Show me communication patterns by domain",
-            "Which senders have unusual email behavior?",
-            "Analyze sender-recipient relationship networks",
-            "Compare internal vs external communication volumes"
-        ],
-        "Attachment & Content Analysis": [
-            "How many emails contain attachments and what types?",
-            "Show attachment distribution across domains",
-            "Identify potential data exfiltration through attachments",
-            "Analyze file sharing patterns"
-        ],
-        "Department & Compliance": [
-            "What departments are sending business emails externally?",
-            "Show compliance violations and policy breaches",
-            "Analyze cross-departmental communication",
-            "Identify unauthorized external communications"
-        ],
-        "Recipient & Target Analysis": [
-            "Which recipients received emails from multiple sender domains?",
-            "Show recipient behavior and communication frequency",
-            "Identify high-value targets for security monitoring",
-            "Analyze external recipient patterns"
-        ],
-        "Temporal & Trend Analysis": [
-            "Show me the time distribution of email activities",
-            "Analyze communication trends over time",
-            "Identify unusual activity patterns by time",
-            "Show peak communication hours and days"
-        ],
-        "Anomaly & Outlier Detection": [
-            "What are the security anomalies in the email data?",
-            "Show statistical outliers in communication behavior",
-            "Identify unusual volume spikes or drops",
-            "Detect abnormal sender-recipient relationships"
-        ]
-    }
+    # Initialize chat history
+    if 'qa_history' not in st.session_state:
+        st.session_state.qa_history = []
     
-    # Advanced question interface with categorization
-    st.subheader("Advanced Q&A Assistant")
-    st.write("Ask comprehensive questions about your email data with AI-powered analysis")
+    st.subheader("💬 Ask Questions About Your Email Data")
+    st.info("Examples: 'Show me high risk emails', 'What domains send the most emails?', 'Chart emails by risk level'")
     
-    # Display categorized pre-built questions
-    st.write("**Pre-built Question Categories** (Expand to see options):")
-    
-    for category, questions in default_questions.items():
-        with st.expander(category):
-            for i, question in enumerate(questions):
-                if st.button(f"📋 {question}", key=f"prebuilt_{category}_{i}"):
-                    st.session_state['selected_question'] = question
-    
-    # Advanced question input with suggestions
-    st.write("**Ask Your Question:**")
-    
-    # Quick suggestion buttons
-    st.write("**Quick Suggestions:**")
-    quick_cols = st.columns(4)
-    quick_suggestions = [
-        "Show me overall statistics",
-        "What are the main security concerns?",
-        "Analyze communication networks",
-        "Find unusual patterns"
-    ]
-    
-    for i, suggestion in enumerate(quick_suggestions):
-        with quick_cols[i]:
-            if st.button(f"💡 {suggestion}", key=f"quick_{i}"):
-                st.session_state['selected_question'] = suggestion
-    
-    # Main question input area
-    user_question = st.text_area(
-        "Type your question or use the suggestions above:",
-        value=st.session_state.get('selected_question', ''),
-        height=120,
-        key="question_input",
-        placeholder="Examples:\n• What are the communication patterns in my organization?\n• Show me potential security risks\n• Which emails need follow-up actions?\n• Analyze sender behavior across departments"
+    # Question input
+    user_question = st.text_input(
+        "Ask a question about your email data:",
+        placeholder="e.g., How many emails are from gmail.com?",
+        key="qa_input"
     )
     
-    # Advanced processing with multiple analysis options
-    col1, col2, col3 = st.columns([2, 1, 1])
-    
+    col1, col2 = st.columns([1, 4])
     with col1:
-        analyze_btn = st.button("Analyze Question", type="primary")
+        ask_button = st.button("🔍 Ask", type="primary")
     with col2:
-        deep_analysis = st.checkbox("Deep Analysis", help="Perform comprehensive multi-dimensional analysis")
-    with col3:
-        export_results = st.checkbox("Export Results", help="Include results in downloadable format")
+        if st.button("🗑️ Clear History"):
+            st.session_state.qa_history = []
+            st.rerun()
     
-    # Process question with enhanced capabilities
-    if analyze_btn and user_question.strip():
-        with st.spinner("Processing your question with advanced AI analysis..."):
-            try:
-                # Get primary analysis
-                answer, chart = process_natural_language_query(user_question, st.session_state.get('uploaded_data', []))
-                
-                # Display results in enhanced format
-                st.markdown("### Analysis Results")
-                
-                if chart:
-                    st.plotly_chart(chart, use_container_width=True, key=f"qa_chart_{hash(user_question)}")
-                
-                # Enhanced answer display
-                st.markdown("#### Key Insights")
-                st.markdown(answer)
-                
-                # Deep analysis option
-                if deep_analysis and st.session_state.get('uploaded_data'):
-                    st.markdown("#### Deep Analysis")
-                    with st.expander("Additional Insights & Correlations", expanded=True):
-                        # Cross-reference analysis
-                        data = st.session_state.get('uploaded_data', [])
-                        
-                        # Generate related insights
-                        related_insights = generate_related_insights(user_question, data)
-                        st.markdown(related_insights)
-                        
-                        # Show data quality metrics
-                        quality_metrics = analyze_data_quality(data)
-                        st.markdown("**Data Quality Assessment:**")
-                        st.markdown(quality_metrics)
-                
-                # Export option
-                if export_results:
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    export_data = {
-                        'question': user_question,
-                        'analysis': answer,
-                        'timestamp': timestamp
-                    }
-                    
-                    st.download_button(
-                        "Download Analysis Report",
-                        data=str(export_data),
-                        file_name=f"QA_Analysis_{timestamp}.txt",
-                        mime="text/plain"
-                    )
-                
-            except Exception as e:
-                st.error(f"Error processing question: {str(e)}")
-                st.write("Try rephrasing your question or check if data is uploaded correctly.")
-    
-    elif user_question.strip():
-        st.info("Click 'Analyze Question' to get your comprehensive answer!")
-    
-    # Enhanced help and examples
-    with st.expander("Advanced Question Examples & Tips"):
-        st.markdown("""
-        **Security Analysis Questions:**
-        - "What are the highest risk communications requiring immediate attention?"
-        - "Show me potential data exfiltration patterns"
-        - "Which external domains pose the greatest security risk?"
-        
-        **Pattern Analysis Questions:**
-        - "Compare communication volumes between internal and external domains"
-        - "What are the unusual timing patterns in email communications?"
-        - "Show correlation between attachment usage and risk scores"
-        
-        **Behavioral Analysis Questions:**
-        - "Which users exhibit abnormal communication behaviors?"
-        - "Analyze the network of high-risk communications"
-        - "What departments have the most external communications?"
-        
-        **Pro Tips:**
-        - Use specific metrics (e.g., "top 10", "above 8.0 risk score")
-        - Combine multiple dimensions (e.g., "external emails with attachments")
-        - Ask for comparisons and correlations
-        - Request time-based analysis for trends
-        """)
+    if ask_button and user_question:
+        with st.spinner("Analyzing your question..."):
+            answer, chart = process_natural_language_query(user_question, data)
+            
+            # Add to history
+            st.session_state.qa_history.append({
+                'question': user_question,
+                'answer': answer,
+                'chart': chart,
+                'timestamp': datetime.now().strftime('%H:%M:%S')
+            })
+            
+            st.rerun()
     
     # Display chat history
     if st.session_state.qa_history:
@@ -3007,52 +2857,6 @@ def qa_assistant_page():
                 
                 if qa['chart']:
                     st.plotly_chart(qa['chart'], use_container_width=True, key=f"qa_chart_{len(st.session_state.qa_history)-1-i}_{datetime.now().timestamp()}")
-                
-                # Add feedback collection
-                feedback_col1, feedback_col2, feedback_col3 = st.columns([1, 1, 2])
-                
-                entry_id = qa.get('entry_id', i)
-                current_feedback = qa.get('feedback', None)
-                
-                with feedback_col1:
-                    if st.button("👍 Helpful", key=f"helpful_{entry_id}"):
-                        qa['feedback'] = 'helpful'
-                        learn_from_user_interaction(qa['question'], qa['answer'], 'helpful')
-                        st.success("Thanks for the feedback!")
-                
-                with feedback_col2:
-                    if st.button("👎 Not Helpful", key=f"not_helpful_{entry_id}"):
-                        qa['feedback'] = 'not_helpful'
-                        learn_from_user_interaction(qa['question'], qa['answer'], 'not_helpful')
-                        st.info("We'll improve this type of response")
-                
-                with feedback_col3:
-                    if current_feedback:
-                        feedback_icon = "👍" if current_feedback == 'helpful' else "👎"
-                        st.caption(f"Feedback: {feedback_icon} {current_feedback}")
-                
-                # Show personalized follow-up suggestions
-                if i == 0:  # Only for the most recent Q&A
-                    suggestions = get_personalized_suggestions()
-                    if suggestions:
-                        st.write("**🎯 Suggested follow-up questions:**")
-                        for j, suggestion in enumerate(suggestions):
-                            if st.button(f"💡 {suggestion}", key=f"suggestion_{entry_id}_{j}"):
-                                with st.spinner("Processing suggestion..."):
-                                    answer, chart = process_natural_language_query(suggestion, data)
-                                    st.session_state.qa_history.append({
-                                        'question': suggestion,
-                                        'answer': answer,
-                                        'chart': chart,
-                                        'timestamp': datetime.now().strftime('%H:%M:%S'),
-                                        'feedback': None,
-                                        'entry_id': len(st.session_state.qa_history)
-                                    })
-                                    st.rerun()
-    
-    # ML Performance Dashboard
-    with st.expander("🧠 ML Performance & Learning Insights"):
-        show_ml_performance_dashboard()
     
     # Pre-built Questions Section
     st.subheader("📝 Pre-built Questions")
@@ -3163,451 +2967,54 @@ def qa_assistant_page():
 
 
 def process_natural_language_query(question, data):
-    """Advanced natural language processing for comprehensive question answering"""
+    """Process natural language questions and return answers with charts"""
     question_lower = question.lower()
     
-    # Advanced pattern matching with more sophisticated categorization
-    patterns = {
-        'risk_analysis': [
-            'risk', 'dangerous', 'threat', 'security', 'suspicious', 'high risk', 'vulnerability',
-            'malicious', 'compromised', 'breach', 'attack', 'phishing', 'fraud', 'alert'
-        ],
-        'domain_analysis': [
-            'domain', 'external', 'internal', 'company', 'organization', 'sender domain',
-            'email domain', 'trusted', 'untrusted', 'whitelist', 'blacklist'
-        ],
-        'temporal_analysis': [
-            'time', 'when', 'date', 'hour', 'day', 'trend', 'pattern', 'frequency',
-            'daily', 'weekly', 'monthly', 'recent', 'lately', 'timeline', 'schedule'
-        ],
-        'anomaly_detection': [
-            'anomaly', 'unusual', 'abnormal', 'strange', 'outlier', 'deviation',
-            'irregular', 'unexpected', 'odd', 'bizarre', 'peculiar'
-        ],
-        'statistical_queries': [
-            'how many', 'count', 'number', 'total', 'statistics', 'average', 'mean',
-            'median', 'sum', 'percentage', 'ratio', 'distribution', 'top', 'most'
-        ],
-        'attachment_analysis': [
-            'attachment', 'file', 'document', 'pdf', 'excel', 'word', 'zip',
-            'executable', 'image', 'media', 'download'
-        ],
-        'department_analysis': [
-            'department', 'business', 'corporate', 'team', 'division', 'unit',
-            'group', 'section', 'office', 'branch'
-        ],
-        'recipient_analysis': [
-            'recipient', 'receive', 'multiple domain', 'cross domain', 'external recipient',
-            'who received', 'sent to', 'target'
-        ],
-        'behavior_analysis': [
-            'behavior', 'pattern', 'communication', 'frequency', 'activity',
-            'habits', 'routine', 'interaction', 'relationship'
-        ],
-        'compliance_analysis': [
-            'compliance', 'policy', 'violation', 'rule', 'regulation', 'standard',
-            'guideline', 'requirement', 'audit'
-        ],
-        'comparison_analysis': [
-            'compare', 'versus', 'difference', 'similar', 'contrast', 'relation',
-            'correlation', 'between', 'against'
-        ]
-    }
+    # Attachment-related queries
+    if any(word in question_lower for word in ['attachment', 'attachments', 'with attachments', 'without attachments']):
+        return analyze_attachment_queries(question_lower, data)
     
-    # Score each category based on keyword matches
-    category_scores = {}
-    for category, keywords in patterns.items():
-        score = sum(1 for keyword in keywords if keyword in question_lower)
-        if score > 0:
-            category_scores[category] = score
+    # Department-related queries
+    elif any(word in question_lower for word in ['department', 'departments', 'business', 'tagged']):
+        return analyze_department_queries(question_lower, data)
     
-    # Select the category with the highest score
-    if category_scores:
-        best_category = max(category_scores, key=category_scores.get)
+    # Recipients and domains queries
+    elif any(word in question_lower for word in ['recipient', 'recipients', 'received emails', 'sender domain', 'multiple domains']):
+        return analyze_recipient_domain_queries(question_lower, data)
+    
+    # Risk-related queries
+    elif any(word in question_lower for word in ['risk', 'dangerous', 'threat', 'high']):
+        return analyze_risk_queries(question_lower, data)
+    
+    # Domain-related queries
+    elif any(word in question_lower for word in ['domain', 'gmail', 'yahoo', 'email', 'sender']):
+        return analyze_domain_queries(question_lower, data)
+    
+    # Time-related queries
+    elif any(word in question_lower for word in ['time', 'hour', 'when', 'after hours', 'night']):
+        return analyze_time_queries(question_lower, data)
+    
+    # Anomaly-related queries
+    elif any(word in question_lower for word in ['anomaly', 'anomalies', 'unusual', 'strange']):
+        return analyze_anomaly_queries(question_lower, data)
+    
+    # Count/statistics queries
+    elif any(word in question_lower for word in ['how many', 'count', 'number of', 'total']):
+        return analyze_count_queries(question_lower, data)
+    
+    # General overview
+    elif any(word in question_lower for word in ['overview', 'summary', 'show me', 'all']):
+        return analyze_general_queries(question_lower, data)
+    
+    else:
+        # Default response with basic stats
+        total_emails = len(data)
+        high_risk = len([e for e in data if e.get('risk_level') in ['High', 'Critical']])
+        anomalies = len([e for e in data if e.get('is_anomaly', False)])
         
-        if best_category == 'risk_analysis':
-            return analyze_risk_queries(question, data)
-        elif best_category == 'domain_analysis':
-            return analyze_domain_queries(question, data)
-        elif best_category == 'temporal_analysis':
-            return analyze_time_queries(question, data)
-        elif best_category == 'anomaly_detection':
-            return analyze_anomaly_queries(question, data)
-        elif best_category == 'statistical_queries':
-            return analyze_count_queries(question, data)
-        elif best_category == 'attachment_analysis':
-            return analyze_attachment_queries(question, data)
-        elif best_category == 'department_analysis':
-            return analyze_department_queries(question, data)
-        elif best_category == 'recipient_analysis':
-            return analyze_recipient_domain_queries(question, data)
-        elif best_category == 'behavior_analysis':
-            return analyze_behavior_queries(question, data)
-        elif best_category == 'compliance_analysis':
-            return analyze_compliance_queries(question, data)
-        elif best_category == 'comparison_analysis':
-            return analyze_comparison_queries(question, data)
-    
-    # Enhanced fallback with context-aware responses
-    return analyze_advanced_general_queries(question, data)
-
-def initialize_ml_query_processor():
-    """Initialize ML components for better query understanding"""
-    processor = {
-        'vectorizer': TfidfVectorizer(max_features=1000, stop_words='english'),
-        'trained': False
-    }
-    
-    # Training data for query classification
-    training_queries = [
-        # Attachment queries
-        "show emails with attachments", "count attachments", "which emails have files",
-        "attachments analysis", "emails without attachments",
+        answer = f"I found {total_emails} total emails in your dataset. {high_risk} are high/critical risk and {anomalies} are anomalies. Try asking about 'risk levels', 'domains', 'time patterns', or 'anomalies' for more specific analysis."
         
-        # Risk queries  
-        "high risk emails", "show dangerous emails", "risk analysis", "critical threats",
-        "security risks", "risky communications",
-        
-        # Domain queries
-        "gmail emails", "domain analysis", "external domains", "sender domains",
-        "email domains breakdown", "corporate vs personal emails"
-    ]
-
-def learn_from_user_interaction(question, answer, user_feedback=None):
-    """Learn from user interactions to improve future responses"""
-    if 'user_learning' not in st.session_state:
-        st.session_state.user_learning = {
-            'successful_patterns': [],
-            'failed_patterns': [],
-            'user_preferences': {},
-            'question_history': []
-        }
-    
-    # Store question pattern
-    question_pattern = question.lower().split()[:5]  # Simple pattern extraction
-    st.session_state.user_learning['question_history'].append({
-        'question': question,
-        'pattern': question_pattern,
-        'timestamp': datetime.now(),
-        'feedback': user_feedback
-    })
-    
-    # Learn from feedback
-    if user_feedback == 'helpful':
-        st.session_state.user_learning['successful_patterns'].append(question_pattern)
-    elif user_feedback == 'not_helpful':
-        st.session_state.user_learning['failed_patterns'].append(question_pattern)
-    
-    # Determine analysis depth
-    if any(word in question_lower for word in ['detailed', 'comprehensive', 'deep', 'thorough']):
-        patterns['analysis_depth'] = 'detailed'
-    elif any(word in question_lower for word in ['quick', 'brief', 'summary']):
-        patterns['analysis_depth'] = 'summary'
-    
-    return patterns
-
-def update_user_preferences(question, answer):
-    """Update user preferences based on interactions"""
-    if 'user_preferences' not in st.session_state.user_learning:
-        st.session_state.user_learning['user_preferences'] = {
-            'preferred_chart_types': [],
-            'preferred_analysis_depth': 'basic',
-            'frequent_topics': [],
-            'response_length': 'medium'
-        }
-    
-    # Track frequent topics
-    question_lower = question.lower()
-    topics = ['risk', 'domain', 'sender', 'attachment', 'anomaly', 'time', 'department']
-    
-    for topic in topics:
-        if topic in question_lower:
-            prefs = st.session_state.user_learning['user_preferences']
-            if topic not in prefs['frequent_topics']:
-                prefs['frequent_topics'].append(topic)
-
-def get_personalized_suggestions():
-    """Generate personalized suggestions based on user history"""
-    if 'user_learning' not in st.session_state:
-        return []
-    
-    prefs = st.session_state.user_learning.get('user_preferences', {})
-    frequent_topics = prefs.get('frequent_topics', [])
-    
-    suggestions = []
-    
-    # Suggest follow-up questions based on frequent topics
-    if 'risk' in frequent_topics:
-        suggestions.append("Show me risk trends over time")
-        suggestions.append("Compare risk levels by department")
-    
-
-
-def show_ml_performance_dashboard():
-    """Display ML performance metrics and learning insights"""
-    st.subheader("🧠 ML Assistant Performance Dashboard")
-    
-    if 'user_learning' not in st.session_state:
-        st.info("No learning data available yet. Use the Q&A assistant to build learning history.")
-        return
-    
-    learning_data = st.session_state.user_learning
-    
-    # Performance metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    total_questions = len(learning_data.get('question_history', []))
-    helpful_feedback = len([q for q in learning_data.get('question_history', []) if q.get('feedback') == 'helpful'])
-    accuracy_rate = (helpful_feedback / total_questions * 100) if total_questions > 0 else 0
-    
-    with col1:
-        st.metric("Total Questions", total_questions)
-    with col2:
-        st.metric("Helpful Responses", helpful_feedback)
-    with col3:
-        st.metric("Accuracy Rate", f"{accuracy_rate:.1f}%")
-    with col4:
-        unique_patterns = len(set(q.get('pattern', {}).get('question_type', 'unknown') 
-                                for q in learning_data.get('question_history', [])))
-        st.metric("Query Types Learned", unique_patterns)
-    
-    # Learning insights
-    st.write("**🎯 Learning Insights:**")
-    
-    prefs = learning_data.get('user_preferences', {})
-    frequent_topics = prefs.get('frequent_topics', [])
-    
-    if frequent_topics:
-        st.write(f"• **Most Asked About:** {', '.join(frequent_topics[:3])}")
-    
-    # Query pattern analysis
-    question_types = [q.get('pattern', {}).get('question_type', 'unknown') 
-                     for q in learning_data.get('question_history', [])]
-    if question_types:
-        type_counts = Counter(question_types)
-        st.write(f"• **Most Common Query Type:** {type_counts.most_common(1)[0][0]} ({type_counts.most_common(1)[0][1]} times)")
-    
-    # Successful vs failed patterns
-    successful_patterns = len(learning_data.get('successful_patterns', []))
-    failed_patterns = len(learning_data.get('failed_patterns', []))
-    
-    if successful_patterns + failed_patterns > 0:
-        success_rate = successful_patterns / (successful_patterns + failed_patterns) * 100
-        st.write(f"• **Pattern Recognition Success Rate:** {success_rate:.1f}%")
-
-
-    if 'domain' in frequent_topics:
-        suggestions.append("Which domains have the highest risk scores?")
-        suggestions.append("Show external vs internal domain patterns")
-    
-    if 'anomaly' in frequent_topics:
-        suggestions.append("What types of anomalies are most common?")
-        suggestions.append("Show anomaly detection by sender")
-    
-    return suggestions[:4]  # Return top 4 suggestions
-
-def initialize_ml_query_processor():
-    """Initialize ML components for better query understanding"""
-    processor = {
-        'vectorizer': TfidfVectorizer(max_features=1000, stop_words='english'),
-        'trained': False
-    }
-    
-    # Training data for query classification
-    training_queries = [
-        # Attachment queries
-        "show emails with attachments", "count attachments", "which emails have files",
-        "attachments analysis", "emails without attachments",
-        
-        # Risk queries  
-        "high risk emails", "show dangerous emails", "risk analysis", "critical threats",
-        "security risks", "risky communications",
-        
-        # Domain queries
-        "gmail emails", "domain analysis", "external domains", "sender domains",
-        "email domains breakdown", "corporate vs personal emails"
-    ]
-    
-    labels = [
-        'attachment', 'attachment', 'attachment', 'attachment', 'attachment',
-        'risk', 'risk', 'risk', 'risk', 'risk', 'risk',
-        'domain', 'domain', 'domain', 'domain', 'domain', 'domain'
-    ]
-    
-    try:
-        processor['vectorizer'].fit(training_queries)
-        processor['labels'] = labels
-        processor['training_vectors'] = processor['vectorizer'].transform(training_queries)
-        processor['trained'] = True
-    except Exception as e:
-        st.warning(f"ML training warning: {e}")
-    
-    return processor
-
-def classify_query_with_ml(question, processor):
-    """Use ML to classify query type with confidence score"""
-    if not processor.get('trained', False):
-        return 'unknown', 0.0
-    
-    try:
-        from sklearn.metrics.pairwise import cosine_similarity
-        import numpy as np
-        
-        # Vectorize the question
-        question_vector = processor['vectorizer'].transform([question])
-        
-        # Calculate similarity with training examples
-        similarities = cosine_similarity(question_vector, processor['training_vectors'])[0]
-        
-        # Find best match
-        best_match_idx = np.argmax(similarities)
-        confidence = similarities[best_match_idx]
-        
-        if confidence > 0.1:  # Threshold for meaningful similarity
-            query_type = processor['labels'][best_match_idx]
-            return query_type, confidence
-        else:
-            return 'unknown', confidence
-            
-    except Exception as e:
-        return 'unknown', 0.0
-
-def handle_unknown_query_with_ml(question, data, confidence):
-    """Enhanced fallback for unknown queries with ML-powered suggestions"""
-    total_emails = len(data)
-    high_risk = len([e for e in data if e.get('risk_level') in ['High', 'Critical']])
-    
-    fallback_response = f"""
-    I understand you're asking about: "{question}"
-    
-    **Quick Dataset Overview:**
-    - Total emails: {total_emails}
-    - High risk emails: {high_risk}
-    - Confidence in understanding: {confidence:.2f}
-    
-    **Suggested questions you might ask:**
-    - "Show me all high risk emails"
-    - "What domains are sending emails?"
-    - "How many emails have attachments?"
-    - "Show me email patterns over time"
-    """
-    
-    return fallback_response, None
-
-def get_personalized_suggestions():
-    """Generate personalized follow-up suggestions based on user history"""
-    if 'user_learning' not in st.session_state:
-        return []
-    
-    history = st.session_state.user_learning.get('question_history', [])
-    if not history:
-        return []
-    
-    # Analyze recent question patterns
-    recent_questions = [q['question'].lower() for q in history[-5:]]
-    frequent_topics = []
-    
-    topic_keywords = {
-        'risk': ['risk', 'dangerous', 'threat', 'security'],
-        'domain': ['domain', 'gmail', 'external', 'internal'],
-        'attachment': ['attachment', 'file', 'document'],
-        'time': ['time', 'hour', 'when', 'after hours'],
-        'anomaly': ['anomaly', 'unusual', 'strange', 'outlier']
-    }
-    
-    for topic, keywords in topic_keywords.items():
-        if any(keyword in ' '.join(recent_questions) for keyword in keywords):
-            frequent_topics.append(topic)
-    
-    suggestions = []
-    
-    if 'risk' in frequent_topics:
-        suggestions.append("What are the risk factors for these emails?")
-        suggestions.append("Show correlation between risk and other factors")
-    
-    if 'domain' in frequent_topics:
-        suggestions.append("Which domains have the highest risk scores?")
-        suggestions.append("Show external vs internal domain patterns")
-    
-    if 'anomaly' in frequent_topics:
-        suggestions.append("What types of anomalies are most common?")
-        suggestions.append("Show anomaly detection by sender")
-    
-    return suggestions[:4]  # Return top 4 suggestions
-        st.warning(f"ML training warning: {e}")
-    
-    return processor
-
-def classify_query_with_ml(question, processor):
-    """Use ML to classify query type with confidence score"""
-    if not processor.get('trained', False):
-        return 'unknown', 0.0
-    
-        # Vectorize the question
-        question_vector = processor['vectorizer'].transform([question])
-        
-        # Calculate similarity with training examples
-        similarities = cosine_similarity(question_vector, processor['training_vectors'])[0]
-        
-        # Find best match
-        best_match_idx = np.argmax(similarities)
-        confidence = similarities[best_match_idx]
-        
-        if confidence > 0.1:  # Threshold for meaningful similarity
-            query_type = processor['labels'][best_match_idx]
-            return query_type, confidence
-        else:
-            return 'unknown', confidence
-            
-        return 'unknown', 0.0
-
-def handle_unknown_query_with_ml(question, data, confidence):
-    """Enhanced fallback for unknown queries with ML-powered suggestions"""
-    total_emails = len(data)
-    high_risk = len([e for e in data if e.get('risk_level') in ['High', 'Critical']])
-    anomalies = len([e for e in data if e.get('is_anomaly', False)])
-    
-    # Generate smarter suggestions based on the question
-    suggestions = generate_smart_suggestions(question, data)
-    
-    answer = f"""I found {total_emails} total emails in your dataset. {high_risk} are high/critical risk and {anomalies} are anomalies.
-
-**Smart Suggestions** (confidence: {confidence:.2f}):
-{suggestions}
-
-Try asking about 'risk levels', 'domains', 'time patterns', or 'anomalies' for more specific analysis."""
-    
-    return answer, None
-
-def generate_smart_suggestions(question, data):
-    """Generate contextual suggestions based on the question and data"""
-    suggestions = []
-    question_lower = question.lower()
-    
-    # Analyze question for potential intent
-    if any(word in question_lower for word in ['show', 'display', 'view']):
-        suggestions.append("• Try: 'Show me high risk emails' or 'Display domain analysis'")
-    
-    if any(word in question_lower for word in ['compare', 'vs', 'versus']):
-        suggestions.append("• Try: 'Compare emails with vs without attachments'")
-    
-    if any(word in question_lower for word in ['trend', 'pattern', 'over time']):
-        suggestions.append("• Try: 'Show time patterns in emails' or 'Risk trends analysis'")
-    
-    if any(word in question_lower for word in ['who', 'which', 'what']):
-        suggestions.append("• Try: 'Which domains send the most emails?' or 'Who are the high-risk senders?'")
-    
-    # Data-driven suggestions
-    if data:
-        unique_domains = len(set(email.get('sender_domain', '') for email in data if email.get('sender_domain')))
-        if unique_domains > 5:
-            suggestions.append(f"• Found {unique_domains} unique domains - try 'domain analysis'")
-        
-        anomaly_count = len([e for e in data if e.get('is_anomaly', False)])
-        if anomaly_count > 0:
-            suggestions.append(f"• Detected {anomaly_count} anomalies - try 'show me anomalies'")
-    
-    return '\n'.join(suggestions) if suggestions else "• Try asking about specific aspects like 'risk', 'domains', 'time patterns', or 'anomalies'"
+        return answer, None
 
 
 def analyze_risk_queries(question, data):
@@ -4181,66 +3588,6 @@ def analyze_advanced_general_queries(question, data):
 def analyze_general_queries(question, data):
     """Handle general overview questions"""
     return analyze_advanced_general_queries(question, data)
-
-def generate_related_insights(question, data):
-    """Generate related insights based on the question context"""
-    if not data:
-        return "No data available for related insights."
-    
-    question_lower = question.lower()
-    insights = []
-    
-    # Risk-related insights
-    if 'risk' in question_lower:
-        risk_scores = [float(email.get('Risk_Score', 0)) for email in data if email.get('Risk_Score')]
-        if risk_scores:
-            high_risk_count = sum(1 for score in risk_scores if score > 7)
-            insights.append(f"🚨 {high_risk_count} emails have risk scores above 7.0")
-            
-    # Domain-related insights  
-    if 'domain' in question_lower:
-        domains = set()
-        for email in data:
-            sender = email.get('Sender', '')
-            if '@' in sender:
-                domains.add(sender.split('@')[1])
-        external_domains = [d for d in domains if any(ext in d for ext in ['gmail', 'yahoo', 'hotmail'])]
-        insights.append(f"🌐 {len(external_domains)} external domains detected out of {len(domains)} total")
-    
-    # Attachment insights
-    if 'attachment' in question_lower:
-        with_attachments = sum(1 for email in data if email.get('Has_Attachments', '').lower() == 'yes')
-        insights.append(f"📎 {with_attachments} emails contain attachments ({with_attachments/len(data)*100:.1f}%)")
-    
-    # General volume insights
-    insights.append(f"📧 Dataset contains {len(data)} total emails for analysis")
-    
-    return "**Related Insights:**\n" + "\n".join(f"- {insight}" for insight in insights)
-
-def analyze_data_quality(data):
-    """Analyze the quality and completeness of the dataset"""
-    if not data:
-        return "No data to analyze."
-    
-    total_emails = len(data)
-    fields = ['Sender', 'Recipient', 'Risk_Score', 'Has_Attachments']
-    completeness = {}
-    
-    for field in fields:
-        complete_count = sum(1 for email in data if email.get(field) and str(email.get(field)).strip())
-        completeness[field] = (complete_count / total_emails) * 100
-    
-    quality_report = f"""
-    **Data Completeness:**
-    - Sender Information: {completeness.get('Sender', 0):.1f}%
-    - Recipient Information: {completeness.get('Recipient', 0):.1f}%
-    - Risk Scores: {completeness.get('Risk_Score', 0):.1f}%
-    - Attachment Data: {completeness.get('Has_Attachments', 0):.1f}%
-    
-    **Overall Quality Score:** {sum(completeness.values())/len(completeness):.1f}%
-    """
-    
-    return quality_report
 
 def system_workflow_page():
     """Professional system workflow and process documentation"""
