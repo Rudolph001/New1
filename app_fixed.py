@@ -628,6 +628,7 @@ def network_analysis_page():
     data = st.session_state.processed_data
 
     # Get available fields for dropdown options
+    display_fields = []
     if data:
         available_fields = list(data[0].keys())
         display_fields = [field for field in available_fields if not field.startswith('_')]
@@ -2401,12 +2402,27 @@ def daily_checks_page():
         status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
         status_icon = status_icons.get(current_status, '⏳')
 
-        # Create sender title with status, anomaly, and red flag indicators
-        sender_title = f"{status_icon} {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
+        # Create sender title with clear risk level indicators and red flag status
+        risk_level_colors = {
+            'Critical': '🔴',
+            'High': '🟠', 
+            'Medium': '🟡',
+            'Low': '🟢',
+            'Unknown': '⚪'
+        }
+        risk_color = risk_level_colors.get(max_risk_level, '⚪')
+        
+        sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+        
+        # Add red flag indicators
+        red_flags = []
         if has_anomalies:
-            sender_title += f" 🚨 {anomaly_count} Anomalies"
+            red_flags.append(f"🚨 {anomaly_count} Anomalies")
         if is_temp_disposable:
-            sender_title += f" 🔴 RED FLAG: Disposable Email Domain"
+            red_flags.append("🔴 RED FLAG: Disposable Email")
+        
+        if red_flags:
+            sender_title += " - " + " | ".join(red_flags)
 
         # Auto-calculate status based on user actions
         sender_emails_count = len(emails)
@@ -2432,10 +2448,11 @@ def daily_checks_page():
         status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
         status_icon = status_icons.get(auto_status, '⏳')
 
-        # Update sender title with new status
-        sender_title = f"{status_icon} {sender} - {len(emails)} emails - Risk: {max_risk_level} ({max_risk})"
-        if has_anomalies:
-            sender_title += f" 🚨 {anomaly_count} Anomalies"
+        # Update sender title with new status (using the same enhanced format)
+        risk_color = risk_level_colors.get(max_risk_level, '⚪')
+        sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+        if red_flags:
+            sender_title += " - " + " | ".join(red_flags)
 
         with st.expander(sender_title):
             # Show automatic status info
