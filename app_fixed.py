@@ -3000,6 +3000,23 @@ def followup_center_page():
                         if st.button(f"📧 Generate Follow-up Email", key=f"escalated_email_{i}"):
                             email_template = generate_followup_email(email)
                             st.session_state[f'generated_template_{i}'] = email_template
+                            
+                            # URL encode the email content for proper mailto link
+                            import urllib.parse
+                            encoded_subject = urllib.parse.quote(email_template['subject'])
+                            encoded_body = urllib.parse.quote(email_template['body'])
+                            mailto_link = f"mailto:{email_template['to']}?subject={encoded_subject}&body={encoded_body}"
+                            
+                            # Auto-open Outlook using JavaScript
+                            st.markdown(f"""
+                            <script>
+                            setTimeout(function() {{
+                                window.open('{mailto_link}', '_blank');
+                            }}, 100);
+                            </script>
+                            """, unsafe_allow_html=True)
+                            
+                            st.success("Opening Outlook automatically...")
                             st.rerun()
                         
                         # Show generated template if exists
@@ -3007,12 +3024,36 @@ def followup_center_page():
                             template = st.session_state[f'generated_template_{i}']
                             st.success("Follow-up email generated successfully!")
                             
-                            # Create mailto link
-                            mailto_link = f"mailto:{template['to']}?subject={template['subject']}&body={template['body']}"
-                            st.markdown(f"**[📧 Open in Outlook]({mailto_link})**")
+                            # URL encode for proper mailto link
+                            import urllib.parse
+                            encoded_subject = urllib.parse.quote(template['subject'])
+                            encoded_body = urllib.parse.quote(template['body'])
+                            mailto_link = f"mailto:{template['to']}?subject={encoded_subject}&body={encoded_body}"
                             
-                            # Show template details
-                            st.text_area("Email Content:", template['body'], height=200, key=f"escalated_template_{i}")
+                            # Display email details for reference
+                            st.subheader("Follow-up Email Details")
+                            col_email1, col_email2 = st.columns(2)
+                            with col_email1:
+                                st.write(f"**To:** {template['to']}")
+                                st.write(f"**Subject:** {template['subject']}")
+
+                            # Backup link if auto-open doesn't work
+                            with col_email2:
+                                st.markdown(f"**[Click here if Outlook didn't open]({mailto_link})**")
+                                st.caption("Backup link for manual opening")
+
+                            # Display email body for reference
+                            st.text_area("Email Content (Reference):", template['body'], height=200, key=f"escalated_template_{i}")
+
+                            # Download option
+                            email_content = f"To: {template['to']}\nSubject: {template['subject']}\n\n{template['body']}"
+                            st.download_button(
+                                label="💾 Download Email",
+                                data=email_content,
+                                file_name=f"followup_email_{template['sender_name']}.txt",
+                                mime="text/plain",
+                                key=f"download_escalated_{i}"
+                            )
             else:
                 st.info("No escalated emails currently.")
         
