@@ -2338,14 +2338,14 @@ def daily_checks_page():
                         st.write(f"**Delivered:** {email.get('delivered', 'N/A')}")
                         st.write(f"**Last Working Day:** {email.get('last_working_day', 'N/A')}")
                     
-                    # Immediate action buttons
-                    action_col1, action_col2, action_col3 = st.columns(3)
+                    # Action buttons
+                    action_col1, action_col2 = st.columns(2)
                     
                     email_id = f"{email.get('sender', '')}_{email.get('time', '')}_{i}"
                     
                     with action_col1:
-                        if st.button(f"🚨 Flag for Investigation", key=f"flag_temp_{domain}_{i}"):
-                            # Add to flagged emails list
+                        if st.button(f"📋 View Details", key=f"view_temp_{domain}_{i}"):
+                            # Add to flagged emails list for detailed investigation
                             flag_entry = {
                                 'email_id': email_id,
                                 'sender': email.get('sender', ''),
@@ -2353,42 +2353,28 @@ def daily_checks_page():
                                 'domain': domain,
                                 'risk_level': email.get('risk_level', ''),
                                 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'reason': 'Temporary/Disposable email domain'
+                                'reason': 'Temporary/Disposable email domain - Detailed review requested'
                             }
                             if flag_entry not in st.session_state.flagged_emails:
                                 st.session_state.flagged_emails.append(flag_entry)
-                            st.error("✅ Email flagged for security investigation")
+                            st.info("✅ Email details flagged for review")
                     
                     with action_col2:
-                        if st.button(f"📧 Generate Alert", key=f"alert_temp_{domain}_{i}"):
-                            # Add to generated alerts list
+                        if st.button(f"✅ Follow Up", key=f"followup_temp_{domain}_{i}"):
+                            # Add to generated alerts list as follow-up action
                             alert_entry = {
-                                'alert_id': f"ALERT_{len(st.session_state.generated_alerts) + 1}",
+                                'alert_id': f"FOLLOWUP_{len(st.session_state.generated_alerts) + 1}",
                                 'email_id': email_id,
                                 'sender': email.get('sender', ''),
                                 'subject': email.get('subject', ''),
                                 'domain': domain,
                                 'severity': 'HIGH' if email.get('risk_level') in ['Critical', 'High'] else 'MEDIUM',
                                 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'alert_type': 'Disposable Email Detection'
+                                'alert_type': 'Follow-up Required - Disposable Email'
                             }
                             if alert_entry not in st.session_state.generated_alerts:
                                 st.session_state.generated_alerts.append(alert_entry)
-                            st.warning("✅ Security alert generated and logged")
-                    
-                    with action_col3:
-                        if st.button(f"🔒 Block Domain", key=f"block_temp_{domain}_{i}"):
-                            # Add to blocked domains list
-                            block_entry = {
-                                'domain': domain,
-                                'block_reason': 'Temporary/Disposable email provider',
-                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'risk_level': 'HIGH',
-                                'email_count': len(emails)
-                            }
-                            if domain not in [entry['domain'] for entry in st.session_state.blocked_domains]:
-                                st.session_state.blocked_domains.append(block_entry)
-                            st.success(f"✅ Domain {domain} added to block list")
+                            st.success("✅ Follow-up action scheduled")
         
         # Summary recommendations - Hidden per user request
         # st.markdown("---")
