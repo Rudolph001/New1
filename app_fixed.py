@@ -2278,81 +2278,208 @@ def daily_checks_page():
         **Immediate Action Required**: Review these emails for potential security violations.
         """)
         
-        # Group by sender domain for better analysis
-        temp_email_by_domain = defaultdict(list)
+        # Group temporary emails by sender (same structure as Risk Events)
+        temp_sender_groups = defaultdict(list)
         for email in temporary_disposable_emails:
-            sender = email.get('sender', '')
-            recipients = email.get('recipients', '') or email.get('recipient', '')
-            
-            # Check both sender and recipient domains
-            domains_to_check = []
-            if sender and '@' in sender:
-                domains_to_check.append(('sender', sender))
-            if recipients:
-                recipient_list = [r.strip() for r in recipients.replace(';', ',').split(',') if r.strip() and '@' in r.strip()]
-                for recipient in recipient_list:
-                    domains_to_check.append(('recipient', recipient))
-            
-            for role, email_addr in domains_to_check:
-                if '@' in email_addr:
-                    domain = email_addr.split('@')[1].lower()
-                    # Check if this domain is temporary/disposable
-                    is_temp_disposable = False
-                    
-                    # Check against temporary/disposable patterns
-                    for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
-                        if pattern in domain:
-                            is_temp_disposable = True
-                            break
-                    
-                    # Also check specific temporary email domains
-                    if domain in EMAIL_DOMAIN_CLASSIFICATIONS.get("temporary_disposable", set()):
-                        is_temp_disposable = True
-                    
-                    if is_temp_disposable:
-                        temp_email_by_domain[domain].append({
-                            'email': email,
-                            'role': role,
-                            'email_address': email_addr
-                        })
+            sender = email.get('sender', 'Unknown')
+            temp_sender_groups[sender].append(email)
+
+        # Add tracking overview for temp emails
+        temp_col1, temp_col2, temp_col3, temp_col4 = st.columns(4)
+
+        # Calculate tracking statistics for temp emails
+        temp_total_senders = len(temp_sender_groups)
+        temp_completed_senders = 0
+        temp_outstanding_senders = 0
+        temp_in_progress_senders = 0
+
+        for sender in temp_sender_groups.keys():
+            sender_status = st.session_state.sender_review_status.get(sender, 'outstanding')
+            if sender_status == 'completed':
+                temp_completed_senders += 1
+            elif sender_status == 'in_progress':
+                temp_in_progress_senders += 1
+            else:
+                temp_outstanding_senders += 1
+
+        # Display tracking metrics for temp emails
+        with temp_col1:
+            st.metric("📊 Total Red Flag Senders", temp_total_senders)
+        with temp_col2:
+            st.metric("✅ Completed", temp_completed_senders)
+        with temp_col3:
+            st.metric("🔄 In Progress", temp_in_progress_senders)
+        with temp_col4:
+            st.metric("⏳ Outstanding", temp_outstanding_senders)
+
+        # Add filter options for temp emails (same as Risk Events)
+        st.write("**Filter Red Flag Senders:**")
+        temp_filter_col1, temp_filter_col2 = st.columns(2)
+        with temp_filter_col1:
+            temp_status_filter = st.selectbox(
+                "Show red flag senders:",
+                options=['All', 'Outstanding', 'In Progress', 'Completed'],
+                index=0,
+                key="temp_status_filter"
+            )
+        with temp_filter_col2:
+            temp_sort_by = st.selectbox(
+                "Sort red flags by:",
+                options=['Risk Level', 'Status', 'Email Count'],
+                index=0,
+                key="temp_sort_by"
+            )
+
+        # Sort temp senders by risk priority (same logic as Risk Events)
+        risk_priority = {'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Unknown': 0}
         
-        # Display detailed breakdown by domain
-        for domain, email_instances in temp_email_by_domain.items():
-            with st.expander(f"🔴 **{domain}** - {len(email_instances)} instances detected", expanded=True):
-                st.error(f"**Domain Type**: Temporary/Disposable Email Provider")
-                st.write(f"**Risk Level**: CRITICAL - Immediate investigation required")
-                st.write(f"**Detection Count**: {len(email_instances)} email communications")
+        def get_temp_sender_max_risk(emails):
+            max_priority = 0
+            max_score = 0
+            for email in emails:
+                risk_level = email.get('risk_level', 'Low')
+                risk_score = email.get('risk_score', 0)
+                priority = risk_priority.get(risk_level, 0)
+                if priority > max_priority or (priority == max_priority and risk_score > max_score):
+                    max_priority = priority
+                    max_score = risk_score
+            return (max_priority, max_score)
+
+        sorted_temp_sender_groups = sorted(temp_sender_groups.items(), 
+                                         key=lambda x: get_temp_sender_max_risk(x[1]), 
+                                         reverse=True)
+
+        # Apply status filter for temp emails
+        if temp_status_filter != 'All':
+            filter_map = {'Outstanding': 'outstanding', 'In Progress': 'in_progress', 'Completed': 'completed'}
+            filtered_status = filter_map[temp_status_filter]
+            sorted_temp_sender_groups = [
+                (sender, emails) for sender, emails in sorted_temp_sender_groups 
+                if st.session_state.sender_review_status.get(sender, 'outstanding') == filtered_status
+            ]
+
+        # Display temp email senders (exactly same format as Risk Events)
+        for sender, emails in sorted_temp_sender_groups:
+            if not emails:
+                continue
+
+            # Find highest risk in group
+            max_risk = max(email.get('risk_score', 0) for email in emails)
+            max_risk_level = next((email.get('risk_level', 'Low') for email in emails 
+                                  if email.get('risk_score', 0) == max_risk), 'Low')
+
+            # Check if sender has any anomalies
+            has_anomalies = any(email.get('is_anomaly', False) for email in emails)
+            anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
+
+            # Get current sender status
+            current_status = st.session_state.sender_review_status.get(sender, 'outstanding')
+            status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
+            status_icon = status_icons.get(current_status, '⏳')
+
+            # Create sender title with clear risk level indicators and red flag status
+            risk_level_colors = {
+                'Critical': '🔴',
+                'High': '🟠', 
+                'Medium': '🟡',
+                'Low': '🟢',
+                'Unknown': '⚪'
+            }
+            risk_color = risk_level_colors.get(max_risk_level, '⚪')
+            
+            sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+            
+            # Add red flag indicators
+            red_flags = ["🔴 RED FLAG: Disposable Email"]
+            if has_anomalies:
+                red_flags.append(f"🚨 {anomaly_count} Anomalies")
+            
+            sender_title += " - " + " | ".join(red_flags)
+
+            # Auto-calculate status based on user actions
+            sender_emails_count = len(emails)
+            sender_followup_decisions = [
+                st.session_state.followup_decisions.get(f"{sender}_{i}", 'pending') 
+                for i in range(sender_emails_count)
+            ]
+
+            # Determine automatic status
+            decided_count = sum(1 for decision in sender_followup_decisions if decision != 'pending')
+
+            if decided_count == 0:
+                auto_status = 'outstanding'
+            elif decided_count == sender_emails_count:
+                auto_status = 'completed'
+            else:
+                auto_status = 'in_progress'
+
+            # Update status automatically
+            st.session_state.sender_review_status[sender] = auto_status
+
+            # Update status icon based on auto-calculated status
+            status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
+            status_icon = status_icons.get(auto_status, '⏳')
+
+            # Update sender title with new status (using the same enhanced format)
+            risk_color = risk_level_colors.get(max_risk_level, '⚪')
+            sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+            sender_title += " - " + " | ".join(red_flags)
+
+            with st.expander(sender_title):
+                # Show automatic status info
+                st.write(f"**Review Status:** {auto_status.title()} ({decided_count}/{sender_emails_count} emails reviewed)")
+                st.markdown("---")
                 
-                # Show individual email instances
-                for i, instance in enumerate(email_instances[:10]):  # Show up to 10 instances
-                    email = instance['email']
-                    role = instance['role']
-                    email_addr = instance['email_address']
+                # Display individual emails with action buttons (same as Risk Events)
+                for i, email in enumerate(emails):
+                    email_key = f"{sender}_{i}"
+                    current_decision = st.session_state.followup_decisions.get(email_key, 'pending')
                     
-                    st.markdown(f"**Instance {i+1}:**")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write(f"• **{role.title()}**: {email_addr}")
-                        st.write(f"• **Subject**: {email.get('subject', 'N/A')}")
-                        st.write(f"• **Time**: {email.get('time', 'N/A')}")
-                    with col2:
-                        st.write(f"• **Risk Score**: {email.get('risk_score', 0)}")
-                        st.write(f"• **Risk Level**: {email.get('risk_level', 'Unknown')}")
-                        if email.get('attachments', '').strip():
-                            st.write(f"• **⚠️ Attachments**: {email.get('attachments', 'None')}")
-                    
-                    # Show risk factors
-                    risk_factors = email.get('risk_factors', '')
-                    if risk_factors and risk_factors != 'Normal activity':
-                        st.write(f"• **Risk Factors**: {risk_factors}")
-                    
-                    if email.get('is_anomaly', False):
-                        st.error(f"🚨 **Anomaly Detected**: {email.get('anomaly_type', 'Unknown')}")
-                    
-                    st.markdown("---")
-                
-                if len(email_instances) > 10:
-                    st.info(f"Showing 10 of {len(email_instances)} total instances for this domain")
+                    with st.expander(f"📧 Email {i+1}: {email.get('subject', 'No Subject')[:50]}..."):
+                        # Email details (same format as Risk Events)
+                        col_a, col_b = st.columns(2)
+                        
+                        with col_a:
+                            st.write(f"**From:** {email.get('sender', 'N/A')}")
+                            st.write(f"**To:** {email.get('recipients', 'N/A')}")
+                            st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                            st.write(f"**Time:** {email.get('time', 'N/A')}")
+                        
+                        with col_b:
+                            st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                            st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                            st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                            
+                            if email.get('is_anomaly', False):
+                                st.error("🚨 **Anomaly Detected**")
+                            
+                            # Always show red flag for temp/disposable
+                            st.error("🔴 **RED FLAG: Temporary/Disposable Email Domain**")
+                        
+                        # Decision buttons (exactly same as Risk Events)
+                        st.write(f"**Current Decision:** {current_decision.title()}")
+                        
+                        button_col1, button_col2, button_col3, button_col4 = st.columns(4)
+                        
+                        with button_col1:
+                            if st.button("✅ No Action", key=f"no_action_{email_key}_temp"):
+                                st.session_state.followup_decisions[email_key] = 'no_action'
+                                st.rerun()
+                        
+                        with button_col2:
+                            if st.button("⚠️ Monitor", key=f"monitor_{email_key}_temp"):
+                                st.session_state.followup_decisions[email_key] = 'monitor'
+                                st.rerun()
+                        
+                        with button_col3:
+                            if st.button("🔎 Investigate", key=f"investigate_{email_key}_temp"):
+                                st.session_state.followup_decisions[email_key] = 'investigate'
+                                st.rerun()
+                        
+                        with button_col4:
+                            if st.button("🚨 Escalate", key=f"escalate_{email_key}_temp"):
+                                st.session_state.followup_decisions[email_key] = 'escalate'
+                                st.rerun()
         
         st.info("📍 **These red flag indicators are also highlighted in the Risk Events section below for comprehensive review.**")
     else:
