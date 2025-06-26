@@ -42,6 +42,12 @@ if 'network_config' not in st.session_state:
     }
 if 'selected_node' not in st.session_state:
     st.session_state.selected_node = None
+if 'flagged_emails' not in st.session_state:
+    st.session_state.flagged_emails = []
+if 'generated_alerts' not in st.session_state:
+    st.session_state.generated_alerts = []
+if 'blocked_domains' not in st.session_state:
+    st.session_state.blocked_domains = []
 
 # Comprehensive email domain classification
 EMAIL_DOMAIN_CLASSIFICATIONS = {
@@ -2188,6 +2194,63 @@ def daily_checks_page():
     with domain_col4:
         business_count = sender_domain_stats.get('business', 0) + recipient_domain_stats.get('business', 0)
         st.metric("🏢 Business Communications", business_count, help="Corporate domain communications")
+    
+    # Security Actions Dashboard
+    if st.session_state.flagged_emails or st.session_state.generated_alerts or st.session_state.blocked_domains:
+        st.markdown("---")
+        st.subheader("🔐 Security Actions Dashboard")
+        
+        action_tab1, action_tab2, action_tab3 = st.tabs(["🚨 Flagged Emails", "📧 Generated Alerts", "🔒 Blocked Domains"])
+        
+        with action_tab1:
+            if st.session_state.flagged_emails:
+                st.write(f"**Total Flagged Emails: {len(st.session_state.flagged_emails)}**")
+                for flag in st.session_state.flagged_emails:
+                    with st.expander(f"🚨 {flag['sender']} - {flag['subject'][:40]}..."):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Sender:** {flag['sender']}")
+                            st.write(f"**Domain:** {flag['domain']}")
+                            st.write(f"**Risk Level:** {flag['risk_level']}")
+                        with col2:
+                            st.write(f"**Flagged:** {flag['timestamp']}")
+                            st.write(f"**Reason:** {flag['reason']}")
+            else:
+                st.info("No emails have been flagged for investigation yet.")
+        
+        with action_tab2:
+            if st.session_state.generated_alerts:
+                st.write(f"**Total Generated Alerts: {len(st.session_state.generated_alerts)}**")
+                for alert in st.session_state.generated_alerts:
+                    severity_color = "🔴" if alert['severity'] == 'HIGH' else "🟡"
+                    with st.expander(f"{severity_color} {alert['alert_id']} - {alert['alert_type']}"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Alert ID:** {alert['alert_id']}")
+                            st.write(f"**Sender:** {alert['sender']}")
+                            st.write(f"**Domain:** {alert['domain']}")
+                        with col2:
+                            st.write(f"**Severity:** {alert['severity']}")
+                            st.write(f"**Generated:** {alert['timestamp']}")
+                            st.write(f"**Type:** {alert['alert_type']}")
+            else:
+                st.info("No security alerts have been generated yet.")
+        
+        with action_tab3:
+            if st.session_state.blocked_domains:
+                st.write(f"**Total Blocked Domains: {len(st.session_state.blocked_domains)}**")
+                for block in st.session_state.blocked_domains:
+                    with st.expander(f"🔒 {block['domain']} - {block['risk_level']} Risk"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Domain:** {block['domain']}")
+                            st.write(f"**Risk Level:** {block['risk_level']}")
+                            st.write(f"**Email Count:** {block['email_count']}")
+                        with col2:
+                            st.write(f"**Blocked:** {block['timestamp']}")
+                            st.write(f"**Reason:** {block['block_reason']}")
+            else:
+                st.info("No domains have been blocked yet.")
 
     # 🚨 RED FLAG ALERT: Temporary/Disposable Email Detection
     if temporary_disposable_emails:
@@ -2278,17 +2341,54 @@ def daily_checks_page():
                     # Immediate action buttons
                     action_col1, action_col2, action_col3 = st.columns(3)
                     
+                    email_id = f"{email.get('sender', '')}_{email.get('time', '')}_{i}"
+                    
                     with action_col1:
                         if st.button(f"🚨 Flag for Investigation", key=f"flag_temp_{domain}_{i}"):
-                            st.error("✅ Email flagged for immediate security investigation")
+                            # Add to flagged emails list
+                            flag_entry = {
+                                'email_id': email_id,
+                                'sender': email.get('sender', ''),
+                                'subject': email.get('subject', ''),
+                                'domain': domain,
+                                'risk_level': email.get('risk_level', ''),
+                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'reason': 'Temporary/Disposable email domain'
+                            }
+                            if flag_entry not in st.session_state.flagged_emails:
+                                st.session_state.flagged_emails.append(flag_entry)
+                            st.error("✅ Email flagged for security investigation")
                     
                     with action_col2:
                         if st.button(f"📧 Generate Alert", key=f"alert_temp_{domain}_{i}"):
-                            st.warning("✅ Security alert generated for this email")
+                            # Add to generated alerts list
+                            alert_entry = {
+                                'alert_id': f"ALERT_{len(st.session_state.generated_alerts) + 1}",
+                                'email_id': email_id,
+                                'sender': email.get('sender', ''),
+                                'subject': email.get('subject', ''),
+                                'domain': domain,
+                                'severity': 'HIGH' if email.get('risk_level') in ['Critical', 'High'] else 'MEDIUM',
+                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'alert_type': 'Disposable Email Detection'
+                            }
+                            if alert_entry not in st.session_state.generated_alerts:
+                                st.session_state.generated_alerts.append(alert_entry)
+                            st.warning("✅ Security alert generated and logged")
                     
                     with action_col3:
                         if st.button(f"🔒 Block Domain", key=f"block_temp_{domain}_{i}"):
-                            st.success(f"✅ Recommendation to block {domain} logged")
+                            # Add to blocked domains list
+                            block_entry = {
+                                'domain': domain,
+                                'block_reason': 'Temporary/Disposable email provider',
+                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'risk_level': 'HIGH',
+                                'email_count': len(emails)
+                            }
+                            if domain not in [entry['domain'] for entry in st.session_state.blocked_domains]:
+                                st.session_state.blocked_domains.append(block_entry)
+                            st.success(f"✅ Domain {domain} added to block list")
         
         # Summary recommendations
         st.markdown("---")
