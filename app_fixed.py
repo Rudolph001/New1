@@ -48,6 +48,8 @@ if 'generated_alerts' not in st.session_state:
     st.session_state.generated_alerts = []
 if 'blocked_domains' not in st.session_state:
     st.session_state.blocked_domains = []
+if 'followup_decisions' not in st.session_state:
+    st.session_state.followup_decisions = {}
 
 # Comprehensive email domain classification
 EMAIL_DOMAIN_CLASSIFICATIONS = {
@@ -2361,20 +2363,42 @@ def daily_checks_page():
                     
                     with action_col2:
                         if st.button(f"✅ Follow Up", key=f"followup_temp_{domain}_{i}"):
-                            # Add to generated alerts list as follow-up action
-                            alert_entry = {
-                                'alert_id': f"FOLLOWUP_{len(st.session_state.generated_alerts) + 1}",
-                                'email_id': email_id,
-                                'sender': email.get('sender', ''),
-                                'subject': email.get('subject', ''),
-                                'domain': domain,
-                                'severity': 'HIGH' if email.get('risk_level') in ['Critical', 'High'] else 'MEDIUM',
-                                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'alert_type': 'Follow-up Required - Disposable Email'
-                            }
-                            if alert_entry not in st.session_state.generated_alerts:
-                                st.session_state.generated_alerts.append(alert_entry)
-                            st.success("✅ Follow-up action scheduled")
+                            # Find the original index of this email in processed_data
+                            sender = email.get('sender', '')
+                            original_index = None
+                            
+                            # Find the email's original position in processed_data
+                            if st.session_state.processed_data:
+                                sender_emails = [e for e in st.session_state.processed_data if e.get('sender') == sender]
+                                for idx, orig_email in enumerate(sender_emails):
+                                    if (orig_email.get('subject') == email.get('subject') and 
+                                        orig_email.get('time') == email.get('time')):
+                                        original_index = idx
+                                        break
+                            
+                            if original_index is not None:
+                                # Create the followup key that matches the Follow-up Center logic
+                                followup_key = f"{sender}_{original_index}"
+                                
+                                # Mark for follow-up in the Follow-up Center
+                                st.session_state.followup_decisions[followup_key] = 'followup'
+                                
+                                # Also add to generated alerts list for tracking
+                                alert_entry = {
+                                    'alert_id': f"FOLLOWUP_{len(st.session_state.generated_alerts) + 1}",
+                                    'email_id': email_id,
+                                    'sender': email.get('sender', ''),
+                                    'subject': email.get('subject', ''),
+                                    'domain': domain,
+                                    'severity': 'HIGH' if email.get('risk_level') in ['Critical', 'High'] else 'MEDIUM',
+                                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'alert_type': 'Follow-up Required - Disposable Email'
+                                }
+                                if alert_entry not in st.session_state.generated_alerts:
+                                    st.session_state.generated_alerts.append(alert_entry)
+                                st.success("✅ Email moved to Follow-up Center")
+                            else:
+                                st.error("❌ Could not locate email in original data for follow-up")
         
         # Summary recommendations - Hidden per user request
         # st.markdown("---")
