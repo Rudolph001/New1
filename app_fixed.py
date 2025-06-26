@@ -2136,27 +2136,44 @@ def daily_checks_page():
         sender_class = email.get('sender_classification', {})
         recipient_class = email.get('recipient_classification', {})
         sender = email.get('sender', '')
+        recipients = email.get('recipients', '') or email.get('recipient', '')
         
-        # Check for temporary/disposable email providers
+        # Check for temporary/disposable email providers in sender
+        email_addresses_to_check = []
         if sender and '@' in sender:
-            sender_domain = sender.split('@')[1].lower()
-            
-            # Check against temporary/disposable patterns
-            is_temp_disposable = False
-            for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
-                if pattern in sender_domain:
-                    is_temp_disposable = True
+            email_addresses_to_check.append(sender)
+        
+        # Check for temporary/disposable email providers in recipients
+        if recipients:
+            # Handle multiple recipients separated by comma or semicolon
+            recipient_list = [r.strip() for r in recipients.replace(';', ',').split(',') if r.strip() and '@' in r.strip()]
+            email_addresses_to_check.extend(recipient_list)
+        
+        # Check all email addresses (sender and recipients) for temporary/disposable patterns
+        is_temp_disposable_email = False
+        for email_addr in email_addresses_to_check:
+            if '@' in email_addr:
+                domain = email_addr.split('@')[1].lower()
+                
+                # Check against temporary/disposable patterns
+                for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
+                    if pattern in domain:
+                        is_temp_disposable_email = True
+                        break
+                
+                # Also check specific temporary email domains
+                temp_domains = {
+                    "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
+                    "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com",
+                    "temp-mail.org", "yopmail.com", "dispostable.com", "trashmail.com"
+                }
+                
+                if domain in temp_domains or is_temp_disposable_email:
+                    is_temp_disposable_email = True
                     break
-            
-            # Also check specific temporary email domains
-            temp_domains = {
-                "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
-                "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com",
-                "temp-mail.org", "yopmail.com", "dispostable.com", "trashmail.com"
-            }
-            
-            if sender_domain in temp_domains or is_temp_disposable:
-                temporary_disposable_emails.append(email)
+        
+        if is_temp_disposable_email:
+            temporary_disposable_emails.append(email)
         
         if sender_class:
             sender_domain_stats[sender_class.get('classification', 'unknown')] += 1
