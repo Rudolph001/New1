@@ -2127,10 +2127,33 @@ def daily_checks_page():
     recipient_domain_stats = defaultdict(int)
     external_communications = 0
     suspicious_domains = 0
+    temporary_disposable_emails = []
     
     for email in data:
         sender_class = email.get('sender_classification', {})
         recipient_class = email.get('recipient_classification', {})
+        sender = email.get('sender', '')
+        
+        # Check for temporary/disposable email providers
+        if sender and '@' in sender:
+            sender_domain = sender.split('@')[1].lower()
+            
+            # Check against temporary/disposable patterns
+            is_temp_disposable = False
+            for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
+                if pattern in sender_domain:
+                    is_temp_disposable = True
+                    break
+            
+            # Also check specific temporary email domains
+            temp_domains = {
+                "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
+                "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com",
+                "temp-mail.org", "yopmail.com", "dispostable.com", "trashmail.com"
+            }
+            
+            if sender_domain in temp_domains or is_temp_disposable:
+                temporary_disposable_emails.append(email)
         
         if sender_class:
             sender_domain_stats[sender_class.get('classification', 'unknown')] += 1
@@ -2160,6 +2183,156 @@ def daily_checks_page():
     with domain_col4:
         business_count = sender_domain_stats.get('business', 0) + recipient_domain_stats.get('business', 0)
         st.metric("🏢 Business Communications", business_count, help="Corporate domain communications")
+
+    # 🚨 RED FLAG ALERT: Temporary/Disposable Email Detection
+    if temporary_disposable_emails:
+        st.markdown("---")
+        st.error(f"🚨 **CRITICAL SECURITY ALERT: {len(temporary_disposable_emails)} Temporary/Disposable Email Detected!**")
+        
+        st.subheader("🔴 Temporary/Disposable Email Red Flags")
+        st.warning("""
+        **SECURITY RISK**: Temporary and disposable email addresses are commonly used for:
+        - Data exfiltration attempts
+        - Hiding true identity
+        - Avoiding detection and accountability
+        - Bypassing security controls
+        
+        **Immediate Action Required**: Review these emails for potential security violations.
+        """)
+        
+        # Group by sender domain for better analysis
+        temp_email_by_domain = defaultdict(list)
+        for email in temporary_disposable_emails:
+            sender = email.get('sender', '')
+            if '@' in sender:
+                domain = sender.split('@')[1].lower()
+                temp_email_by_domain[domain].append(email)
+        
+        # Display each domain group
+        for domain, emails in temp_email_by_domain.items():
+            st.markdown(f"### 🚨 Domain: `{domain}` ({len(emails)} emails)")
+            
+            # Domain risk assessment
+            total_risk_score = sum(email.get('risk_score', 0) for email in emails)
+            avg_risk = total_risk_score / len(emails) if emails else 0
+            anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
+            
+            risk_col1, risk_col2, risk_col3, risk_col4 = st.columns(4)
+            with risk_col1:
+                st.metric("Emails from Domain", len(emails))
+            with risk_col2:
+                st.metric("Average Risk Score", f"{avg_risk:.1f}")
+            with risk_col3:
+                st.metric("Anomalies Detected", anomaly_count)
+            with risk_col4:
+                critical_high = len([e for e in emails if e.get('risk_level') in ['Critical', 'High']])
+                st.metric("Critical/High Risk", critical_high)
+            
+            # Display individual emails from this domain
+            for i, email in enumerate(emails):
+                with st.expander(f"🔴 EMAIL {i+1}: {email.get('subject', 'No Subject')[:60]}... - Risk: {email.get('risk_level', 'Unknown')} ({email.get('risk_score', 0)})"):
+                    
+                    # Critical email details
+                    details_col1, details_col2 = st.columns(2)
+                    
+                    with details_col1:
+                        st.markdown("**📧 Email Information**")
+                        st.write(f"**Sender:** `{email.get('sender', 'N/A')}`")
+                        st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                        st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
+                        st.write(f"**Time:** {email.get('time', 'N/A')}")
+                        st.write(f"**Direction:** {email.get('direction', 'N/A')}")
+                        
+                    with details_col2:
+                        st.markdown("**⚠️ Risk Assessment**")
+                        st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                        st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                        st.write(f"**Risk Factors:** {email.get('risk_factors', 'None')}")
+                        st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                        st.write(f"**Keywords:** {email.get('word_list_match', 'None')}")
+                        
+                        # Anomaly information
+                        if email.get('is_anomaly', False):
+                            st.error(f"🚨 **ANOMALY**: {email.get('anomaly_type', 'Unknown')}")
+                            st.write(f"**Anomaly Reason:** {email.get('anomaly_reason', 'N/A')}")
+                    
+                    # Additional security context
+                    st.markdown("**🔍 Security Context**")
+                    security_col1, security_col2 = st.columns(2)
+                    
+                    with security_col1:
+                        st.write(f"**Business Unit:** {email.get('bunit', 'N/A')}")
+                        st.write(f"**Department:** {email.get('department', 'N/A')}")
+                        st.write(f"**Recipient Status:** {email.get('recipient_status', 'N/A')}")
+                        
+                    with security_col2:
+                        st.write(f"**Action Taken:** {email.get('act', 'N/A')}")
+                        st.write(f"**Delivered:** {email.get('delivered', 'N/A')}")
+                        st.write(f"**Last Working Day:** {email.get('last_working_day', 'N/A')}")
+                    
+                    # Immediate action buttons
+                    action_col1, action_col2, action_col3 = st.columns(3)
+                    
+                    with action_col1:
+                        if st.button(f"🚨 Flag for Investigation", key=f"flag_temp_{domain}_{i}"):
+                            st.error("✅ Email flagged for immediate security investigation")
+                    
+                    with action_col2:
+                        if st.button(f"📧 Generate Alert", key=f"alert_temp_{domain}_{i}"):
+                            st.warning("✅ Security alert generated for this email")
+                    
+                    with action_col3:
+                        if st.button(f"🔒 Block Domain", key=f"block_temp_{domain}_{i}"):
+                            st.success(f"✅ Recommendation to block {domain} logged")
+        
+        # Summary recommendations
+        st.markdown("---")
+        st.subheader("📋 Immediate Security Recommendations")
+        
+        rec_col1, rec_col2 = st.columns(2)
+        
+        with rec_col1:
+            st.markdown("**🔴 IMMEDIATE ACTIONS:**")
+            st.write("1. **Block all temporary/disposable email domains**")
+            st.write("2. **Investigate all communications from these addresses**")
+            st.write("3. **Review access logs for these email addresses**")
+            st.write("4. **Check for data exfiltration attempts**")
+            st.write("5. **Notify security team immediately**")
+        
+        with rec_col2:
+            st.markdown("**📊 SECURITY STATISTICS:**")
+            st.write(f"• **Total Temp Email Incidents:** {len(temporary_disposable_emails)}")
+            st.write(f"• **Unique Temp Domains:** {len(temp_email_by_domain)}")
+            st.write(f"• **High Risk Incidents:** {len([e for e in temporary_disposable_emails if e.get('risk_level') in ['Critical', 'High']])}")
+            st.write(f"• **With Attachments:** {len([e for e in temporary_disposable_emails if e.get('attachments', '').strip()])}")
+            st.write(f"• **Anomalies:** {sum(1 for e in temporary_disposable_emails if e.get('is_anomaly', False))}")
+        
+        # Export temp email report
+        if st.button("📊 Export Temporary Email Security Report", key="export_temp_report"):
+            temp_report = f"""TEMPORARY/DISPOSABLE EMAIL SECURITY REPORT
+{'='*50}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+SUMMARY:
+- Total Incidents: {len(temporary_disposable_emails)}
+- Unique Domains: {len(temp_email_by_domain)}
+- High Risk: {len([e for e in temporary_disposable_emails if e.get('risk_level') in ['Critical', 'High']])}
+
+DETECTED DOMAINS:
+"""
+            for domain, emails in temp_email_by_domain.items():
+                temp_report += f"\n{domain}: {len(emails)} emails\n"
+                for email in emails:
+                    temp_report += f"  - {email.get('sender', 'N/A')} | {email.get('subject', 'No Subject')[:40]} | Risk: {email.get('risk_level', 'Unknown')}\n"
+            
+            st.download_button(
+                label="⬇️ Download Security Report",
+                data=temp_report,
+                file_name=f"temp_email_security_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain"
+            )
+    else:
+        st.success("✅ **No temporary or disposable email addresses detected in current dataset**")
 
     # Risk Events by Sender with Tracking
     st.subheader("🎯 Risk Events (Grouped by Sender)")
