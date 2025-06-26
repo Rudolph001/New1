@@ -2469,16 +2469,49 @@ def daily_checks_page():
                         with button_col2:
                             if st.button("⚠️ Monitor", key=f"monitor_{email_key}_temp"):
                                 st.session_state.followup_decisions[email_key] = 'monitor'
+                                # Add to monitoring list
+                                if 'monitored_emails' not in st.session_state:
+                                    st.session_state.monitored_emails = []
+                                st.session_state.monitored_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'monitoring'
+                                })
+                                st.success("Email added to monitoring queue")
                                 st.rerun()
                         
                         with button_col3:
                             if st.button("🔎 Investigate", key=f"investigate_{email_key}_temp"):
                                 st.session_state.followup_decisions[email_key] = 'investigate'
+                                # Add to investigation queue
+                                if 'investigation_queue' not in st.session_state:
+                                    st.session_state.investigation_queue = []
+                                st.session_state.investigation_queue.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'investigating',
+                                    'priority': 'high' if email.get('risk_level') == 'Critical' else 'medium'
+                                })
+                                st.warning("Email queued for investigation")
                                 st.rerun()
                         
                         with button_col4:
                             if st.button("🚨 Escalate", key=f"escalate_{email_key}_temp"):
                                 st.session_state.followup_decisions[email_key] = 'escalate'
+                                # Add to follow-up center
+                                if 'escalated_emails' not in st.session_state:
+                                    st.session_state.escalated_emails = []
+                                st.session_state.escalated_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'escalation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'escalated',
+                                    'priority': 'critical',
+                                    'requires_followup': True
+                                })
+                                st.error("Email escalated to Follow-up Center")
                                 st.rerun()
         
         st.info("📍 **These red flag indicators are also highlighted in the Risk Events section below for comprehensive review.**")
@@ -2827,21 +2860,83 @@ def daily_checks_page():
                     current_decision = st.session_state.followup_decisions.get(email_id, 'pending')
 
                     if current_decision == 'pending':
-                        if st.button("✅ Follow Up", key=f"followup_{email_id}"):
-                            st.session_state.followup_decisions[email_id] = 'followup'
-                            st.rerun()
-                        if st.button("❌ No Action", key=f"noaction_{email_id}"):
-                            st.session_state.followup_decisions[email_id] = 'no_action'
-                            st.rerun()
+                        button_col1, button_col2, button_col3, button_col4 = st.columns(4)
+                        
+                        with button_col1:
+                            if st.button("✅ No Action", key=f"no_action_{email_id}"):
+                                st.session_state.followup_decisions[email_id] = 'no_action'
+                                st.rerun()
+                        
+                        with button_col2:
+                            if st.button("⚠️ Monitor", key=f"monitor_{email_id}"):
+                                st.session_state.followup_decisions[email_id] = 'monitor'
+                                # Add to monitoring list
+                                if 'monitored_emails' not in st.session_state:
+                                    st.session_state.monitored_emails = []
+                                st.session_state.monitored_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'monitoring'
+                                })
+                                st.success("Email added to monitoring queue")
+                                st.rerun()
+                        
+                        with button_col3:
+                            if st.button("🔎 Investigate", key=f"investigate_{email_id}"):
+                                st.session_state.followup_decisions[email_id] = 'investigate'
+                                # Add to investigation queue
+                                if 'investigation_queue' not in st.session_state:
+                                    st.session_state.investigation_queue = []
+                                st.session_state.investigation_queue.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'investigating',
+                                    'priority': 'high' if email.get('risk_level') == 'Critical' else 'medium'
+                                })
+                                st.warning("Email queued for investigation")
+                                st.rerun()
+                        
+                        with button_col4:
+                            if st.button("🚨 Escalate", key=f"escalate_{email_id}"):
+                                st.session_state.followup_decisions[email_id] = 'escalate'
+                                # Add to follow-up center
+                                if 'escalated_emails' not in st.session_state:
+                                    st.session_state.escalated_emails = []
+                                st.session_state.escalated_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'escalation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'escalated',
+                                    'priority': 'critical',
+                                    'requires_followup': True
+                                })
+                                st.error("Email escalated to Follow-up Center")
+                                st.rerun()
                     else:
-                        decision_icon = "✅" if current_decision == 'followup' else "❌"
-                        decision_text = "Follow Up" if current_decision == 'followup' else "No Action"
-                        st.write(f"{decision_icon} {decision_text}")
+                        # Show current decision with colored indicator
+                        decision_colors = {
+                            'no_action': '✅ No Action',
+                            'monitor': '⚠️ Monitoring',
+                            'investigate': '🔎 Investigating',
+                            'escalate': '🚨 Escalated'
+                        }
+                        st.write(decision_colors.get(current_decision, f"✅ {current_decision.title()}"))
 
 def followup_center_page():
     st.header("📨 Follow-up Email Center")
 
-    # Get emails marked for follow-up
+    # Get escalated emails
+    escalated_emails = st.session_state.get('escalated_emails', [])
+    
+    # Get emails being monitored
+    monitored_emails = st.session_state.get('monitored_emails', [])
+    
+    # Get emails under investigation
+    investigation_emails = st.session_state.get('investigation_queue', [])
+
+    # Get emails marked for follow-up (legacy)
     followup_emails = []
     if st.session_state.processed_data is not None:
         for email_id, decision in st.session_state.followup_decisions.items():
@@ -2856,12 +2951,147 @@ def followup_center_page():
                 except:
                     continue
 
-    if not followup_emails:
-        st.info("📭 No emails currently marked for follow-up.")
-        st.write("Mark emails for follow-up in the Daily Checks section to see them here.")
+    # Total counts
+    total_items = len(escalated_emails) + len(monitored_emails) + len(investigation_emails) + len(followup_emails)
+
+    if total_items == 0:
+        st.info("📭 No emails currently require follow-up action.")
+        st.write("Use the Escalate, Monitor, or Investigate buttons in the Security Operations section to add items here.")
         return
 
-    st.subheader(f"📋 Follow-up Queue ({len(followup_emails)} emails)")
+    # Display overview metrics
+    st.subheader("📊 Follow-up Overview")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("🚨 Escalated", len(escalated_emails))
+    with col2:
+        st.metric("🔎 Investigating", len(investigation_emails))
+    with col3:
+        st.metric("⚠️ Monitoring", len(monitored_emails))
+    with col4:
+        st.metric("📋 Legacy Follow-ups", len(followup_emails))
+
+    # Tabs for different categories
+    if escalated_emails or investigation_emails or monitored_emails:
+        tab1, tab2, tab3, tab4 = st.tabs(["🚨 Escalated", "🔎 Investigation Queue", "⚠️ Monitoring", "📋 Legacy Follow-ups"])
+        
+        with tab1:
+            st.subheader(f"🚨 Escalated Emails ({len(escalated_emails)})")
+            if escalated_emails:
+                for i, item in enumerate(escalated_emails):
+                    email = item['email']
+                    with st.expander(f"🚨 CRITICAL - {item['sender']} - {email.get('subject', 'No Subject')[:50]}..."):
+                        st.error(f"**Status:** Escalated on {item['escalation_date']}")
+                        st.write(f"**Priority:** {item['priority'].upper()}")
+                        
+                        # Email details
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.write(f"**From:** {email.get('sender', 'N/A')}")
+                            st.write(f"**To:** {email.get('recipients', 'N/A')}")
+                            st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                        with col_b:
+                            st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                            st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                            st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                        
+                        # Generate follow-up email
+                        if st.button(f"📧 Generate Follow-up Email", key=f"escalated_email_{i}"):
+                            email_template = generate_followup_email(email)
+                            st.session_state[f'generated_template_{i}'] = email_template
+                            st.rerun()
+                        
+                        # Show generated template if exists
+                        if f'generated_template_{i}' in st.session_state:
+                            template = st.session_state[f'generated_template_{i}']
+                            st.success("Follow-up email generated successfully!")
+                            
+                            # Create mailto link
+                            mailto_link = f"mailto:{template['to']}?subject={template['subject']}&body={template['body']}"
+                            st.markdown(f"**[📧 Open in Outlook]({mailto_link})**")
+                            
+                            # Show template details
+                            st.text_area("Email Content:", template['body'], height=200, key=f"escalated_template_{i}")
+            else:
+                st.info("No escalated emails currently.")
+        
+        with tab2:
+            st.subheader(f"🔎 Investigation Queue ({len(investigation_emails)})")
+            if investigation_emails:
+                for i, item in enumerate(investigation_emails):
+                    email = item['email']
+                    priority_color = "🔴" if item['priority'] == 'high' else "🟡"
+                    with st.expander(f"{priority_color} {item['priority'].upper()} - {item['sender']} - {email.get('subject', 'No Subject')[:50]}..."):
+                        st.warning(f"**Status:** Under investigation since {item['decision_date']}")
+                        st.write(f"**Priority:** {item['priority'].upper()}")
+                        
+                        # Email details (same format as escalated)
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.write(f"**From:** {email.get('sender', 'N/A')}")
+                            st.write(f"**To:** {email.get('recipients', 'N/A')}")
+                            st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                        with col_b:
+                            st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                            st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                            st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                        
+                        # Investigation actions
+                        if st.button(f"✅ Complete Investigation", key=f"complete_inv_{i}"):
+                            st.session_state.investigation_queue.remove(item)
+                            st.success("Investigation marked as complete")
+                            st.rerun()
+            else:
+                st.info("No emails under investigation currently.")
+        
+        with tab3:
+            st.subheader(f"⚠️ Monitoring ({len(monitored_emails)})")
+            if monitored_emails:
+                for i, item in enumerate(monitored_emails):
+                    email = item['email']
+                    with st.expander(f"⚠️ {item['sender']} - {email.get('subject', 'No Subject')[:50]}..."):
+                        st.info(f"**Status:** Monitoring since {item['decision_date']}")
+                        
+                        # Email details (same format)
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.write(f"**From:** {email.get('sender', 'N/A')}")
+                            st.write(f"**To:** {email.get('recipients', 'N/A')}")
+                            st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                        with col_b:
+                            st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                            st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                            st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                        
+                        # Monitoring actions
+                        monitor_col1, monitor_col2 = st.columns(2)
+                        with monitor_col1:
+                            if st.button(f"🚨 Escalate", key=f"escalate_monitor_{i}"):
+                                # Move from monitoring to escalated
+                                st.session_state.monitored_emails.remove(item)
+                                if 'escalated_emails' not in st.session_state:
+                                    st.session_state.escalated_emails = []
+                                st.session_state.escalated_emails.append({
+                                    'email': email,
+                                    'sender': item['sender'],
+                                    'escalation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'escalated',
+                                    'priority': 'critical',
+                                    'requires_followup': True
+                                })
+                                st.success("Moved to escalated queue")
+                                st.rerun()
+                        with monitor_col2:
+                            if st.button(f"✅ Stop Monitoring", key=f"stop_monitor_{i}"):
+                                st.session_state.monitored_emails.remove(item)
+                                st.success("Removed from monitoring")
+                                st.rerun()
+            else:
+                st.info("No emails being monitored currently.")
+        
+        with tab4:
+            st.subheader(f"📋 Legacy Follow-ups ({len(followup_emails)})")
 
     for i, email in enumerate(followup_emails):
         with st.expander(f"📧 {email.get('sender', 'Unknown')} - {email.get('subject', 'No Subject')[:50]}..."):
