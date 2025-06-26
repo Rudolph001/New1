@@ -70,9 +70,16 @@ EMAIL_DOMAIN_CLASSIFICATIONS = {
         "terra.com.br", "uol.com.br", "ig.com.br", "globo.com", "bol.com.br",
         "yahoo.com.au", "bigpond.com", "optusnet.com.au", "telstra.com",
         
+    },
+    
+    "temporary_disposable": {
         # Temporary/disposable email providers
         "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
-        "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com"
+        "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com",
+        "temp-mail.org", "yopmail.com", "dispostable.com", "trashmail.com",
+        "fakeinbox.com", "tempinbox.com", "mohmal.com", "mytrashmail.com",
+        "emailondeck.com", "spamgourmet.com", "jetable.org", "spam4.me",
+        "tempail.com", "guerrillamailblock.com", "mintemail.com", "mailnesia.com"
     },
     
     "business_domains": {
