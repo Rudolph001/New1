@@ -2390,27 +2390,27 @@ def daily_checks_page():
                                 st.session_state.blocked_domains.append(block_entry)
                             st.success(f"✅ Domain {domain} added to block list")
         
-        # Summary recommendations
-        st.markdown("---")
-        st.subheader("📋 Immediate Security Recommendations")
-        
-        rec_col1, rec_col2 = st.columns(2)
-        
-        with rec_col1:
-            st.markdown("**🔴 IMMEDIATE ACTIONS:**")
-            st.write("1. **Block all temporary/disposable email domains**")
-            st.write("2. **Investigate all communications from these addresses**")
-            st.write("3. **Review access logs for these email addresses**")
-            st.write("4. **Check for data exfiltration attempts**")
-            st.write("5. **Notify security team immediately**")
-        
-        with rec_col2:
-            st.markdown("**📊 SECURITY STATISTICS:**")
-            st.write(f"• **Total Temp Email Incidents:** {len(temporary_disposable_emails)}")
-            st.write(f"• **Unique Temp Domains:** {len(temp_email_by_domain)}")
-            st.write(f"• **High Risk Incidents:** {len([e for e in temporary_disposable_emails if e.get('risk_level') in ['Critical', 'High']])}")
-            st.write(f"• **With Attachments:** {len([e for e in temporary_disposable_emails if e.get('attachments', '').strip()])}")
-            st.write(f"• **Anomalies:** {sum(1 for e in temporary_disposable_emails if e.get('is_anomaly', False))}")
+        # Summary recommendations - Hidden per user request
+        # st.markdown("---")
+        # st.subheader("📋 Immediate Security Recommendations")
+        # 
+        # rec_col1, rec_col2 = st.columns(2)
+        # 
+        # with rec_col1:
+        #     st.markdown("**🔴 IMMEDIATE ACTIONS:**")
+        #     st.write("1. **Block all temporary/disposable email domains**")
+        #     st.write("2. **Investigate all communications from these addresses**")
+        #     st.write("3. **Review access logs for these email addresses**")
+        #     st.write("4. **Check for data exfiltration attempts**")
+        #     st.write("5. **Notify security team immediately**")
+        # 
+        # with rec_col2:
+        #     st.markdown("**📊 SECURITY STATISTICS:**")
+        #     st.write(f"• **Total Temp Email Incidents:** {len(temporary_disposable_emails)}")
+        #     st.write(f"• **Unique Temp Domains:** {len(temp_email_by_domain)}")
+        #     st.write(f"• **High Risk Incidents:** {len([e for e in temporary_disposable_emails if e.get('risk_level') in ['Critical', 'High']])}")
+        #     st.write(f"• **With Attachments:** {len([e for e in temporary_disposable_emails if e.get('attachments', '').strip()])}")
+        #     st.write(f"• **Anomalies:** {sum(1 for e in temporary_disposable_emails if e.get('is_anomaly', False))}")
         
         # Export temp email report
         if st.button("📊 Export Temporary Email Security Report", key="export_temp_report"):
