@@ -2262,35 +2262,99 @@ def daily_checks_page():
             else:
                 st.info("No domains have been blocked yet.")
 
-    # 🚨 RED FLAG ALERT: Temporary/Disposable Email Detection - Now integrated into Risk Events
+    # 🚨 RED FLAG ALERT: Temporary/Disposable Email Detection
     if temporary_disposable_emails:
         st.markdown("---")
         st.error(f"🚨 **CRITICAL SECURITY ALERT: {len(temporary_disposable_emails)} Temporary/Disposable Email Detected!**")
-        st.info("📍 **Red flag indicators have been added to the Risk Events section below for detailed review.**")
         
-        # Hide the detailed section - it's now integrated into Risk Events
-        # st.subheader("🔴 Temporary/Disposable Email Red Flags")
-        # st.warning("""
-        # **SECURITY RISK**: Temporary and disposable email addresses are commonly used for:
-        # - Data exfiltration attempts
-        # - Hiding true identity
-        # - Avoiding detection and accountability
-        # - Bypassing security controls
-        # 
-        # **Immediate Action Required**: Review these emails for potential security violations.
-        # """)
+        st.subheader("🔴 Temporary/Disposable Email Red Flags")
+        st.warning("""
+        **SECURITY RISK**: Temporary and disposable email addresses are commonly used for:
+        - Data exfiltration attempts
+        - Hiding true identity
+        - Avoiding detection and accountability
+        - Bypassing security controls
         
-        # The detailed breakdown is now integrated into Risk Events section with red flag indicators
-        # # Group by sender domain for better analysis
-        # temp_email_by_domain = defaultdict(list)
-        # for email in temporary_disposable_emails:
-        #     sender = email.get('sender', '')
-        #     if '@' in sender:
-        #         domain = sender.split('@')[1].lower()
-        #         temp_email_by_domain[domain].append(email)
+        **Immediate Action Required**: Review these emails for potential security violations.
+        """)
         
-    # HIDDEN: Detailed section now integrated into Risk Events section with red flag indicators
-    # All temporary/disposable email details are now shown in Risk Events (Grouped by Sender)
+        # Group by sender domain for better analysis
+        temp_email_by_domain = defaultdict(list)
+        for email in temporary_disposable_emails:
+            sender = email.get('sender', '')
+            recipients = email.get('recipients', '') or email.get('recipient', '')
+            
+            # Check both sender and recipient domains
+            domains_to_check = []
+            if sender and '@' in sender:
+                domains_to_check.append(('sender', sender))
+            if recipients:
+                recipient_list = [r.strip() for r in recipients.replace(';', ',').split(',') if r.strip() and '@' in r.strip()]
+                for recipient in recipient_list:
+                    domains_to_check.append(('recipient', recipient))
+            
+            for role, email_addr in domains_to_check:
+                if '@' in email_addr:
+                    domain = email_addr.split('@')[1].lower()
+                    # Check if this domain is temporary/disposable
+                    is_temp_disposable = False
+                    
+                    # Check against temporary/disposable patterns
+                    for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
+                        if pattern in domain:
+                            is_temp_disposable = True
+                            break
+                    
+                    # Also check specific temporary email domains
+                    if domain in EMAIL_DOMAIN_CLASSIFICATIONS.get("temporary_disposable", set()):
+                        is_temp_disposable = True
+                    
+                    if is_temp_disposable:
+                        temp_email_by_domain[domain].append({
+                            'email': email,
+                            'role': role,
+                            'email_address': email_addr
+                        })
+        
+        # Display detailed breakdown by domain
+        for domain, email_instances in temp_email_by_domain.items():
+            with st.expander(f"🔴 **{domain}** - {len(email_instances)} instances detected", expanded=True):
+                st.error(f"**Domain Type**: Temporary/Disposable Email Provider")
+                st.write(f"**Risk Level**: CRITICAL - Immediate investigation required")
+                st.write(f"**Detection Count**: {len(email_instances)} email communications")
+                
+                # Show individual email instances
+                for i, instance in enumerate(email_instances[:10]):  # Show up to 10 instances
+                    email = instance['email']
+                    role = instance['role']
+                    email_addr = instance['email_address']
+                    
+                    st.markdown(f"**Instance {i+1}:**")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"• **{role.title()}**: {email_addr}")
+                        st.write(f"• **Subject**: {email.get('subject', 'N/A')}")
+                        st.write(f"• **Time**: {email.get('time', 'N/A')}")
+                    with col2:
+                        st.write(f"• **Risk Score**: {email.get('risk_score', 0)}")
+                        st.write(f"• **Risk Level**: {email.get('risk_level', 'Unknown')}")
+                        if email.get('attachments', '').strip():
+                            st.write(f"• **⚠️ Attachments**: {email.get('attachments', 'None')}")
+                    
+                    # Show risk factors
+                    risk_factors = email.get('risk_factors', '')
+                    if risk_factors and risk_factors != 'Normal activity':
+                        st.write(f"• **Risk Factors**: {risk_factors}")
+                    
+                    if email.get('is_anomaly', False):
+                        st.error(f"🚨 **Anomaly Detected**: {email.get('anomaly_type', 'Unknown')}")
+                    
+                    st.markdown("---")
+                
+                if len(email_instances) > 10:
+                    st.info(f"Showing 10 of {len(email_instances)} total instances for this domain")
+        
+        st.info("📍 **These red flag indicators are also highlighted in the Risk Events section below for comprehensive review.**")
     else:
         st.success("✅ **No temporary or disposable email addresses detected in current dataset**")
 
