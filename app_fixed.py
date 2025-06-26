@@ -314,7 +314,7 @@ def extract_domain_from_email(email_field):
 
 # Enhanced CSV processing function
 def process_csv_data(csv_content):
-    """Process CSV content with domain classification"""
+    """Process CSV content with domain classification only on recipients field"""
     lines = csv_content.strip().split('\n')
     if len(lines) < 2:
         return []
@@ -327,20 +327,20 @@ def process_csv_data(csv_content):
         if len(values) == len(headers):
             row = dict(zip(headers, values))
             
-            # Extract and classify domains
-            sender_email = row.get('sender', '') or row.get('sender_email', '') or row.get('from', '')
-            recipient_email = row.get('recipient', '') or row.get('recipient_email', '') or row.get('to', '') or row.get('recipients', '')
+            # Only process recipients field for domain classification
+            recipient_email = row.get('recipients', '') or row.get('recipient', '') or row.get('recipient_email', '') or row.get('to', '')
             
-            # Extract domains
-            if sender_email:
-                row['sender_domain'] = extract_domain_from_email(sender_email)
-                row['sender_classification'] = classify_email_domain(sender_email)
-            
+            # Apply domain classification only to recipients
             if recipient_email:
                 row['recipient_domain'] = extract_domain_from_email(recipient_email)
-                # For multiple recipients, classify the first one for simplicity
+                # For multiple recipients, classify the first one for analysis
                 first_recipient = recipient_email.split(';')[0].split(',')[0].strip()
                 row['recipient_classification'] = classify_email_domain(first_recipient)
+            
+            # Extract sender domain without classification for basic info only
+            sender_email = row.get('sender', '') or row.get('sender_email', '') or row.get('from', '')
+            if sender_email:
+                row['sender_domain'] = extract_domain_from_email(sender_email)
             
             data.append(row)
 
@@ -352,56 +352,47 @@ def calculate_risk_score(email_data):
     score = 0
     factors = []
 
-    # Enhanced domain-based risk assessment
-    sender = email_data.get('sender', '') or email_data.get('sender_email', '')
-    recipient = email_data.get('recipient', '') or email_data.get('recipient_email', '')
+    # Enhanced domain-based risk assessment - only for recipients
+    recipients = email_data.get('recipients', '') or email_data.get('recipient', '') or email_data.get('recipient_email', '')
     
-    if sender:
-        sender_classification = classify_email_domain(sender)
+    if recipients:
+        recipient_classification = email_data.get('recipient_classification', {})
         
-        # Add risk based on sender domain type
-        if sender_classification['is_suspicious']:
+        # Add risk based on recipient domain type
+        if recipient_classification.get('is_suspicious', False):
             score += 40
-            factors.append('Suspicious sender domain')
-        elif sender_classification['is_free'] and not sender_classification['is_business']:
+            factors.append('Suspicious recipient domain')
+        elif recipient_classification.get('is_free', False) and not recipient_classification.get('is_business', False):
             score += 25
-            factors.append('Free email domain')
-        elif sender_classification['classification'] == 'unknown':
+            factors.append('Free recipient email domain')
+        elif recipient_classification.get('classification', '') == 'unknown':
             score += 15
-            factors.append('Unknown sender domain')
+            factors.append('Unknown recipient domain')
     
-    # Legacy domain check for backwards compatibility
-    sender_domain = email_data.get('sender_domain', '').lower()
-    if sender_domain and not sender:  # Fallback if sender email not available
-        free_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
-        if sender_domain in free_domains:
-            score += 25
-            factors.append('Free email domain')
-
     # Cross-domain communication risk
-    if sender and recipient:
-        sender_domain = sender.split('@')[1] if '@' in sender else ''
-        recipient_domain = recipient.split('@')[1] if '@' in recipient else ''
+    sender_email = email_data.get('sender', '') or email_data.get('sender_email', '') or email_data.get('from', '')
+    recipient_email = email_data.get('recipients', '') or email_data.get('recipient', '') or email_data.get('recipient_email', '') or email_data.get('to', '')
+    
+    if sender_email and recipient_email:
+        sender_domain = sender_email.split('@')[1] if '@' in sender_email else ''
+        recipient_domain = recipient_email.split('@')[1] if '@' in recipient_email else ''
         
         if sender_domain != recipient_domain:
             score += 10
             factors.append('External communication')
             
-            # Higher risk patterns
-            sender_classification = classify_email_domain(sender)
-            recipient_classification = classify_email_domain(recipient)
+            # Higher risk patterns - only check recipient classification
+            recipient_classification = email_data.get('recipient_classification', {})
             
-            # Business to free email risk
-            if (sender_classification.get('is_business', False) and 
-                recipient_classification.get('is_free', False)):
+            # Risk for external communication to free/suspicious domains
+            if recipient_classification.get('is_free', False):
                 score += 20
-                factors.append('Business to personal email')
+                factors.append('External communication to personal email')
             
-            # Unknown domains in communication
-            if (sender_classification['classification'] == 'unknown' or 
-                recipient_classification['classification'] == 'unknown'):
+            # Unknown recipient domains in external communication
+            if recipient_classification.get('classification', '') == 'unknown':
                 score += 10
-                factors.append('Unknown domain communication')
+                factors.append('External communication to unknown domain')
 
     # Check keywords
     word_list = email_data.get('word_list_match', '')
@@ -2133,15 +2124,13 @@ def daily_checks_page():
     temporary_disposable_emails = []
     
     for email in data:
-        sender_class = email.get('sender_classification', {})
+        # Only analyze recipient classification since sender classification is not performed
         recipient_class = email.get('recipient_classification', {})
         sender = email.get('sender', '')
         recipients = email.get('recipients', '') or email.get('recipient', '')
         
-        # Check for temporary/disposable email providers in sender
+        # Check for temporary/disposable email providers in recipients only
         email_addresses_to_check = []
-        if sender and '@' in sender:
-            email_addresses_to_check.append(sender)
         
         # Check for temporary/disposable email providers in recipients
         if recipients:
@@ -2149,7 +2138,7 @@ def daily_checks_page():
             recipient_list = [r.strip() for r in recipients.replace(';', ',').split(',') if r.strip() and '@' in r.strip()]
             email_addresses_to_check.extend(recipient_list)
         
-        # Check all email addresses (sender and recipients) for temporary/disposable patterns
+        # Check recipient email addresses for disposable providersder and recipients) for temporary/disposable patterns
         is_temp_disposable_email = False
         for email_addr in email_addresses_to_check:
             if '@' in email_addr:
@@ -2175,11 +2164,7 @@ def daily_checks_page():
         if is_temp_disposable_email:
             temporary_disposable_emails.append(email)
         
-        if sender_class:
-            sender_domain_stats[sender_class.get('classification', 'unknown')] += 1
-            if sender_class.get('is_suspicious', False):
-                suspicious_domains += 1
-        
+        # Only analyze recipient classification per user request
         if recipient_class:
             recipient_domain_stats[recipient_class.get('classification', 'unknown')] += 1
             if recipient_class.get('is_suspicious', False):
