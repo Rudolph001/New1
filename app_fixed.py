@@ -14,6 +14,35 @@ from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import SpectralClustering
 import igraph as ig
 
+# Page configuration - MUST be first Streamlit command
+st.set_page_config(
+    page_title="ExfilEye - DLP Email Security Monitor",
+    page_icon="🛡️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+if 'data' not in st.session_state:
+    st.session_state.data = None
+if 'processed_data' not in st.session_state:
+    st.session_state.processed_data = None
+if 'followup_decisions' not in st.session_state:
+    st.session_state.followup_decisions = {}
+if 'sender_review_status' not in st.session_state:
+    st.session_state.sender_review_status = {}
+if 'network_config' not in st.session_state:
+    st.session_state.network_config = {
+        'source_field': None,
+        'target_field': None,
+        'weight_field': None,
+        'filters': {},
+        'layout': 'spring',
+        'node_size_metric': 'degree'
+    }
+if 'selected_node' not in st.session_state:
+    st.session_state.selected_node = None
+
 # Comprehensive email domain classification
 EMAIL_DOMAIN_CLASSIFICATIONS = {
     "free_email_providers": {
@@ -262,35 +291,9 @@ def classify_email_domain(email_address):
         "is_suspicious": False
     }
 
-# Page configuration
-st.set_page_config(
-    page_title="ExfilEye - DLP Email Security Monitor",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
-# Initialize session state
-if 'data' not in st.session_state:
-    st.session_state.data = None
-if 'processed_data' not in st.session_state:
-    st.session_state.processed_data = None
 
-if 'followup_decisions' not in st.session_state:
-    st.session_state.followup_decisions = {}
-if 'sender_review_status' not in st.session_state:
-    st.session_state.sender_review_status = {}
-if 'network_config' not in st.session_state:
-    st.session_state.network_config = {
-        'source_field': None,
-        'target_field': None,
-        'weight_field': None,
-        'filters': {},
-        'layout': 'spring',
-        'node_size_metric': 'degree'
-    }
-if 'selected_node' not in st.session_state:
-    st.session_state.selected_node = None
+
 
 def extract_domain_from_email(email_field):
     """Extract domain from email address or email field"""
