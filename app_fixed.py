@@ -2456,33 +2456,18 @@ def daily_checks_page():
                             # Always show red flag for temp/disposable
                             st.error("🔴 **RED FLAG: Temporary/Disposable Email Domain**")
                         
-                        # Decision buttons (exactly same as Risk Events)
+                        # Decision buttons with improved layout
                         st.write(f"**Current Decision:** {current_decision.title()}")
+                        st.write("**Actions:**")
                         
-                        button_col1, button_col2, button_col3, button_col4 = st.columns(4)
+                        button_col1, button_col2 = st.columns(2)
                         
                         with button_col1:
-                            if st.button("✅ No Action", key=f"no_action_{email_key}_temp"):
+                            if st.button("✅ No Action", key=f"no_action_{email_key}_temp", use_container_width=True):
                                 st.session_state.followup_decisions[email_key] = 'no_action'
                                 st.rerun()
-                        
-                        with button_col2:
-                            if st.button("⚠️ Monitor", key=f"monitor_{email_key}_temp"):
-                                st.session_state.followup_decisions[email_key] = 'monitor'
-                                # Add to monitoring list
-                                if 'monitored_emails' not in st.session_state:
-                                    st.session_state.monitored_emails = []
-                                st.session_state.monitored_emails.append({
-                                    'email': email,
-                                    'sender': sender,
-                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                    'status': 'monitoring'
-                                })
-                                st.success("Email added to monitoring queue")
-                                st.rerun()
-                        
-                        with button_col3:
-                            if st.button("🔎 Investigate", key=f"investigate_{email_key}_temp"):
+                            
+                            if st.button("🔎 Investigate", key=f"investigate_{email_key}_temp", use_container_width=True):
                                 st.session_state.followup_decisions[email_key] = 'investigate'
                                 # Add to investigation queue
                                 if 'investigation_queue' not in st.session_state:
@@ -2497,8 +2482,22 @@ def daily_checks_page():
                                 st.warning("Email queued for investigation")
                                 st.rerun()
                         
-                        with button_col4:
-                            if st.button("🚨 Escalate", key=f"escalate_{email_key}_temp"):
+                        with button_col2:
+                            if st.button("⚠️ Monitor", key=f"monitor_{email_key}_temp", use_container_width=True):
+                                st.session_state.followup_decisions[email_key] = 'monitor'
+                                # Add to monitoring list
+                                if 'monitored_emails' not in st.session_state:
+                                    st.session_state.monitored_emails = []
+                                st.session_state.monitored_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'monitoring'
+                                })
+                                st.success("Email added to monitoring queue")
+                                st.rerun()
+                            
+                            if st.button("🚨 Escalate", key=f"escalate_{email_key}_temp", use_container_width=True):
                                 st.session_state.followup_decisions[email_key] = 'escalate'
                                 # Add to follow-up center
                                 if 'escalated_emails' not in st.session_state:
@@ -2860,30 +2859,16 @@ def daily_checks_page():
                     current_decision = st.session_state.followup_decisions.get(email_id, 'pending')
 
                     if current_decision == 'pending':
-                        button_col1, button_col2, button_col3, button_col4 = st.columns(4)
+                        # Use wider layout for better button visibility
+                        st.write("**Actions:**")
+                        button_col1, button_col2 = st.columns(2)
                         
                         with button_col1:
-                            if st.button("✅ No Action", key=f"no_action_{email_id}"):
+                            if st.button("✅ No Action", key=f"no_action_{email_id}", use_container_width=True):
                                 st.session_state.followup_decisions[email_id] = 'no_action'
                                 st.rerun()
-                        
-                        with button_col2:
-                            if st.button("⚠️ Monitor", key=f"monitor_{email_id}"):
-                                st.session_state.followup_decisions[email_id] = 'monitor'
-                                # Add to monitoring list
-                                if 'monitored_emails' not in st.session_state:
-                                    st.session_state.monitored_emails = []
-                                st.session_state.monitored_emails.append({
-                                    'email': email,
-                                    'sender': sender,
-                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                    'status': 'monitoring'
-                                })
-                                st.success("Email added to monitoring queue")
-                                st.rerun()
-                        
-                        with button_col3:
-                            if st.button("🔎 Investigate", key=f"investigate_{email_id}"):
+                            
+                            if st.button("🔎 Investigate", key=f"investigate_{email_id}", use_container_width=True):
                                 st.session_state.followup_decisions[email_id] = 'investigate'
                                 # Add to investigation queue
                                 if 'investigation_queue' not in st.session_state:
@@ -2898,8 +2883,22 @@ def daily_checks_page():
                                 st.warning("Email queued for investigation")
                                 st.rerun()
                         
-                        with button_col4:
-                            if st.button("🚨 Escalate", key=f"escalate_{email_id}"):
+                        with button_col2:
+                            if st.button("⚠️ Monitor", key=f"monitor_{email_id}", use_container_width=True):
+                                st.session_state.followup_decisions[email_id] = 'monitor'
+                                # Add to monitoring list
+                                if 'monitored_emails' not in st.session_state:
+                                    st.session_state.monitored_emails = []
+                                st.session_state.monitored_emails.append({
+                                    'email': email,
+                                    'sender': sender,
+                                    'decision_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'status': 'monitoring'
+                                })
+                                st.success("Email added to monitoring queue")
+                                st.rerun()
+                            
+                            if st.button("🚨 Escalate", key=f"escalate_{email_id}", use_container_width=True):
                                 st.session_state.followup_decisions[email_id] = 'escalate'
                                 # Add to follow-up center
                                 if 'escalated_emails' not in st.session_state:
