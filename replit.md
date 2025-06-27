@@ -89,6 +89,9 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- June 26, 2025: Hidden Q&A Assistant from navigation menu per user request, streamlined interface to core security features
+- June 26, 2025: Fixed button display issues with improved 2-column layout and full-width buttons for better visibility
+- June 26, 2025: Enhanced Outlook integration with automatic email opening and URL encoding for follow-up emails
 - June 26, 2025: Successfully migrated from Replit Agent to standard Replit environment with proper security practices
 - June 26, 2025: Updated domain classification to only apply to recipients field per user request, removed sender classification
 - June 26, 2025: Fixed session state initialization and Streamlit configuration for proper deployment
