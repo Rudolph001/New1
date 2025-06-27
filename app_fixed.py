@@ -14,6 +14,13 @@ from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import SpectralClustering
 import igraph as ig
 
+# Import authentication system
+from auth import (
+    check_authentication, show_login_page, show_user_info_sidebar, 
+    filter_navigation_by_permissions, show_user_management, has_permission,
+    require_permission, get_current_user, USER_ROLES
+)
+
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
     page_title="ExfilEye - DLP Email Security Monitor",
@@ -1993,41 +2000,121 @@ def handle_node_click(selected_points, data, source_field, target_field):
                 st.info(f"Showing 5 of {len(related_records)} related records")
 
 def main():
+    # Check authentication first
+    if not check_authentication():
+        show_login_page()
+        return
+    
+    # Show header with user info
+    user = get_current_user()
+    role_name = USER_ROLES[user['role']]['name'] if user else "Unknown"
+    
     st.title("🛡️ ExfilEye - DLP Email Security Monitoring System")
+    st.markdown(f"*Welcome, {user.get('full_name', 'User')} - {role_name}*")
     st.markdown("---")
+
+    # Define all available pages
+    all_pages = [
+        "📁 Data Upload", 
+        "🛡️ Security Operations", 
+        "📨 Follow-up Center", 
+        "🔗 Network Analysis", 
+        "📊 System Workflow", 
+        "⚙️ Settings"
+    ]
+    
+    # Filter pages based on user permissions
+    accessible_pages = filter_navigation_by_permissions(all_pages)
+    
+    # Add User Management for admins
+    if has_permission('admin'):
+        accessible_pages.append("👥 User Management")
 
     # Sidebar navigation
     with st.sidebar:
         st.header("📋 Navigation")
-        page = st.radio(
-            "Select Section:",
-            ["📁 Data Upload", "🛡️ Security Operations", "📨 Follow-up Center", "🔗 Network Analysis", "📊 System Workflow", "⚙️ Settings"],
-            label_visibility="collapsed"
-        )
+        
+        if accessible_pages:
+            page = st.radio(
+                "Select Section:",
+                accessible_pages,
+                label_visibility="collapsed"
+            )
+        else:
+            st.error("❌ No accessible pages for your role")
+            page = None
 
         # Display data status
         if st.session_state.data is not None:
             st.success(f"✅ Data loaded: {len(st.session_state.data)} records")
         else:
             st.warning("⚠️ No data loaded")
+        
+        # Show user info
+        show_user_info_sidebar()
 
-    # Route to selected page
+    # Route to selected page with permission checks
     if page == "📁 Data Upload":
-        data_upload_page()
+        if has_permission('data_upload'):
+            data_upload_page()
+        else:
+            show_access_denied("data_upload")
     elif page == "🛡️ Security Operations":
-        daily_checks_page()
+        if has_permission('security_operations'):
+            daily_checks_page()
+        else:
+            show_access_denied("security_operations")
     elif page == "📨 Follow-up Center":
-        followup_center_page()
-    
+        if has_permission('follow_up'):
+            followup_center_page()
+        else:
+            show_access_denied("follow_up")
     elif page == "🔗 Network Analysis":
-        network_analysis_page()
+        if has_permission('network_analysis'):
+            network_analysis_page()
+        else:
+            show_access_denied("network_analysis")
     elif page == "📊 System Workflow":
-        system_workflow_page()
+        if has_permission('reports'):
+            system_workflow_page()
+        else:
+            show_access_denied("reports")
     elif page == "⚙️ Settings":
-        settings_page()
+        if has_permission('admin'):
+            settings_page()
+        else:
+            show_access_denied("admin")
+    elif page == "👥 User Management":
+        if has_permission('admin'):
+            show_user_management()
+        else:
+            show_access_denied("admin")
 
+def show_access_denied(required_permission):
+    """Show access denied message"""
+    user = get_current_user()
+    st.error("❌ **Access Denied**")
+    st.warning(f"You don't have permission to access this feature.")
+    st.info(f"**Required Permission:** {required_permission}")
+    st.info(f"**Your Role:** {USER_ROLES[user['role']]['name']}")
+    st.info(f"**Your Permissions:** {', '.join(USER_ROLES[user['role']]['permissions'])}")
+    
+    # Show role upgrade information
+    with st.expander("ℹ️ Role Information"):
+        st.markdown("### Available Roles and Permissions")
+        for role, info in USER_ROLES.items():
+            permissions_text = "All Permissions" if 'all' in info['permissions'] else ', '.join(info['permissions'])
+            st.markdown(f"**{info['name']}**: {info['description']}")
+            st.caption(f"Permissions: {permissions_text}")
+            st.markdown("---")
+
+@require_permission('data_upload')
 def data_upload_page():
     st.header("📁 Data Upload & Validation")
+    
+    # Security audit log
+    user = get_current_user()
+    st.info(f"🔐 **Security Context**: Data upload session by {user.get('full_name')} ({USER_ROLES[user['role']]['name']})")
 
     st.subheader("CSV Email Data Upload")
     uploaded_file = st.file_uploader(
@@ -2096,12 +2183,27 @@ def data_upload_page():
 
 
 
+@require_permission('security_operations')
 def daily_checks_page():
     if st.session_state.processed_data is None:
         st.warning("⚠️ Please upload data first in the Data Upload section.")
         return
 
     st.header("🛡️ Security Operations Dashboard")
+    
+    # Security context information
+    user = get_current_user()
+    role_permissions = USER_ROLES[user['role']]['permissions']
+    
+    # Add security banner for different roles
+    if user['role'] == 'viewer':
+        st.info("👁️ **Viewer Mode**: You have read-only access to security operations")
+    elif user['role'] == 'compliance_officer':
+        st.info("📋 **Compliance Mode**: Focus on regulatory compliance and reporting")
+    elif user['role'] == 'security_manager':
+        st.info("🎯 **Management Mode**: Security oversight and decision-making access")
+    else:
+        st.info(f"🔐 **{USER_ROLES[user['role']]['name']} Access**: Full security operations capabilities")
 
     data = st.session_state.processed_data
 
@@ -2921,8 +3023,16 @@ def daily_checks_page():
                         }
                         st.write(decision_colors.get(current_decision, f"✅ {current_decision.title()}"))
 
+@require_permission('follow_up')
 def followup_center_page():
     st.header("📨 Follow-up Email Center")
+    
+    # Show permission-based features
+    user = get_current_user()
+    if user['role'] in ['security_analyst', 'security_manager', 'admin']:
+        st.success("🔓 **Full Access**: You can manage all follow-up actions and escalations")
+    else:
+        st.warning("⚠️ **Limited Access**: Contact your administrator for additional permissions")
 
     # Get escalated emails
     escalated_emails = st.session_state.get('escalated_emails', [])
@@ -3247,11 +3357,29 @@ IT Security Team"""
         'sender_name': sender_name
     }
 
+@require_permission('admin')
 def settings_page():
     st.header("⚙️ Settings")
-
-    # Domain Classification Management
-    st.subheader("📧 Email Domain Classification")
+    
+    # Import security features
+    from security_config import show_security_dashboard, audit_logger
+    
+    # Security tab
+    tab1, tab2, tab3 = st.tabs(["🔒 Security Management", "📧 Domain Classification", "📊 System Information"])
+    
+    with tab1:
+        show_security_dashboard()
+        
+        # Log settings access
+        audit_logger.log_action(
+            'settings_accessed',
+            {'section': 'security_management'},
+            'info'
+        )
+    
+    with tab2:
+        # Domain Classification Management
+        st.subheader("📧 Email Domain Classification")
     
     tab1, tab2, tab3 = st.tabs(["Domain Statistics", "Classification Rules", "Risk Configuration"])
     
@@ -3359,27 +3487,58 @@ def settings_page():
             if st.button("Update Risk Weights"):
                 st.success("Risk weights updated successfully!")
 
-    # System Information
-    st.markdown("---")
-    st.subheader("📊 System Information")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.info(f"""
-        **Application:** ExfilEye DLP Monitor
-        **Version:** 1.0.0
-        **Last Updated:** {datetime.now().strftime('%Y-%m-%d')}
-        **Status:** Active
-        """)
-    
-    with col2:
-        st.info(f"""
-        **Domain Database:** {sum(len(domains) for domains in EMAIL_DOMAIN_CLASSIFICATIONS.values() if isinstance(domains, set))} domains
-        **Classification Engine:** Advanced ML-based
-        **Risk Engine:** Multi-factor analysis
-        **Last Sync:** {datetime.now().strftime('%H:%M:%S')}
-        """)
+    with tab3:
+        # System Information
+        st.subheader("📊 System Information")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info(f"""
+            **Application:** ExfilEye DLP Monitor
+            **Version:** 2.0.0 (Security Enhanced)
+            **Last Updated:** {datetime.now().strftime('%Y-%m-%d')}
+            **Status:** Active with Security
+            **Authentication:** Role-Based Access Control
+            """)
+        
+        with col2:
+            st.info(f"""
+            **Domain Database:** {sum(len(domains) for domains in EMAIL_DOMAIN_CLASSIFICATIONS.values() if isinstance(domains, set))} domains
+            **Classification Engine:** Advanced ML-based
+            **Risk Engine:** Multi-factor analysis
+            **Security Engine:** Multi-layer protection
+            **Last Sync:** {datetime.now().strftime('%H:%M:%S')}
+            """)
+        
+        # Security status
+        st.subheader("🔐 Security Status")
+        
+        security_col1, security_col2, security_col3, security_col4 = st.columns(4)
+        
+        with security_col1:
+            st.metric("🛡️ Authentication", "Active")
+        with security_col2:
+            st.metric("👥 User Management", "Enabled")
+        with security_col3:
+            st.metric("📝 Audit Logging", "Active")
+        with security_col4:
+            st.metric("🔒 Role-Based Access", "Enforced")
+        
+        # Current session info
+        user = get_current_user()
+        st.markdown("### 👤 Current Session")
+        
+        session_col1, session_col2 = st.columns(2)
+        with session_col1:
+            st.write(f"**User:** {user.get('full_name', 'Unknown')}")
+            st.write(f"**Username:** {st.session_state.get('username', 'Unknown')}")
+            st.write(f"**Role:** {USER_ROLES[user['role']]['name']}")
+        
+        with session_col2:
+            st.write(f"**Permissions:** {', '.join(USER_ROLES[user['role']]['permissions'])}")
+            st.write(f"**Session Started:** {datetime.now().strftime('%H:%M:%S')}")
+            st.write(f"**Security Level:** {'Maximum' if user['role'] == 'admin' else 'Standard'}")
 
 
 
