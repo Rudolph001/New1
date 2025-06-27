@@ -4291,38 +4291,38 @@ def system_workflow_page():
         - Behavioral matrix generation
         - Department-based insights
         
-        **Q&A Processing**
-        - Natural language query processing
-        - Pre-built question execution
-        - Smart pattern recognition
-        - Custom insight generation
+        **Network Intelligence**
+        - Communication relationship mapping
+        - Community detection algorithms
+        - Centrality analysis and node importance
+        - Interactive graph visualization
         """)
         
-        st.markdown("### Stage 4: Results & Actions")
+        st.markdown("### Stage 4: Security Operations & Response")
         st.markdown("""
-        **Interactive Dashboards**
-        - Real-time security metrics
-        - Visual analytics displays
-        - Risk distribution charts
-        - Behavior trend visualizations
+        **Security Operations Dashboard**
+        - Real-time risk event monitoring
+        - Temporary/disposable email detection
+        - Visual risk level indicators
+        - Anomaly alert management
         
-        **Security Reports**
-        - Comprehensive security assessments
-        - Anomaly detection results
-        - Risk analysis summaries
-        - Actionable intelligence reports
+        **Decision Management System**
+        - Four-tier action framework (No Action, Monitor, Investigate, Escalate)
+        - Automated queue management
+        - Status tracking and workflow integration
+        - Professional security response protocols
         
-        **Follow-up Tracking**
-        - Security decision tracking
-        - Follow-up action management
-        - Outlook integration
-        - Incident response workflow
+        **Follow-up Center**
+        - Escalated email management
+        - Investigation queue tracking
+        - Monitoring status oversight
+        - Outlook integration for security communications
         
-        **Export Capabilities**
-        - CSV data export
-        - Report generation
-        - Dashboard sharing
-        - Compliance documentation
+        **Advanced Features**
+        - Network analysis with interactive graphs
+        - System workflow documentation
+        - Professional reporting tools
+        - Comprehensive export capabilities
         """)
     
     st.markdown("---")
@@ -4387,7 +4387,7 @@ def create_main_workflow_diagram():
         {"name": "Sender Behavior<br>Analysis", "x": 5, "y": 4.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
         {"name": "Communication<br>Patterns", "x": 5, "y": 3.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
         {"name": "Risk Trend<br>Analysis", "x": 5, "y": 2.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
-        {"name": "Q&A Processing", "x": 5, "y": 1.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
+        {"name": "Network<br>Intelligence", "x": 5, "y": 1.5, "color": "#9b59b6", "width": 0.7, "height": 0.4},
         
         # Results Stage
         {"name": "Interactive<br>Dashboards", "x": 7, "y": 4.5, "color": "#27ae60", "width": 0.7, "height": 0.4},
@@ -4477,12 +4477,12 @@ def create_main_workflow_diagram():
 def create_feature_matrix_diagram():
     """Create feature capability matrix with improved readability"""
     
-    # Define features for each navigation item with shorter, clearer names
+    # Define features for current navigation sections
     features_data = {
         'Data Upload': ['CSV Validation', 'Email Parsing', 'Domain Classification', 'Risk Scoring', 'Anomaly Detection', 'Data Preview'],
-        'Sender Behavior Analysis': ['Communication Patterns', 'Risk Trends', 'Behavioral Matrix', 'Department Analysis', 'Anomaly Insights', 'Export Functions'],
-        'Follow-up Center': ['Decision Tracking', 'Follow-up Templates', 'Outlook Integration', 'Action Status', 'Security Workflow', 'Incident Response'],
-        'Q&A Assistant': ['Natural Language Queries', 'Pre-built Questions', 'Smart Analytics', 'Interactive Charts', 'Pattern Recognition', 'Custom Insights']
+        'Security Operations': ['Risk Event Monitoring', 'Disposable Email Detection', 'Decision Management', 'Action Tracking', 'Alert Systems', 'Workflow Integration'],
+        'Follow-up Center': ['Escalation Management', 'Investigation Queue', 'Monitoring Status', 'Outlook Integration', 'Security Communications', 'Response Tracking'],
+        'Network Analysis': ['Interactive Graphs', 'Community Detection', 'Relationship Mapping', 'Centrality Analysis', 'Communication Patterns', 'Node Intelligence']
     }
     
     colors = ['#3498db', '#9b59b6', '#e74c3c', '#27ae60']
@@ -4740,13 +4740,13 @@ def generate_workflow_pdf():
                 ]),
                 ("Stage 3: Analysis & Intelligence", [
                     "Sender Behavior Analysis: Pattern analysis and behavioral insights",
-                    "Q&A Processing: Natural language queries and smart recognition"
+                    "Network Intelligence: Communication mapping and relationship analysis"
                 ]),
-                ("Stage 4: Results & Actions", [
-                    "Interactive Dashboards: Real-time metrics and visual analytics",
-                    "Security Reports: Comprehensive assessments and intelligence",
-                    "Follow-up Tracking: Decision tracking and incident response",
-                    "Export Capabilities: Data export and compliance documentation"
+                ("Stage 4: Security Operations & Response", [
+                    "Security Operations Dashboard: Real-time risk monitoring and alert management",
+                    "Decision Management System: Four-tier action framework with automated workflows",
+                    "Follow-up Center: Escalation management and Outlook integration",
+                    "Advanced Features: Network analysis and professional reporting tools"
                 ])
             ]
             
