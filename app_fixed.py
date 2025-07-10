@@ -3270,16 +3270,15 @@ def settings_page():
             with col1:
                 st.json({
                     "Email": test_email,
-                    "Classification": classification['classification'],
-                    "Category": classification['category'],
-                    "Risk Level": classification['risk_level']
+                    "Classification": classification.get('classification', 'unknown'),
+                    "Category": classification.get('category', 'unclassified'),
+                    "Risk Level": classification.get('risk_level', 'medium')
                 })
             
             with col2:
                 st.json({
-                    "Is Business": classification['is_business'],
-                    "Is Free Email": classification['is_free'],
-                    "Is Suspicious": classification['is_suspicious']
+                    "Is Free Email": classification.get('is_free', False),
+                    "Is Suspicious": classification.get('is_suspicious', False)
                 })
     
     with tab2:
