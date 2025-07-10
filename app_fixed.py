@@ -350,7 +350,7 @@ def process_csv_data(csv_content):
             row = dict(zip(headers, values))
             
             # Only process recipients field for domain classification
-            recipient_email = row.get('recipients', '') or row.get('recipient', '') or row.get('recipient_email', '') or row.get('to', '')
+            recipient_email = row.get('recipients_email_domain', '') or row.get('recipients', '')
             
             # Apply domain classification only to recipients
             if recipient_email:
@@ -360,7 +360,7 @@ def process_csv_data(csv_content):
                 row['recipient_classification'] = classify_email_domain(first_recipient)
             
             # Extract sender domain without classification for basic info only
-            sender_email = row.get('sender', '') or row.get('sender_email', '') or row.get('from', '')
+            sender_email = row.get('sender', '')
             if sender_email:
                 row['sender_domain'] = extract_domain_from_email(sender_email)
             
@@ -375,7 +375,7 @@ def calculate_risk_score(email_data):
     factors = []
 
     # Enhanced domain-based risk assessment - only for recipients
-    recipients = email_data.get('recipients', '') or email_data.get('recipient', '') or email_data.get('recipient_email', '')
+    recipients = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
     
     if recipients:
         recipient_classification = email_data.get('recipient_classification', {})
@@ -392,8 +392,8 @@ def calculate_risk_score(email_data):
             factors.append('Unknown recipient domain')
     
     # Cross-domain communication risk
-    sender_email = email_data.get('sender', '') or email_data.get('sender_email', '') or email_data.get('from', '')
-    recipient_email = email_data.get('recipients', '') or email_data.get('recipient', '') or email_data.get('recipient_email', '') or email_data.get('to', '')
+    sender_email = email_data.get('sender', '')
+    recipient_email = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
     
     if sender_email and recipient_email:
         sender_domain = sender_email.split('@')[1] if '@' in sender_email else ''
@@ -416,21 +416,27 @@ def calculate_risk_score(email_data):
                 score += 10
                 factors.append('External communication to unknown domain')
 
-    # Check keywords
-    word_list = email_data.get('word_list_match', '')
-    if word_list and word_list.strip():
+    # Check keywords in subject
+    word_list_subject = email_data.get('Wordlist_subject', '')
+    if word_list_subject and word_list_subject.strip():
         score += 20
-        factors.append('Sensitive keywords')
+        factors.append('Sensitive keywords in subject')
 
     # Check attachments
     attachments = email_data.get('attachments', '')
     if attachments and attachments.strip():
         score += 15
         factors.append('Has attachments')
+    
+    # Check attachment wordlist
+    word_list_attachment = email_data.get('Wordlist_attachment', '')
+    if word_list_attachment and word_list_attachment.strip():
+        score += 25
+        factors.append('Sensitive keywords in attachments')
 
     # Check departing employee
-    last_working_day = email_data.get('last_working_day', '')
-    if last_working_day and last_working_day.strip():
+    termination = email_data.get('Termination', '') or email_data.get('leaver', '')
+    if termination and termination.strip():
         score += 30
         factors.append('Departing employee')
 
@@ -441,7 +447,7 @@ def calculate_risk_score(email_data):
         factors.append('External recipients')
 
     # Time-based risk (off-hours)
-    timestamp = email_data.get('timestamp', '') or email_data.get('sent_time', '')
+    timestamp = email_data.get('_time', '')
     if timestamp:
         try:
             # Simple off-hours check
@@ -464,7 +470,7 @@ def calculate_risk_score(email_data):
         risk_level = 'Low'
 
     # Critical risk combinations
-    if (last_working_day and attachments and word_list and 
+    if (termination and attachments and (word_list_subject or word_list_attachment) and 
         any('Free email' in factor or 'Suspicious' in factor for factor in factors)):
         risk_level = 'Critical'
         factors.append('CRITICAL COMBINATION')
@@ -483,7 +489,7 @@ def detect_anomalies(email_data):
     anomaly_type = 'None'
 
     # Check for time-based anomalies (after hours)
-    time_str = email_data.get('time', '')
+    time_str = email_data.get('_time', '')
     if time_str:
         try:
             # Extract hour from time string (assuming format like "2024-01-01 22:30:00")
@@ -500,7 +506,7 @@ def detect_anomalies(email_data):
             pass
 
     # Check for recipient anomalies (too many recipients)
-    recipients = email_data.get('recipients', '')
+    recipients = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
     if recipients:
         recipient_count = len([r.strip() for r in recipients.split(',') if r.strip()])
         if recipient_count > 10:
@@ -510,17 +516,18 @@ def detect_anomalies(email_data):
             anomaly_type = 'Behavioral'
 
     # Check for content anomalies (sensitive keywords + attachments)
-    has_keywords = email_data.get('word_list_match', '').strip()
+    has_keywords_subject = email_data.get('Wordlist_subject', '').strip()
+    has_keywords_attachment = email_data.get('Wordlist_attachment', '').strip()
     has_attachments = email_data.get('attachments', '').strip()
-    if has_keywords and has_attachments:
+    if (has_keywords_subject or has_keywords_attachment) and has_attachments:
         is_anomaly = True
         anomaly_reasons.append('Combination of sensitive keywords and attachments')
         anomaly_score += 0.5
         anomaly_type = 'Content'
 
     # Check for departing employee anomaly
-    last_working_day = email_data.get('last_working_day', '')
-    if last_working_day and last_working_day.strip():
+    termination = email_data.get('Termination', '') or email_data.get('leaver', '')
+    if termination and termination.strip():
         is_anomaly = True
         anomaly_reasons.append('Email from departing employee')
         anomaly_score += 0.6
@@ -537,7 +544,7 @@ def detect_anomalies(email_data):
         anomaly_type = 'Domain'
 
     # High-risk combination anomaly
-    if (last_working_day and has_attachments and has_keywords and sender_domain in free_domains):
+    if (termination and has_attachments and (has_keywords_subject or has_keywords_attachment) and sender_domain in free_domains):
         is_anomaly = True
         anomaly_reasons.append('CRITICAL: Departing employee + attachments + keywords + free domain')
         anomaly_score += 0.9
@@ -561,9 +568,9 @@ def show_email_details_modal(email):
     with col1:
         st.write(f"**Sender:** {email.get('sender', 'N/A')}")
         st.write(f"**Subject:** {email.get('subject', 'N/A')}")
-        st.write(f"**Time:** {email.get('time', 'N/A')}")
+        st.write(f"**Time:** {email.get('_time', 'N/A')}")
         st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
-        st.write(f"**Direction:** {email.get('direction', 'N/A')}")
+        st.write(f"**Recipients Domain:** {email.get('recipients_email_domain', 'N/A')}")
         st.write(f"**Business Unit:** {email.get('bunit', 'N/A')}")
 
     with col2:
@@ -571,7 +578,8 @@ def show_email_details_modal(email):
         st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
         st.write(f"**Risk Factors:** {email.get('risk_factors', 'None')}")
         st.write(f"**Attachments:** {email.get('attachments', 'None')}")
-        st.write(f"**Keywords:** {email.get('word_list_match', 'None')}")
+        st.write(f"**Subject Keywords:** {email.get('Wordlist_subject', 'None')}")
+        st.write(f"**Attachment Keywords:** {email.get('Wordlist_attachment', 'None')}")
         st.write(f"**Department:** {email.get('department', 'N/A')}")
 
     # Additional details section
@@ -585,9 +593,12 @@ def show_email_details_modal(email):
         st.write(f"**Email Domain:** {email.get('email_domain', 'N/A')}")
 
     with col4:
-        st.write(f"**Action Taken:** {email.get('act', 'N/A')}")
-        st.write(f"**Delivered:** {email.get('delivered', 'N/A')}")
-        st.write(f"**Last Working Day:** {email.get('last_working_day', 'N/A')}")
+        st.write(f"**Mimecast:** {email.get('mimecast', 'N/A')}")
+        st.write(f"**Tessian:** {email.get('tessian', 'N/A')}")
+        st.write(f"**Leaver:** {email.get('leaver', 'N/A')}")
+        st.write(f"**Termination:** {email.get('Termination', 'N/A')}")
+        st.write(f"**Time Month:** {email.get('time_month', 'N/A')}")
+        st.write(f"**Account Type:** {email.get('account_type', 'N/A')}")
 
     # Anomaly Detection Section
     st.write("---")
@@ -1988,7 +1999,7 @@ def handle_node_click(selected_points, data, source_field, target_field):
                     col_a, col_b = st.columns(2)
                     with col_a:
                         st.write(f"**Subject:** {record.get('subject', 'N/A')}")
-                        st.write(f"**Time:** {record.get('time', 'N/A')}")
+                        st.write(f"**Time:** {record.get('_time', 'N/A')}")
                         st.write(f"**Risk Score:** {record.get('risk_score', 0)}")
                     with col_b:
                         st.write(f"**Risk Level:** {record.get('risk_level', 'Unknown')}")
@@ -2154,7 +2165,7 @@ def data_upload_page():
                         with col_a:
                             st.write(f"**Sender:** {email.get('sender', 'N/A')}")
                             st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
-                            st.write(f"**Time:** {email.get('time', 'N/A')}")
+                            st.write(f"**Time:** {email.get('_time', 'N/A')}")
                         with col_b:
                             st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
                             st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
@@ -2243,7 +2254,7 @@ def daily_checks_page():
         # Only analyze recipient classification since sender classification is not performed
         recipient_class = email.get('recipient_classification', {})
         sender = email.get('sender', '')
-        recipients = email.get('recipients', '') or email.get('recipient', '')
+        recipients = email.get('recipients_email_domain', '') or email.get('recipients', '')
         
         # Check for temporary/disposable email providers in recipients only
         email_addresses_to_check = []
@@ -2543,7 +2554,7 @@ def daily_checks_page():
                             st.write(f"**From:** {email.get('sender', 'N/A')}")
                             st.write(f"**To:** {email.get('recipients', 'N/A')}")
                             st.write(f"**Subject:** {email.get('subject', 'N/A')}")
-                            st.write(f"**Time:** {email.get('time', 'N/A')}")
+                            st.write(f"**Time:** {email.get('_time', 'N/A')}")
                         
                         with col_b:
                             st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
@@ -2794,7 +2805,7 @@ def daily_checks_page():
             after_hours_count = 0
             time_patterns = []
             for email in emails:
-                time_str = email.get('time', '')
+                time_str = email.get('_time', '')
                 if time_str:
                     time_patterns.append(time_str)
                     try:
@@ -3967,7 +3978,8 @@ def analyze_department_queries(question, data):
     for email in data:
         sender = email.get('sender', '')
         tags = email.get('tags', '').lower()
-        keywords = email.get('word_list_match', '').lower()
+        keywords_subject = email.get('Wordlist_subject', '').lower()
+        keywords_attachment = email.get('Wordlist_attachment', '').lower()
         subject = email.get('subject', '').lower()
         
         # Infer department
@@ -3991,7 +4003,8 @@ def analyze_department_queries(question, data):
         
         # Check for business-related content
         if any(word in tags for word in ['business', 'corporate', 'official']) or \
-           any(word in keywords for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']) or \
+           any(word in keywords_subject for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']) or \
+           any(word in keywords_attachment for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']) or \
            any(word in subject for word in ['business', 'corporate', 'meeting', 'contract', 'proposal']):
             dept_business_counts[dept] += 1
     
@@ -5067,7 +5080,7 @@ def analyze_anomalies(data):
     
     with overview_col4:
         departing_senders = sum(1 for emails in sender_groups.values() 
-                               if any(e.get('last_working_day', '').strip() for e in emails))
+                               if any(e.get('Termination', '').strip() or e.get('leaver', '').strip() for e in emails))
         st.metric("Departing Employees", departing_senders)
 
     # Sender Risk Distribution Chart
@@ -5209,7 +5222,7 @@ def analyze_anomalies(data):
         emails = sender_groups[sender]
         
         # Sender behavior metrics
-        time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+        time_patterns = [email.get('_time', '') for email in emails if email.get('_time', '')]
         after_hours_count = 0
         for time_str in time_patterns:
             try:
@@ -5233,7 +5246,7 @@ def analyze_anomalies(data):
         attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
         
         # Keyword matches
-        keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+        keyword_emails = sum(1 for email in emails if email.get('Wordlist_subject', '').strip() or email.get('Wordlist_attachment', '').strip())
         
         # Create sender card
         risk_color = {'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢'}.get(sender_info['max_risk_level'], '⚪')
@@ -5271,7 +5284,7 @@ def analyze_anomalies(data):
                     risk_indicators.append(f"External communication ({external_emails})")
                 if attachment_emails > 0 and keyword_emails > 0:
                     risk_indicators.append("Sensitive content + attachments")
-                if any(email.get('last_working_day', '').strip() for email in emails):
+                if any(email.get('Termination', '').strip() or email.get('leaver', '').strip() for email in emails):
                     risk_indicators.append("Departing employee")
                 
                 if risk_indicators:
@@ -5356,7 +5369,7 @@ def analyze_anomalies(data):
         # Peak Activity Hours
         all_hours = []
         for email in data:
-            time_str = email.get('time', '')
+            time_str = email.get('_time', '')
             try:
                 if ':' in time_str:
                     hour_part = time_str.split(' ')[-1].split(':')[0] if ' ' in time_str else time_str.split(':')[0]
@@ -5397,7 +5410,7 @@ def analyze_anomalies(data):
         st.metric("Attachment Usage", f"{attachment_rate:.1f}%")
         
         # Keyword Alert Rate
-        keyword_emails = len([e for e in data if e.get('word_list_match', '').strip()])
+        keyword_emails = len([e for e in data if e.get('Wordlist_subject', '').strip() or e.get('Wordlist_attachment', '').strip()])
         keyword_rate = (keyword_emails / len(data)) * 100 if data else 0
         st.metric("Keyword Alerts", f"{keyword_rate:.1f}%")
 
@@ -5407,7 +5420,7 @@ def analyze_anomalies(data):
     # Time-based risk evolution
     time_risk_data = []
     for email in data:
-        time_str = email.get('time', '')
+        time_str = email.get('_time', '')
         risk_score = email.get('risk_score', 0)
         if time_str and risk_score:
             time_risk_data.append({'time': time_str, 'risk': risk_score})
@@ -5466,7 +5479,7 @@ def analyze_anomalies(data):
         external_ratio = 0
         attachment_ratio = 0
         
-        time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+        time_patterns = [email.get('_time', '') for email in emails if email.get('_time', '')]
         after_hours_count = 0
         for time_str in time_patterns:
             try:
@@ -5646,7 +5659,7 @@ def analyze_anomalies(data):
             emails = sender_groups[sender]
             
             # Count patterns
-            time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+            time_patterns = [email.get('_time', '') for email in emails if email.get('_time', '')]
             after_hours_count = 0
             for time_str in time_patterns:
                 try:
@@ -5674,12 +5687,12 @@ def analyze_anomalies(data):
             
             # Content risk (attachments + keywords)
             attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
-            keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+            keyword_emails = sum(1 for email in emails if email.get('Wordlist_subject', '').strip() or email.get('Wordlist_attachment', '').strip())
             if attachment_emails > 0 and keyword_emails > 0:
                 pattern_counts['content_risk'] += 1
             
             # Departing employees
-            if any(email.get('last_working_day', '').strip() for email in emails):
+            if any(email.get('Termination', '').strip() or email.get('leaver', '').strip() for email in emails):
                 pattern_counts['departing_employees'] += 1
         
         # Display top patterns
@@ -5778,7 +5791,7 @@ def analyze_anomalies(data):
                 emails = sender_groups[sender]
                 
                 # Calculate additional metrics
-                time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
+                time_patterns = [email.get('_time', '') for email in emails if email.get('_time', '')]
                 after_hours_count = 0
                 for time_str in time_patterns:
                     try:
@@ -5792,7 +5805,7 @@ def analyze_anomalies(data):
                 
                 external_emails = sum(1 for email in emails if 'external' in email.get('recipient_status', '').lower())
                 attachment_emails = sum(1 for email in emails if email.get('attachments', '').strip())
-                keyword_emails = sum(1 for email in emails if email.get('word_list_match', '').strip())
+                keyword_emails = sum(1 for email in emails if email.get('Wordlist_subject', '').strip() or email.get('Wordlist_attachment', '').strip())
                 
                 detailed_data.append({
                     'Sender': sender,
@@ -5835,7 +5848,7 @@ def analyze_anomalies(data):
             if critical_senders:
                 action_items.append(f"URGENT: Review {len(critical_senders)} critical risk senders immediately")
             
-            departing_employees = [s for s in sender_risk_data if any(email.get('last_working_day', '').strip() for email in sender_groups[s['sender']])]
+            departing_employees = [s for s in sender_risk_data if any(email.get('Termination', '').strip() or email.get('leaver', '').strip() for email in sender_groups[s['sender']])]
             if departing_employees:
                 action_items.append(f"HIGH: Monitor {len(departing_employees)} departing employees for data exfiltration")
             
@@ -5865,53 +5878,6 @@ def analyze_anomalies(data):
                 mime="text/plain",
                 key="download_actions"
             )
-            time_patterns = [email.get('time', '') for email in emails if email.get('time', '')]
-            after_hours = any(
-                (':' in time_str and 
-                 (int(time_str.split(' ')[-1].split(':')[0]) >= 18 or int(time_str.split(' ')[-1].split(':')[0]) <= 6))
-                for time_str in time_patterns
-                if ':' in time_str
-            )
-            
-            sender_domain = sender.split('@')[1] if '@' in sender else ''
-            is_free = sender_domain.lower() in ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
-            
-            has_external = any('external' in email.get('recipient_status', '').lower() for email in emails)
-            has_content_risk = any(email.get('attachments', '').strip() and email.get('word_list_match', '').strip() for email in emails)
-            is_departing = any(email.get('last_working_day', '').strip() for email in emails)
-            
-            if after_hours:
-                pattern_counts['after_hours'] += 1
-            if is_free:
-                pattern_counts['free_domains'] += 1
-            if has_external:
-                pattern_counts['external_comms'] += 1
-            if has_content_risk:
-                pattern_counts['content_risk'] += 1
-            if is_departing:
-                pattern_counts['departing_employees'] += 1
-        
-        for pattern, count in pattern_counts.items():
-            pattern_name = pattern.replace('_', ' ').title()
-            percentage = (count / len(sender_risk_data) * 100) if sender_risk_data else 0
-            st.write(f"• {pattern_name}: {count} senders ({percentage:.1f}%)")
-    
-    with insights_col2:
-        st.write("**📈 Recommendations:**")
-        
-        if pattern_counts['departing_employees'] > 0:
-            st.write("🔴 **Priority**: Monitor departing employee communications")
-        
-        if pattern_counts['content_risk'] > 0:
-            st.write("🟠 **Alert**: Review emails with sensitive content + attachments")
-        
-        if pattern_counts['after_hours'] > 0:
-            st.write("🟡 **Monitor**: Investigate after-hours email patterns")
-        
-        if pattern_counts['free_domains'] > 0:
-            st.write("🔵 **Review**: Validate free domain communications")
-        
-        st.write("✅ **Action**: Regular behavioral pattern monitoring recommended")
 
 
     

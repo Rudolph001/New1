@@ -1,0 +1,14 @@
+[
+  {
+    "timestamp": "2025-07-10T07:51:40.895314",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  }
+]
