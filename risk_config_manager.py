@@ -111,7 +111,15 @@ class RiskConfigManager:
                 },
                 "Low": {
                     "threshold": 0,
-                    "conditions": []
+                    "conditions": [
+                        {
+                            "field": "sender",
+                            "operator": "not_empty",
+                            "value": "",
+                            "points": 1,
+                            "description": "All emails that don't meet higher risk criteria"
+                        }
+                    ]
                 }
             },
             "field_definitions": {
@@ -256,12 +264,17 @@ class RiskConfigManager:
                     })
         
         # Determine risk level based on thresholds
-        risk_level = "Low"
-        for level in ["Critical", "High", "Medium", "Low"]:
+        risk_level = "Low"  # Default to Low for all emails
+        for level in ["Critical", "High", "Medium"]:
             threshold = self.risk_config["risk_levels"][level]["threshold"]
             if total_score >= threshold:
                 risk_level = level
                 break
+        
+        # Ensure all emails get at least Low risk level
+        if risk_level == "Low" and total_score == 0:
+            # Add minimal points to ensure Low classification
+            total_score = 1
         
         return {
             'risk_score': total_score,

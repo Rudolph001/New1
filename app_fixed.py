@@ -156,7 +156,25 @@ def process_csv_data(csv_content):
 def calculate_risk_score(email_data):
     """Calculate risk score using the configurable risk system"""
     risk_manager = st.session_state.risk_config_manager
-    return risk_manager.calculate_risk_score(email_data)
+    result = risk_manager.calculate_risk_score(email_data)
+    
+    # Ensure all emails get at least Low risk classification
+    if result['risk_level'] == 'Unknown' or result['risk_score'] == 0:
+        result['risk_level'] = 'Low'
+        result['risk_score'] = max(1, result['risk_score'])
+        if not result.get('triggered_conditions'):
+            result['triggered_conditions'] = [{
+                'description': 'Standard email processing',
+                'points': 1,
+                'risk_level': 'Low',
+                'field': 'sender',
+                'operator': 'not_empty',
+                'value': ''
+            }]
+        if not result.get('risk_factors'):
+            result['risk_factors'] = 'Standard email - no specific risk factors identified'
+    
+    return result
 
 def detect_anomalies(email_data):
     """Detect anomalies in email behavior"""
