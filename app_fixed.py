@@ -24,6 +24,9 @@ from auth import (
 # Import domain classification system
 from domain_classifier import domain_classifier
 
+# Import risk configuration manager
+from risk_config_manager import RiskConfigManager
+
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
     page_title="ExfilEye - DLP Email Security Monitor",
@@ -60,6 +63,8 @@ if 'blocked_domains' not in st.session_state:
     st.session_state.blocked_domains = []
 if 'followup_decisions' not in st.session_state:
     st.session_state.followup_decisions = {}
+if 'risk_config_manager' not in st.session_state:
+    st.session_state.risk_config_manager = RiskConfigManager()
 if 'risk_config' not in st.session_state:
     st.session_state.risk_config = {
         'suspicious_domain_points': 40,
@@ -147,138 +152,11 @@ def process_csv_data(csv_content):
 
     return data
 
-# Risk calculation function
+# Risk calculation function using configurable system
 def calculate_risk_score(email_data):
-    """Calculate risk score based on email properties including comprehensive domain classification"""
-    score = 0
-    factors = []
-    
-    # Get risk configuration from session state
-    risk_config = st.session_state.get('risk_config', {
-        'suspicious_domain_points': 40,
-        'free_email_points': 25,
-        'unknown_domain_points': 15,
-        'external_communication_points': 10,
-        'external_to_free_email_points': 20,
-        'external_to_unknown_points': 10,
-        'subject_keywords_points': 20,
-        'attachments_points': 15,
-        'attachment_keywords_points': 25,
-        'departing_employee_points': 30,
-        'external_recipients_points': 10,
-        'off_hours_points': 10,
-        'critical_threshold': 80,
-        'high_threshold': 60,
-        'medium_threshold': 30
-    })
-
-    # Enhanced domain-based risk assessment - only for recipients
-    recipients = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
-    
-    if recipients:
-        recipient_classification = email_data.get('recipient_classification', {})
-        
-        # Add risk based on recipient domain type
-        if recipient_classification.get('is_suspicious', False):
-            score += risk_config['suspicious_domain_points']
-            factors.append('Suspicious recipient domain')
-        elif recipient_classification.get('is_free', False) and not recipient_classification.get('is_business', False):
-            score += risk_config['free_email_points']
-            factors.append('Free recipient email domain')
-        elif recipient_classification.get('classification', '') == 'unknown':
-            score += risk_config['unknown_domain_points']
-            factors.append('Unknown recipient domain')
-    
-    # Cross-domain communication risk
-    sender_email = email_data.get('sender', '')
-    recipient_email = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
-    
-    if sender_email and recipient_email:
-        sender_domain = sender_email.split('@')[1] if '@' in sender_email else ''
-        recipient_domain = recipient_email.split('@')[1] if '@' in recipient_email else ''
-        
-        if sender_domain != recipient_domain:
-            score += risk_config['external_communication_points']
-            factors.append('External communication')
-            
-            # Higher risk patterns - only check recipient classification
-            recipient_classification = email_data.get('recipient_classification', {})
-            
-            # Risk for external communication to free/suspicious domains
-            if recipient_classification.get('is_free', False):
-                score += risk_config['external_to_free_email_points']
-                factors.append('External communication to personal email')
-            
-            # Unknown recipient domains in external communication
-            if recipient_classification.get('classification', '') == 'unknown':
-                score += risk_config['external_to_unknown_points']
-                factors.append('External communication to unknown domain')
-
-    # Check keywords in subject
-    word_list_subject = email_data.get('Wordlist_subject', '')
-    if word_list_subject and word_list_subject.strip():
-        score += risk_config['subject_keywords_points']
-        factors.append('Sensitive keywords in subject')
-
-    # Check attachments
-    attachments = email_data.get('attachments', '')
-    if attachments and attachments.strip():
-        score += risk_config['attachments_points']
-        factors.append('Has attachments')
-    
-    # Check attachment wordlist
-    word_list_attachment = email_data.get('Wordlist_attachment', '')
-    if word_list_attachment and word_list_attachment.strip():
-        score += risk_config['attachment_keywords_points']
-        factors.append('Sensitive keywords in attachments')
-
-    # Check departing employee - only if leaver field equals "YES"
-    leaver = email_data.get('leaver', '')
-    if leaver and leaver.strip().upper() == 'YES':
-        score += risk_config['departing_employee_points']
-        factors.append('Departing employee')
-
-    # Check external recipients
-    recipient_status = email_data.get('recipient_status', '')
-    if 'external' in recipient_status.lower():
-        score += risk_config['external_recipients_points']
-        factors.append('External recipients')
-
-    # Time-based risk (off-hours)
-    timestamp = email_data.get('_time', '')
-    if timestamp:
-        try:
-            # Simple off-hours check
-            if ':' in timestamp:
-                hour = int(timestamp.split(':')[0]) 
-                if hour > 18 or hour < 6:
-                    score += risk_config['off_hours_points']
-                    factors.append('Off-hours activity')
-        except:
-            pass
-
-    # Determine risk level using configurable thresholds
-    if score >= risk_config['critical_threshold']:
-        risk_level = 'Critical'
-    elif score >= risk_config['high_threshold']:
-        risk_level = 'High'
-    elif score >= risk_config['medium_threshold']:
-        risk_level = 'Medium'
-    else:
-        risk_level = 'Low'
-
-    # Critical risk combinations - only if leaver field equals "YES"
-    leaver = email_data.get('leaver', '')
-    if (leaver and leaver.strip().upper() == 'YES' and attachments and (word_list_subject or word_list_attachment) and 
-        any('Free email' in factor or 'Suspicious' in factor for factor in factors)):
-        risk_level = 'Critical'
-        factors.append('CRITICAL COMBINATION')
-
-    return {
-        'risk_score': score,
-        'risk_level': risk_level,
-        'risk_factors': ', '.join(factors) if factors else 'Normal activity'
-    }
+    """Calculate risk score using the configurable risk system"""
+    risk_manager = st.session_state.risk_config_manager
+    return risk_manager.calculate_risk_score(email_data)
 
 def detect_anomalies(email_data):
     """Detect anomalies in email behavior"""
@@ -1832,6 +1710,7 @@ def main():
         "📨 Follow-up Center", 
         "🔗 Network Analysis", 
         "🌐 Domain Classification",
+        "🎯 Risk Configuration",
         "📊 System Workflow", 
         "⚙️ Settings"
     ]
@@ -1895,6 +1774,11 @@ def main():
     elif page == "🌐 Domain Classification":
         if has_permission('admin'):
             domain_classification_page()
+        else:
+            show_access_denied("admin")
+    elif page == "🎯 Risk Configuration":
+        if has_permission('admin'):
+            risk_configuration_page()
         else:
             show_access_denied("admin")
     elif page == "📊 System Workflow":
@@ -3603,6 +3487,290 @@ IT Security Team"""
         'to': sender,
         'sender_name': sender_name
     }
+
+@require_permission('admin')
+def risk_configuration_page():
+    """Advanced Risk Configuration Management System"""
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
+        <h1 style="color: white; margin: 0; text-align: center;">
+            🎯 Risk Configuration Management
+        </h1>
+        <p style="color: rgba(255,255,255,0.8); text-align: center; margin: 0.5rem 0 0 0;">
+            Configure custom risk scoring rules and thresholds for email security analysis
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    risk_manager = st.session_state.risk_config_manager
+    
+    # Get available fields from uploaded data
+    available_fields = risk_manager.get_available_fields(st.session_state.processed_data or [])
+    
+    # Tabs for different configuration aspects
+    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Risk Levels", "📊 Current Config", "🔧 Add Rules", "💾 Import/Export"])
+    
+    with tab1:
+        st.markdown("### Risk Level Configuration")
+        st.markdown("Configure thresholds and conditions for each risk level.")
+        
+        # Display and edit risk levels
+        for risk_level in ["Critical", "High", "Medium", "Low"]:
+            config = risk_manager.risk_config["risk_levels"][risk_level]
+            
+            with st.expander(f"🔴 {risk_level} Risk Configuration" if risk_level == "Critical" 
+                           else f"🟠 {risk_level} Risk Configuration" if risk_level == "High"
+                           else f"🟡 {risk_level} Risk Configuration" if risk_level == "Medium"
+                           else f"🟢 {risk_level} Risk Configuration"):
+                
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    # Threshold configuration
+                    current_threshold = config.get("threshold", 0)
+                    new_threshold = st.number_input(
+                        f"Minimum Score for {risk_level}",
+                        min_value=0,
+                        max_value=200,
+                        value=current_threshold,
+                        key=f"threshold_{risk_level}"
+                    )
+                    
+                    if new_threshold != current_threshold:
+                        if st.button(f"Update {risk_level} Threshold", key=f"update_threshold_{risk_level}"):
+                            risk_manager.update_threshold(risk_level, new_threshold)
+                            st.success(f"{risk_level} threshold updated to {new_threshold}")
+                            st.rerun()
+                
+                with col2:
+                    # Display current conditions
+                    st.write("**Current Conditions:**")
+                    conditions = config.get("conditions", [])
+                    
+                    if conditions:
+                        for i, condition in enumerate(conditions):
+                            col_desc, col_points, col_action = st.columns([3, 1, 1])
+                            
+                            with col_desc:
+                                st.write(f"• {condition.get('description', 'Unknown')}")
+                                st.caption(f"Field: {condition.get('field')} | Operation: {condition.get('operator')} | Value: {condition.get('value')}")
+                            
+                            with col_points:
+                                st.metric("Points", condition.get('points', 0))
+                            
+                            with col_action:
+                                if st.button("❌", key=f"remove_{risk_level}_{i}", help="Remove condition"):
+                                    risk_manager.remove_condition(risk_level, i)
+                                    st.success("Condition removed")
+                                    st.rerun()
+                    else:
+                        st.info(f"No conditions defined for {risk_level} risk level")
+    
+    with tab2:
+        st.markdown("### Current Risk Configuration Overview")
+        
+        # Display configuration summary
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 📊 Risk Level Thresholds")
+            for risk_level in ["Critical", "High", "Medium", "Low"]:
+                threshold = risk_manager.risk_config["risk_levels"][risk_level]["threshold"]
+                condition_count = len(risk_manager.risk_config["risk_levels"][risk_level].get("conditions", []))
+                
+                color = "🔴" if risk_level == "Critical" else "🟠" if risk_level == "High" else "🟡" if risk_level == "Medium" else "🟢"
+                st.write(f"{color} **{risk_level}:** {threshold}+ points ({condition_count} conditions)")
+        
+        with col2:
+            st.markdown("#### 🔧 Available Operators")
+            operators = risk_manager.risk_config.get("operators", {})
+            for op, desc in operators.items():
+                st.write(f"• **{op}:** {desc}")
+        
+        # Test risk calculation with sample data
+        st.markdown("---")
+        st.markdown("#### 🧪 Test Risk Calculation")
+        
+        if st.session_state.processed_data:
+            sample_email = st.selectbox(
+                "Select a sample email to test:",
+                options=range(min(10, len(st.session_state.processed_data))),
+                format_func=lambda x: f"Email {x+1}: {st.session_state.processed_data[x].get('subject', 'No Subject')[:50]}..."
+            )
+            
+            if st.button("🧪 Test Risk Calculation"):
+                test_email = st.session_state.processed_data[sample_email]
+                result = risk_manager.calculate_risk_score(test_email)
+                
+                st.markdown("**Risk Calculation Result:**")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Risk Score", result['risk_score'])
+                with col2:
+                    st.metric("Risk Level", result['risk_level'])
+                with col3:
+                    st.metric("Conditions Triggered", len(result.get('triggered_conditions', [])))
+                
+                if result.get('triggered_conditions'):
+                    st.markdown("**Triggered Conditions:**")
+                    for condition in result['triggered_conditions']:
+                        st.write(f"• {condition['description']} (+{condition['points']} points)")
+                
+                st.write(f"**Risk Factors:** {result.get('risk_factors', 'None')}")
+        else:
+            st.info("Upload data to test risk calculations with real email samples")
+    
+    with tab3:
+        st.markdown("### Add New Risk Conditions")
+        st.markdown("Create custom conditions for risk scoring based on email field values.")
+        
+        with st.form("add_condition_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                target_risk_level = st.selectbox(
+                    "Risk Level:",
+                    options=["Critical", "High", "Medium", "Low"],
+                    help="Which risk level should this condition contribute to?"
+                )
+                
+                field_name = st.selectbox(
+                    "Email Field:",
+                    options=available_fields,
+                    help="Select the email field to evaluate"
+                )
+                
+                operator = st.selectbox(
+                    "Condition Type:",
+                    options=list(risk_manager.risk_config.get("operators", {}).keys()),
+                    format_func=lambda x: f"{x} - {risk_manager.risk_config.get('operators', {}).get(x, '')}"
+                )
+            
+            with col2:
+                condition_value = st.text_input(
+                    "Expected Value:",
+                    help="The value to compare against (use '-' for empty checks)"
+                )
+                
+                points = st.number_input(
+                    "Points to Add:",
+                    min_value=1,
+                    max_value=100,
+                    value=20,
+                    help="How many points this condition should add to the risk score"
+                )
+                
+                description = st.text_input(
+                    "Description:",
+                    placeholder="Brief description of this risk condition",
+                    help="Human-readable description of what this condition detects"
+                )
+            
+            # Submit button
+            submitted = st.form_submit_button("➕ Add Risk Condition", type="primary")
+            
+            if submitted:
+                if field_name and operator and description:
+                    risk_manager.add_condition(
+                        target_risk_level, field_name, operator, condition_value, points, description
+                    )
+                    st.success(f"Added new {target_risk_level} risk condition: {description}")
+                    st.rerun()
+                else:
+                    st.error("Please fill in all required fields")
+        
+        # Quick condition templates
+        st.markdown("---")
+        st.markdown("#### 🚀 Quick Templates")
+        st.markdown("Click to add common risk conditions:")
+        
+        template_col1, template_col2, template_col3 = st.columns(3)
+        
+        with template_col1:
+            if st.button("🔴 Departing Employee", use_container_width=True):
+                risk_manager.add_condition("Critical", "leaver", "equals", "YES", 60, "Departing employee activity")
+                st.success("Added departing employee condition")
+                st.rerun()
+            
+            if st.button("📎 Suspicious Attachments", use_container_width=True):
+                risk_manager.add_condition("High", "Wordlist_attachment", "not_equals", "-", 40, "Suspicious attachment content")
+                st.success("Added suspicious attachments condition")
+                st.rerun()
+        
+        with template_col2:
+            if st.button("📧 Free Email Domains", use_container_width=True):
+                risk_manager.add_condition("High", "recipients_email_domain_classification", "equals", "free_email", 35, "Free email domain recipient")
+                st.success("Added free email domain condition")
+                st.rerun()
+            
+            if st.button("🕒 After Hours Activity", use_container_width=True):
+                risk_manager.add_condition("Medium", "_time", "after_hours", "18:00-06:00", 20, "After-hours email activity")
+                st.success("Added after hours condition")
+                st.rerun()
+        
+        with template_col3:
+            if st.button("🔍 Subject Keywords", use_container_width=True):
+                risk_manager.add_condition("High", "Wordlist_subject", "not_equals", "-", 30, "Sensitive keywords in subject")
+                st.success("Added subject keywords condition")
+                st.rerun()
+            
+            if st.button("🌐 Cross-Domain", use_container_width=True):
+                risk_manager.add_condition("Medium", "sender_recipient_different_domain", "equals", "true", 15, "Cross-domain communication")
+                st.success("Added cross-domain condition")
+                st.rerun()
+    
+    with tab4:
+        st.markdown("### Import/Export Configuration")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 📤 Export Configuration")
+            st.markdown("Download your current risk configuration for backup or sharing.")
+            
+            if st.button("📥 Export Configuration", type="primary"):
+                config_json = risk_manager.export_config()
+                st.download_button(
+                    label="💾 Download Configuration File",
+                    data=config_json,
+                    file_name=f"risk_config_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json"
+                )
+                st.success("Configuration ready for download!")
+        
+        with col2:
+            st.markdown("#### 📤 Import Configuration")
+            st.markdown("Upload a previously exported configuration file.")
+            
+            uploaded_config = st.file_uploader(
+                "Upload Configuration File",
+                type=['json'],
+                help="Upload a JSON configuration file"
+            )
+            
+            if uploaded_config is not None:
+                try:
+                    config_content = uploaded_config.read().decode('utf-8')
+                    if st.button("🔄 Import Configuration", type="primary"):
+                        if risk_manager.import_config(config_content):
+                            st.success("Configuration imported successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Invalid configuration file format")
+                except Exception as e:
+                    st.error(f"Error reading configuration file: {str(e)}")
+        
+        # Reset to defaults
+        st.markdown("---")
+        st.markdown("#### ⚠️ Reset Configuration")
+        st.warning("This will reset all risk configuration to default settings.")
+        
+        if st.button("🔄 Reset to Default Configuration", type="secondary"):
+            st.session_state.risk_config_manager = RiskConfigManager()
+            st.success("Configuration reset to defaults")
+            st.rerun()
 
 @require_permission('admin')
 def settings_page():

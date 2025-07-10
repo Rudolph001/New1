@@ -89,6 +89,10 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- July 10, 2025: Created comprehensive configurable risk scoring system with field-based conditions and dynamic thresholds
+- July 10, 2025: Added "Risk Configuration" page allowing admins to define custom Critical/High/Medium/Low risk rules
+- July 10, 2025: Implemented advanced risk condition operators (equals, not_equals, contains, after_hours, etc.)
+- July 10, 2025: Added risk configuration templates, import/export functionality, and real-time testing capabilities
 - July 10, 2025: Added "Email Check Completed" dashboard to separate reviewed emails from active monitoring tasks
 - July 10, 2025: Modified Security Operations Dashboard to filter out completed senders and focus on pending/in-progress reviews
 - July 10, 2025: Enhanced workflow separation with professional completion tracking and export functionality
