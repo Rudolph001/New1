@@ -10,5 +10,233 @@
     },
     "risk_level": "info",
     "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:46:19.657703",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:49:19.197452",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:19.923555",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:29.361974",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:38.006635",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:38.735575",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:41.916271",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:47.109079",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:47.924742",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:52.233933",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:57.376557",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:57.733606",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:58.423615",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:58.766346",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:59.280601",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:51:59.698252",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:52:13.338817",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:52:20.697636",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T08:52:20.897192",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
   }
 ]
