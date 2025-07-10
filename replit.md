@@ -89,6 +89,10 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- January 10, 2025: Created separate daily-updated domain classification system (domain_classifier.py) with change tracking and management interface
+- January 10, 2025: Added "🌐 Domain Classification" page to admin navigation for domain management and daily updates
+- January 10, 2025: Updated domain classification to use new system for recipients_email_domain field analysis
+- January 10, 2025: Integrated daily threat intelligence updates with automatic domain list updates
 - June 26, 2025: Hidden Q&A Assistant from navigation menu per user request, streamlined interface to core security features
 - June 26, 2025: Fixed button display issues with improved 2-column layout and full-width buttons for better visibility
 - June 26, 2025: Enhanced Outlook integration with automatic email opening and URL encoding for follow-up emails

@@ -42,6 +42,7 @@ PAGE_PERMISSIONS = {
     '🛡️ Security Operations': 'security_operations',
     '📨 Follow-up Center': 'follow_up',
     '🔗 Network Analysis': 'network_analysis',
+    '🌐 Domain Classification': 'admin',
     '📊 System Workflow': 'reports',
     '⚙️ Settings': 'admin'
 }

@@ -21,6 +21,9 @@ from auth import (
     require_permission, get_current_user, USER_ROLES
 )
 
+# Import domain classification system
+from domain_classifier import domain_classifier
+
 # Page configuration - MUST be first Streamlit command
 st.set_page_config(
     page_title="ExfilEye - DLP Email Security Monitor",
@@ -76,260 +79,18 @@ if 'risk_config' not in st.session_state:
         'medium_threshold': 30
     }
 
-# Comprehensive email domain classification
-EMAIL_DOMAIN_CLASSIFICATIONS = {
-    "free_email_providers": {
-        # Major free providers
-        "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com", "msn.com",
-        "aol.com", "icloud.com", "me.com", "mac.com", "protonmail.com", "tutanota.com",
-        
-        # International free providers
-        "yandex.com", "yandex.ru", "mail.ru", "rambler.ru", "qq.com", "163.com", 
-        "126.com", "sina.com", "sohu.com", "naver.com", "daum.net", "hanmail.net",
-        "rediffmail.com", "sify.com", "indiatimes.com", "yahoo.co.in", "gmail.co.in",
-        
-        # Other popular free providers
-        "zoho.com", "fastmail.com", "gmx.com", "gmx.de", "web.de", "t-online.de",
-        "freenet.de", "arcor.de", "alice.it", "libero.it", "virgilio.it", "tiscali.it",
-        "orange.fr", "laposte.net", "wanadoo.fr", "free.fr", "sfr.fr", "neuf.fr",
-        "terra.com.br", "uol.com.br", "ig.com.br", "globo.com", "bol.com.br",
-        "yahoo.com.au", "bigpond.com", "optusnet.com.au", "telstra.com",
-        
-    },
-    
-    "temporary_disposable": {
-        # Temporary/disposable email providers
-        "10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.org",
-        "throwaway.email", "getnada.com", "maildrop.cc", "sharklasers.com",
-        "temp-mail.org", "yopmail.com", "dispostable.com", "trashmail.com",
-        "fakeinbox.com", "tempinbox.com", "mohmal.com", "mytrashmail.com",
-        "emailondeck.com", "spamgourmet.com", "jetable.org", "spam4.me",
-        "tempail.com", "guerrillamailblock.com", "mintemail.com", "mailnesia.com"
-    },
-    
-    "business_domains": {
-        # Technology companies
-        "microsoft.com", "apple.com", "google.com", "amazon.com", "meta.com", "facebook.com",
-        "tesla.com", "nvidia.com", "intel.com", "amd.com", "qualcomm.com", "broadcom.com",
-        "oracle.com", "salesforce.com", "adobe.com", "ibm.com", "cisco.com", "vmware.com",
-        "dell.com", "hp.com", "lenovo.com", "asus.com", "sony.com", "samsung.com",
-        
-        # Financial institutions
-        "jpmorgan.com", "bankofamerica.com", "wellsfargo.com", "citibank.com", "goldmansachs.com",
-        "morganstanley.com", "blackrock.com", "vanguard.com", "fidelity.com", "schwab.com",
-        "americanexpress.com", "visa.com", "mastercard.com", "paypal.com", "stripe.com",
-        
-        # Consulting firms
-        "mckinsey.com", "bain.com", "bcg.com", "deloitte.com", "pwc.com", "ey.com", "kpmg.com",
-        "accenture.com", "ibm.com", "capgemini.com", "cognizant.com", "infosys.com",
-        
-        # Healthcare & pharmaceuticals
-        "pfizer.com", "jnj.com", "roche.com", "novartis.com", "merck.com", "abbvie.com",
-        "bristol-myers.com", "astrazeneca.com", "gilead.com", "amgen.com", "biogen.com",
-        
-        # Retail & consumer goods
-        "walmart.com", "target.com", "costco.com", "homedepot.com", "lowes.com",
-        "cocacola.com", "pepsico.com", "unilever.com", "pg.com", "nestle.com",
-        
-        # Media & entertainment
-        "disney.com", "netflix.com", "warnermedia.com", "nbcuniversal.com", "viacom.com",
-        "sony.com", "spotify.com", "youtube.com", "twitch.tv", "tiktok.com",
-        
-        # Automotive
-        "ford.com", "gm.com", "toyota.com", "honda.com", "bmw.com", "mercedes-benz.com",
-        "volkswagen.com", "audi.com", "porsche.com", "ferrari.com", "lamborghini.com",
-        
-        # Airlines & travel
-        "delta.com", "aa.com", "united.com", "southwest.com", "lufthansa.com",
-        "britishairways.com", "airfrance.com", "klm.com", "emirates.com", "qantas.com",
-        
-        # Energy companies
-        "exxonmobil.com", "chevron.com", "shell.com", "bp.com", "totalenergies.com",
-        "conocophillips.com", "valero.com", "marathon.com", "phillips66.com"
-    },
-    
-    "government_domains": {
-        # US Government
-        "state.gov", "defense.gov", "justice.gov", "treasury.gov", "commerce.gov",
-        "labor.gov", "hhs.gov", "hud.gov", "dot.gov", "energy.gov", "ed.gov",
-        "va.gov", "dhs.gov", "epa.gov", "nasa.gov", "nsa.gov", "cia.gov", "fbi.gov",
-        "irs.gov", "cdc.gov", "fda.gov", "usda.gov", "nist.gov", "noaa.gov",
-        
-        # International government domains
-        "gov.uk", "gov.ca", "gov.au", "gov.in", "gov.de", "gov.fr", "gov.it",
-        "gov.jp", "gov.kr", "gov.cn", "gov.br", "gov.mx", "gov.za", "gov.eg",
-        
-        # Military domains
-        "army.mil", "navy.mil", "af.mil", "marines.mil", "uscg.mil", "socom.mil",
-        "centcom.mil", "eucom.mil", "pacom.mil", "northcom.mil", "southcom.mil"
-    },
-    
-    "educational_domains": {
-        # Major universities
-        "harvard.edu", "mit.edu", "stanford.edu", "caltech.edu", "princeton.edu",
-        "yale.edu", "columbia.edu", "upenn.edu", "dartmouth.edu", "brown.edu",
-        "cornell.edu", "uchicago.edu", "northwestern.edu", "duke.edu", "vanderbilt.edu",
-        "rice.edu", "emory.edu", "georgetown.edu", "carnegiemellon.edu", "wustl.edu",
-        
-        # Public universities
-        "berkeley.edu", "ucla.edu", "umich.edu", "uiuc.edu", "wisc.edu", "umn.edu",
-        "osu.edu", "psu.edu", "rutgers.edu", "umd.edu", "unc.edu", "uva.edu",
-        "vt.edu", "ncsu.edu", "clemson.edu", "auburn.edu", "alabama.edu", "lsu.edu",
-        
-        # International universities
-        "ox.ac.uk", "cam.ac.uk", "imperial.ac.uk", "ucl.ac.uk", "kcl.ac.uk",
-        "utoronto.ca", "mcgill.ca", "ubc.ca", "anu.edu.au", "sydney.edu.au",
-        "melbourne.edu.au", "unsw.edu.au", "tum.de", "ethz.ch", "epfl.ch",
-        
-        # K-12 education domains
-        "k12.ca.us", "k12.tx.us", "k12.ny.us", "k12.fl.us", "k12.il.us"
-    },
-    
-    "healthcare_domains": {
-        # Major health systems
-        "mayoclinic.org", "clevelandclinic.org", "jhmi.edu", "upmc.com", "kp.org",
-        "sutterhealth.org", "dignityhealth.org", "commonspirit.org", "ascension.org",
-        "providence.org", "intermountainhealthcare.org", "sharp.com", "scripps.org",
-        
-        # Insurance companies
-        "anthem.com", "uhc.com", "aetna.com", "cigna.com", "humana.com",
-        "bluecross.com", "bcbs.com", "molina.com", "centene.com", "wellcare.com"
-    },
-    
-    "suspicious_patterns": {
-        # Patterns that might indicate suspicious activity
-        "tempmail", "throwaway", "guerrilla", "mailinator", "10minute",
-        "temp-mail", "disposable", "fake", "spam", "trash"
-    },
-    
-    "country_specific_business": {
-        # UK business domains
-        "co.uk", "org.uk", "ac.uk", "gov.uk", "nhs.uk", "police.uk",
-        
-        # Canada business domains
-        "ca", "gc.ca", "on.ca", "qc.ca", "bc.ca", "ab.ca",
-        
-        # Australia business domains
-        "com.au", "gov.au", "edu.au", "org.au", "net.au",
-        
-        # Germany business domains
-        "de", "com.de", "org.de", "net.de",
-        
-        # France business domains
-        "fr", "com.fr", "org.fr", "gouv.fr",
-        
-        # Japan business domains
-        "co.jp", "or.jp", "ne.jp", "go.jp", "ac.jp",
-        
-        # India business domains
-        "co.in", "org.in", "net.in", "gov.in", "ac.in",
-        
-        # China business domains
-        "com.cn", "org.cn", "net.cn", "gov.cn", "edu.cn"
-    }
-}
+# Old domain classifications removed - now using domain_classifier.py for daily updated classifications
 
 def classify_email_domain(email_address):
     """
-    Classify an email domain into categories for DLP analysis
+    Classify an email domain using the updated domain classification system
     Returns: dict with classification results
     """
     if not email_address or '@' not in email_address:
-        return {
-            "classification": "unknown",
-            "risk_level": "medium",
-            "category": "invalid",
-            "is_business": False,
-            "is_free": False,
-            "is_suspicious": False
-        }
+        return {"classification": "unknown", "is_suspicious": False, "is_free": False}
     
     domain = email_address.split('@')[1].lower()
-    
-    # Check against classification lists
-    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["free_email_providers"]:
-        return {
-            "classification": "free_email",
-            "risk_level": "medium",
-            "category": "personal",
-            "is_business": False,
-            "is_free": True,
-            "is_suspicious": False
-        }
-    
-    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["business_domains"]:
-        return {
-            "classification": "business",
-            "risk_level": "low",
-            "category": "corporate",
-            "is_business": True,
-            "is_free": False,
-            "is_suspicious": False
-        }
-    
-    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["government_domains"]:
-        return {
-            "classification": "government",
-            "risk_level": "low",
-            "category": "official",
-            "is_business": True,
-            "is_free": False,
-            "is_suspicious": False
-        }
-    
-    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["educational_domains"]:
-        return {
-            "classification": "educational",
-            "risk_level": "low",
-            "category": "academic",
-            "is_business": True,
-            "is_free": False,
-            "is_suspicious": False
-        }
-    
-    if domain in EMAIL_DOMAIN_CLASSIFICATIONS["healthcare_domains"]:
-        return {
-            "classification": "healthcare",
-            "risk_level": "medium",
-            "category": "medical",
-            "is_business": True,
-            "is_free": False,
-            "is_suspicious": False
-        }
-    
-    # Check for suspicious patterns
-    for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
-        if pattern in domain:
-            return {
-                "classification": "suspicious",
-                "risk_level": "high",
-                "category": "potential_threat",
-                "is_business": False,
-                "is_free": True,
-                "is_suspicious": True
-            }
-    
-    # Check country-specific business domains
-    for country_domain in EMAIL_DOMAIN_CLASSIFICATIONS["country_specific_business"]:
-        if domain.endswith(country_domain):
-            return {
-                "classification": "international_business",
-                "risk_level": "medium",
-                "category": "foreign_business",
-                "is_business": True,
-                "is_free": False,
-                "is_suspicious": False
-            }
-    
-    # Unknown domain - could be business or personal
-    return {
-        "classification": "unknown",
-        "risk_level": "medium",
-        "category": "unclassified",
-        "is_business": None,
-        "is_free": False,
-        "is_suspicious": False
-    }
+    return domain_classifier.classify_domain(domain)
 
 
 
@@ -2067,6 +1828,7 @@ def main():
         "🛡️ Security Operations", 
         "📨 Follow-up Center", 
         "🔗 Network Analysis", 
+        "🌐 Domain Classification",
         "📊 System Workflow", 
         "⚙️ Settings"
     ]
@@ -2122,6 +1884,11 @@ def main():
             network_analysis_page()
         else:
             show_access_denied("network_analysis")
+    elif page == "🌐 Domain Classification":
+        if has_permission('admin'):
+            domain_classification_page()
+        else:
+            show_access_denied("admin")
     elif page == "📊 System Workflow":
         if has_permission('reports'):
             system_workflow_page()
@@ -3762,6 +3529,231 @@ Off-Hours: {risk_config['off_hours_points']} pts
 
 
 
+
+def domain_classification_page():
+    """Domain Classification Management with Daily Updates"""
+    st.title("🌐 Domain Classification Management")
+    st.markdown("Monitor and manage domain classifications with daily threat intelligence updates")
+    
+    # Create tabs for different management functions
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "🔄 Daily Updates", "➕ Add Domains", "📋 Management"])
+    
+    with tab1:
+        st.subheader("📊 Classification Overview")
+        
+        # Get classification statistics
+        stats = domain_classifier.get_classification_stats()
+        
+        # Display statistics in columns
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Suspicious Domains", stats.get("suspicious_domains", 0), help="Known threat domains")
+        
+        with col2:
+            st.metric("Free Email Providers", stats.get("free_email_domains", 0), help="Personal email services")
+        
+        with col3:
+            st.metric("Business Domains", stats.get("business_domains", 0), help="Corporate domains")
+        
+        with col4:
+            st.metric("Government Domains", stats.get("government_domains", 0), help="Official government domains")
+        
+        # System status
+        st.markdown("---")
+        st.subheader("🔧 System Status")
+        
+        needs_update = domain_classifier.needs_daily_update()
+        last_updated = domain_classifier.classifications.get("last_updated", "Never")
+        
+        status_col1, status_col2 = st.columns(2)
+        
+        with status_col1:
+            if needs_update:
+                st.warning("⚠️ Daily update needed")
+            else:
+                st.success("✅ Classifications are current")
+        
+        with status_col2:
+            st.info(f"Last updated: {last_updated}")
+        
+        # Recent updates summary
+        recent_updates = domain_classifier.get_daily_updates(7)
+        if recent_updates:
+            st.markdown("---")
+            st.subheader("📋 Recent Updates (Last 7 Days)")
+            
+            for update in recent_updates[:5]:  # Show last 5 updates
+                timestamp = datetime.fromisoformat(update["timestamp"]).strftime("%Y-%m-%d %H:%M")
+                action = "Added" if update["action"] == "add" else "Removed"
+                st.write(f"• **{timestamp}**: {action} {update['count']} domains to {update['category']}")
+    
+    with tab2:
+        st.subheader("🔄 Daily Update Management")
+        
+        # Manual update trigger
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            if st.button("🔄 Run Daily Update", type="primary"):
+                with st.spinner("Performing daily update..."):
+                    success, message, updates = domain_classifier.perform_daily_update()
+                    
+                    if success:
+                        st.success(f"✅ {message}")
+                        
+                        # Show what was updated
+                        if updates:
+                            st.subheader("📋 Update Details")
+                            for update in updates:
+                                st.write(f"**{update['category']}**: Added {update['count']} domains")
+                                with st.expander(f"View added domains ({update['count']})"):
+                                    for domain in update['domains']:
+                                        st.write(f"• {domain}")
+                    else:
+                        st.info("ℹ️ No updates were needed")
+        
+        with col2:
+            st.info("💡 **Daily Updates Include:**\n- New threat intelligence feeds\n- Suspicious domain discoveries\n- Free email provider additions\n- Domain classification improvements")
+        
+        # Update history
+        st.markdown("---")
+        st.subheader("📊 Update History")
+        
+        days_filter = st.selectbox("Show updates from last:", [1, 7, 30, 90], index=1)
+        recent_updates = domain_classifier.get_daily_updates(days_filter)
+        
+        if recent_updates:
+            # Create a dataframe for better display
+            update_data = []
+            for update in recent_updates:
+                update_data.append({
+                    "Timestamp": datetime.fromisoformat(update["timestamp"]).strftime("%Y-%m-%d %H:%M:%S"),
+                    "Action": update["action"].title(),
+                    "Category": update["category"],
+                    "Count": update["count"],
+                    "Reason": update["reason"]
+                })
+            
+            st.dataframe(pd.DataFrame(update_data), use_container_width=True)
+        else:
+            st.info(f"No updates found in the last {days_filter} days")
+    
+    with tab3:
+        st.subheader("➕ Add New Domains")
+        
+        # Category selection
+        categories = ["suspicious_domains", "free_email_domains", "business_domains", 
+                     "government_domains", "financial_domains", "cloud_providers"]
+        
+        selected_category = st.selectbox("Select Category:", categories)
+        
+        # Domain input
+        domain_input = st.text_area(
+            "Enter domains (one per line):",
+            placeholder="example.com\nanotherdomain.org\nsuspicious-site.net",
+            height=100
+        )
+        
+        reason = st.text_input("Reason for addition:", placeholder="Manual threat intelligence addition")
+        
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            if st.button("➕ Add Domains"):
+                if domain_input.strip() and reason.strip():
+                    domains = [d.strip() for d in domain_input.split('\n') if d.strip()]
+                    
+                    if domains:
+                        success, message = domain_classifier.add_domains(selected_category, domains, reason)
+                        
+                        if success:
+                            st.success(f"✅ {message}")
+                            st.balloons()
+                        else:
+                            st.warning(f"⚠️ {message}")
+                    else:
+                        st.error("Please enter at least one domain")
+                else:
+                    st.error("Please enter domains and a reason")
+        
+        with col2:
+            st.info("💡 **Guidelines:**\n- Enter one domain per line\n- Don't include 'http://' or 'www.'\n- Provide a clear reason for tracking")
+    
+    with tab4:
+        st.subheader("📋 Domain Management")
+        
+        # Category filter
+        category_filter = st.selectbox("View Category:", 
+                                     ["All"] + list(domain_classifier.classifications.keys()))
+        
+        # Search functionality
+        search_term = st.text_input("🔍 Search domains:", placeholder="Enter domain or keyword")
+        
+        # Display domains
+        for category, domains in domain_classifier.classifications.items():
+            if category in ["last_updated", "version"]:
+                continue
+                
+            if category_filter != "All" and category != category_filter:
+                continue
+                
+            if isinstance(domains, list):
+                # Filter by search term if provided
+                filtered_domains = domains
+                if search_term:
+                    filtered_domains = [d for d in domains if search_term.lower() in d.lower()]
+                
+                if filtered_domains:
+                    with st.expander(f"📂 {category.replace('_', ' ').title()} ({len(filtered_domains)})"):
+                        # Show domains in columns for better display
+                        domain_cols = st.columns(3)
+                        for i, domain in enumerate(sorted(filtered_domains)):
+                            with domain_cols[i % 3]:
+                                st.write(f"• {domain}")
+        
+        # Bulk operations
+        st.markdown("---")
+        st.subheader("🔧 Bulk Operations")
+        
+        operation_col1, operation_col2 = st.columns(2)
+        
+        with operation_col1:
+            st.write("**Remove Domains**")
+            remove_category = st.selectbox("Category:", categories, key="remove_cat")
+            domains_to_remove = st.text_area(
+                "Domains to remove (one per line):",
+                placeholder="domain1.com\ndomain2.org",
+                key="remove_domains"
+            )
+            remove_reason = st.text_input("Removal reason:", key="remove_reason")
+            
+            if st.button("🗑️ Remove Domains"):
+                if domains_to_remove.strip() and remove_reason.strip():
+                    domains = [d.strip() for d in domains_to_remove.split('\n') if d.strip()]
+                    success, message = domain_classifier.remove_domains(remove_category, domains, remove_reason)
+                    
+                    if success:
+                        st.success(f"✅ {message}")
+                    else:
+                        st.warning(f"⚠️ {message}")
+        
+        with operation_col2:
+            st.write("**Export Classifications**")
+            if st.button("📥 Download Classifications"):
+                # Create downloadable JSON
+                export_data = {
+                    "export_date": datetime.now().isoformat(),
+                    "classifications": domain_classifier.classifications,
+                    "stats": domain_classifier.get_classification_stats()
+                }
+                
+                st.download_button(
+                    label="📁 Download JSON",
+                    data=json.dumps(export_data, indent=2),
+                    file_name=f"domain_classifications_{datetime.now().strftime('%Y%m%d')}.json",
+                    mime="application/json"
+                )
 
 def sender_behavior_analysis_page():
     """Comprehensive sender behavior analysis dashboard"""
