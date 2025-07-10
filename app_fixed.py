@@ -57,6 +57,24 @@ if 'blocked_domains' not in st.session_state:
     st.session_state.blocked_domains = []
 if 'followup_decisions' not in st.session_state:
     st.session_state.followup_decisions = {}
+if 'risk_config' not in st.session_state:
+    st.session_state.risk_config = {
+        'suspicious_domain_points': 40,
+        'free_email_points': 25,
+        'unknown_domain_points': 15,
+        'external_communication_points': 10,
+        'external_to_free_email_points': 20,
+        'external_to_unknown_points': 10,
+        'subject_keywords_points': 20,
+        'attachments_points': 15,
+        'attachment_keywords_points': 25,
+        'departing_employee_points': 30,
+        'external_recipients_points': 10,
+        'off_hours_points': 10,
+        'critical_threshold': 80,
+        'high_threshold': 60,
+        'medium_threshold': 30
+    }
 
 # Comprehensive email domain classification
 EMAIL_DOMAIN_CLASSIFICATIONS = {
@@ -373,6 +391,25 @@ def calculate_risk_score(email_data):
     """Calculate risk score based on email properties including comprehensive domain classification"""
     score = 0
     factors = []
+    
+    # Get risk configuration from session state
+    risk_config = st.session_state.get('risk_config', {
+        'suspicious_domain_points': 40,
+        'free_email_points': 25,
+        'unknown_domain_points': 15,
+        'external_communication_points': 10,
+        'external_to_free_email_points': 20,
+        'external_to_unknown_points': 10,
+        'subject_keywords_points': 20,
+        'attachments_points': 15,
+        'attachment_keywords_points': 25,
+        'departing_employee_points': 30,
+        'external_recipients_points': 10,
+        'off_hours_points': 10,
+        'critical_threshold': 80,
+        'high_threshold': 60,
+        'medium_threshold': 30
+    })
 
     # Enhanced domain-based risk assessment - only for recipients
     recipients = email_data.get('recipients_email_domain', '') or email_data.get('recipients', '')
@@ -382,13 +419,13 @@ def calculate_risk_score(email_data):
         
         # Add risk based on recipient domain type
         if recipient_classification.get('is_suspicious', False):
-            score += 40
+            score += risk_config['suspicious_domain_points']
             factors.append('Suspicious recipient domain')
         elif recipient_classification.get('is_free', False) and not recipient_classification.get('is_business', False):
-            score += 25
+            score += risk_config['free_email_points']
             factors.append('Free recipient email domain')
         elif recipient_classification.get('classification', '') == 'unknown':
-            score += 15
+            score += risk_config['unknown_domain_points']
             factors.append('Unknown recipient domain')
     
     # Cross-domain communication risk
@@ -400,7 +437,7 @@ def calculate_risk_score(email_data):
         recipient_domain = recipient_email.split('@')[1] if '@' in recipient_email else ''
         
         if sender_domain != recipient_domain:
-            score += 10
+            score += risk_config['external_communication_points']
             factors.append('External communication')
             
             # Higher risk patterns - only check recipient classification
@@ -408,42 +445,42 @@ def calculate_risk_score(email_data):
             
             # Risk for external communication to free/suspicious domains
             if recipient_classification.get('is_free', False):
-                score += 20
+                score += risk_config['external_to_free_email_points']
                 factors.append('External communication to personal email')
             
             # Unknown recipient domains in external communication
             if recipient_classification.get('classification', '') == 'unknown':
-                score += 10
+                score += risk_config['external_to_unknown_points']
                 factors.append('External communication to unknown domain')
 
     # Check keywords in subject
     word_list_subject = email_data.get('Wordlist_subject', '')
     if word_list_subject and word_list_subject.strip():
-        score += 20
+        score += risk_config['subject_keywords_points']
         factors.append('Sensitive keywords in subject')
 
     # Check attachments
     attachments = email_data.get('attachments', '')
     if attachments and attachments.strip():
-        score += 15
+        score += risk_config['attachments_points']
         factors.append('Has attachments')
     
     # Check attachment wordlist
     word_list_attachment = email_data.get('Wordlist_attachment', '')
     if word_list_attachment and word_list_attachment.strip():
-        score += 25
+        score += risk_config['attachment_keywords_points']
         factors.append('Sensitive keywords in attachments')
 
     # Check departing employee
     termination = email_data.get('Termination', '') or email_data.get('leaver', '')
     if termination and termination.strip():
-        score += 30
+        score += risk_config['departing_employee_points']
         factors.append('Departing employee')
 
     # Check external recipients
     recipient_status = email_data.get('recipient_status', '')
     if 'external' in recipient_status.lower():
-        score += 10
+        score += risk_config['external_recipients_points']
         factors.append('External recipients')
 
     # Time-based risk (off-hours)
@@ -454,17 +491,17 @@ def calculate_risk_score(email_data):
             if ':' in timestamp:
                 hour = int(timestamp.split(':')[0]) 
                 if hour > 18 or hour < 6:
-                    score += 10
+                    score += risk_config['off_hours_points']
                     factors.append('Off-hours activity')
         except:
             pass
 
-    # Determine risk level
-    if score >= 80:
+    # Determine risk level using configurable thresholds
+    if score >= risk_config['critical_threshold']:
         risk_level = 'Critical'
-    elif score >= 60:
+    elif score >= risk_config['high_threshold']:
         risk_level = 'High'
-    elif score >= 30:
+    elif score >= risk_config['medium_threshold']:
         risk_level = 'Medium'
     else:
         risk_level = 'Low'
@@ -2185,6 +2222,42 @@ def data_upload_page():
                 with col_d:
                     avg_risk = sum(e.get('risk_score', 0) for e in processed_data) / len(processed_data) if processed_data else 0
                     st.metric("Average Risk Score", f"{avg_risk:.1f}")
+                
+                # Add reprocess button
+                st.markdown("---")
+                st.subheader("🔄 Reprocess Data")
+                st.info("If you've changed risk configuration settings, click below to recalculate all risk scores with the new settings.")
+                
+                if st.button("🔄 Reprocess All Data with Current Risk Settings", type="primary"):
+                    with st.spinner("Reprocessing data with updated risk configuration..."):
+                        # Reprocess each email with current risk settings
+                        reprocessed_data = []
+                        for email in data:
+                            risk_info = calculate_risk_score(email)
+                            anomaly_info = detect_anomalies(email)
+                            email.update(risk_info)
+                            email.update(anomaly_info)
+                            reprocessed_data.append(email)
+                        
+                        st.session_state.processed_data = reprocessed_data
+                        st.success("✅ Data reprocessed successfully with current risk settings!")
+                        
+                        # Show updated summary
+                        st.subheader("📊 Updated Analysis Summary")
+                        col_new1, col_new2, col_new3, col_new4 = st.columns(4)
+                        with col_new1:
+                            st.metric("Total Records", len(reprocessed_data))
+                        with col_new2:
+                            new_high_risk = len([e for e in reprocessed_data if e.get('risk_level') in ['High', 'Critical']])
+                            st.metric("High Risk Emails", new_high_risk)
+                        with col_new3:
+                            new_anomaly_count = len([e for e in reprocessed_data if e.get('is_anomaly', False)])
+                            st.metric("Anomalies Detected", new_anomaly_count)
+                        with col_new4:
+                            new_avg_risk = sum(e.get('risk_score', 0) for e in reprocessed_data) / len(reprocessed_data) if reprocessed_data else 0
+                            st.metric("Average Risk Score", f"{new_avg_risk:.1f}")
+                        
+                        st.rerun()
 
             else:
                 st.error("❌ No valid data found in the uploaded file")
@@ -3477,26 +3550,162 @@ def settings_page():
     with tab3:
         st.write("**Risk Configuration**")
         
+        # Get current risk configuration
+        risk_config = st.session_state.risk_config
+        
+        st.warning("⚠️ **Important**: Changes to risk configuration will affect all future risk calculations. Re-process your data after making changes.")
+        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.write("**Risk Thresholds**")
-            low_threshold = st.slider("Low Risk Threshold", 0, 100, 30)
-            medium_threshold = st.slider("Medium Risk Threshold", 0, 100, 60)
-            high_threshold = st.slider("High Risk Threshold", 0, 100, 100)
-
-            if st.button("Update Thresholds"):
+            st.write("**🎯 Risk Thresholds**")
+            st.info("Configure when emails are classified as different risk levels")
+            
+            critical_threshold = st.slider("Critical Risk Threshold", 0, 150, risk_config['critical_threshold'], 
+                                         help="Scores above this are Critical risk")
+            high_threshold = st.slider("High Risk Threshold", 0, 150, risk_config['high_threshold'],
+                                     help="Scores above this are High risk")
+            medium_threshold = st.slider("Medium Risk Threshold", 0, 150, risk_config['medium_threshold'],
+                                       help="Scores above this are Medium risk")
+            
+            if st.button("Update Thresholds", key="update_thresholds"):
+                st.session_state.risk_config['critical_threshold'] = critical_threshold
+                st.session_state.risk_config['high_threshold'] = high_threshold
+                st.session_state.risk_config['medium_threshold'] = medium_threshold
                 st.success("Risk thresholds updated successfully!")
+                st.rerun()
         
         with col2:
-            st.write("**Domain Risk Weights**")
-            st.slider("Suspicious Domain Risk", 0, 50, 40)
-            st.slider("Free Email Risk", 0, 30, 15)
-            st.slider("Unknown Domain Risk", 0, 20, 10)
-            st.slider("External Communication Risk", 0, 30, 15)
+            st.write("**⚖️ Risk Factor Points**")
+            st.info("Configure how many points each risk factor adds to the total score")
             
-            if st.button("Update Risk Weights"):
-                st.success("Risk weights updated successfully!")
+            suspicious_domain = st.slider("Suspicious Domain Points", 0, 100, risk_config['suspicious_domain_points'],
+                                         help="Points for suspicious recipient domains")
+            free_email = st.slider("Free Email Points", 0, 50, risk_config['free_email_points'],
+                                  help="Points for free email domains (Gmail, Yahoo, etc.)")
+            unknown_domain = st.slider("Unknown Domain Points", 0, 50, risk_config['unknown_domain_points'],
+                                      help="Points for unknown/unclassified domains")
+            
+            if st.button("Update Domain Points", key="update_domain_points"):
+                st.session_state.risk_config['suspicious_domain_points'] = suspicious_domain
+                st.session_state.risk_config['free_email_points'] = free_email
+                st.session_state.risk_config['unknown_domain_points'] = unknown_domain
+                st.success("Domain risk points updated successfully!")
+                st.rerun()
+        
+        st.markdown("---")
+        
+        # Communication Risk Factors
+        st.write("**📡 Communication Risk Factors**")
+        comm_col1, comm_col2, comm_col3 = st.columns(3)
+        
+        with comm_col1:
+            external_comm = st.slider("External Communication", 0, 30, risk_config['external_communication_points'],
+                                     help="Points for cross-domain communication")
+            external_to_free = st.slider("External to Free Email", 0, 50, risk_config['external_to_free_email_points'],
+                                        help="Extra points for external communication to free email")
+            external_to_unknown = st.slider("External to Unknown", 0, 30, risk_config['external_to_unknown_points'],
+                                           help="Extra points for external communication to unknown domains")
+        
+        with comm_col2:
+            subject_keywords = st.slider("Subject Keywords", 0, 50, risk_config['subject_keywords_points'],
+                                        help="Points for sensitive keywords in subject")
+            attachments = st.slider("Attachments", 0, 30, risk_config['attachments_points'],
+                                   help="Points for emails with attachments")
+            attachment_keywords = st.slider("Attachment Keywords", 0, 50, risk_config['attachment_keywords_points'],
+                                           help="Points for sensitive keywords in attachments")
+        
+        with comm_col3:
+            departing_employee = st.slider("Departing Employee", 0, 60, risk_config['departing_employee_points'],
+                                          help="Points for emails from departing employees")
+            external_recipients = st.slider("External Recipients", 0, 30, risk_config['external_recipients_points'],
+                                           help="Points for external recipients")
+            off_hours = st.slider("Off-Hours Activity", 0, 30, risk_config['off_hours_points'],
+                                 help="Points for emails sent after hours")
+        
+        if st.button("Update Communication Risk Points", key="update_comm_points"):
+            st.session_state.risk_config['external_communication_points'] = external_comm
+            st.session_state.risk_config['external_to_free_email_points'] = external_to_free
+            st.session_state.risk_config['external_to_unknown_points'] = external_to_unknown
+            st.session_state.risk_config['subject_keywords_points'] = subject_keywords
+            st.session_state.risk_config['attachments_points'] = attachments
+            st.session_state.risk_config['attachment_keywords_points'] = attachment_keywords
+            st.session_state.risk_config['departing_employee_points'] = departing_employee
+            st.session_state.risk_config['external_recipients_points'] = external_recipients
+            st.session_state.risk_config['off_hours_points'] = off_hours
+            st.success("Communication risk points updated successfully!")
+            st.rerun()
+        
+        st.markdown("---")
+        
+        # Current Configuration Display
+        st.write("**📋 Current Risk Configuration**")
+        
+        config_col1, config_col2 = st.columns(2)
+        
+        with config_col1:
+            st.write("**Risk Levels:**")
+            st.code(f"""
+Critical: ≥ {risk_config['critical_threshold']} points
+High: ≥ {risk_config['high_threshold']} points  
+Medium: ≥ {risk_config['medium_threshold']} points
+Low: < {risk_config['medium_threshold']} points
+            """)
+        
+        with config_col2:
+            st.write("**Risk Factors:**")
+            st.code(f"""
+Suspicious Domain: {risk_config['suspicious_domain_points']} pts
+Free Email: {risk_config['free_email_points']} pts
+Unknown Domain: {risk_config['unknown_domain_points']} pts
+External Communication: {risk_config['external_communication_points']} pts
+Subject Keywords: {risk_config['subject_keywords_points']} pts
+Attachments: {risk_config['attachments_points']} pts
+Attachment Keywords: {risk_config['attachment_keywords_points']} pts
+Departing Employee: {risk_config['departing_employee_points']} pts
+External Recipients: {risk_config['external_recipients_points']} pts
+Off-Hours: {risk_config['off_hours_points']} pts
+            """)
+        
+        # Reset to defaults
+        st.markdown("---")
+        col_reset1, col_reset2, col_reset3 = st.columns([1, 1, 2])
+        
+        with col_reset1:
+            if st.button("🔄 Reset to Defaults", key="reset_defaults"):
+                st.session_state.risk_config = {
+                    'suspicious_domain_points': 40,
+                    'free_email_points': 25,
+                    'unknown_domain_points': 15,
+                    'external_communication_points': 10,
+                    'external_to_free_email_points': 20,
+                    'external_to_unknown_points': 10,
+                    'subject_keywords_points': 20,
+                    'attachments_points': 15,
+                    'attachment_keywords_points': 25,
+                    'departing_employee_points': 30,
+                    'external_recipients_points': 10,
+                    'off_hours_points': 10,
+                    'critical_threshold': 80,
+                    'high_threshold': 60,
+                    'medium_threshold': 30
+                }
+                st.success("Risk configuration reset to default values!")
+                st.rerun()
+        
+        with col_reset2:
+            if st.button("💾 Export Config", key="export_config"):
+                config_json = json.dumps(st.session_state.risk_config, indent=2)
+                st.download_button(
+                    label="Download Risk Config",
+                    data=config_json,
+                    file_name="risk_configuration.json",
+                    mime="application/json",
+                    key="download_risk_config"
+                )
+        
+        with col_reset3:
+            st.info("💡 **Tip**: Export your configuration to save custom risk settings, or reset to defaults if needed.")
 
     with tab3:
         # System Information
