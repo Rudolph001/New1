@@ -1,21 +1,4 @@
-
 [server]
-headless = false
+headless = true
 address = "0.0.0.0"
 port = 5000
-enableCORS = false
-enableWebsocketCompression = false
-maxUploadSize = 200
-
-[global]
-dataFrameSerialization = "legacy"
-
-[browser]
-gatherUsageStats = false
-showErrorDetails = true
-
-[theme]
-primaryColor = "#3498db"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
