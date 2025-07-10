@@ -2042,48 +2042,94 @@ def daily_checks_page():
         st.warning("⚠️ Please upload data first in the Data Upload section.")
         return
 
-    st.header("🛡️ Security Operations Dashboard")
+    # Professional header with enhanced styling
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
+        <h1 style="color: white; margin: 0; text-align: center;">
+            🛡️ Security Operations Dashboard
+        </h1>
+        <p style="color: rgba(255,255,255,0.8); text-align: center; margin: 0.5rem 0 0 0;">
+            Real-time Email Security Monitoring & Risk Management
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Security context information
+    # Security context information with enhanced styling
     user = get_current_user()
     role_permissions = USER_ROLES[user['role']]['permissions']
     
-    # Add security banner for different roles
-    if user['role'] == 'viewer':
-        st.info("👁️ **Viewer Mode**: You have read-only access to security operations")
-    elif user['role'] == 'compliance_officer':
-        st.info("📋 **Compliance Mode**: Focus on regulatory compliance and reporting")
-    elif user['role'] == 'security_manager':
-        st.info("🎯 **Management Mode**: Security oversight and decision-making access")
-    else:
-        st.info(f"🔐 **{USER_ROLES[user['role']]['name']} Access**: Full security operations capabilities")
+    # Professional role banner
+    role_info = {
+        'viewer': {'icon': '👁️', 'title': 'Viewer Mode', 'desc': 'Read-only access to security operations', 'color': '#3498db'},
+        'compliance_officer': {'icon': '📋', 'title': 'Compliance Mode', 'desc': 'Regulatory compliance and reporting focus', 'color': '#9b59b6'},
+        'security_manager': {'icon': '🎯', 'title': 'Management Mode', 'desc': 'Security oversight and decision-making access', 'color': '#e67e22'},
+        'admin': {'icon': '🔐', 'title': 'Administrator Access', 'desc': 'Full system administration capabilities', 'color': '#e74c3c'},
+        'security_analyst': {'icon': '🔍', 'title': 'Analyst Access', 'desc': 'Full security operations capabilities', 'color': '#27ae60'}
+    }
+    
+    current_role = role_info.get(user['role'], {'icon': '🔐', 'title': f"{USER_ROLES[user['role']]['name']} Access", 'desc': 'Full security operations capabilities', 'color': '#34495e'})
+    
+    st.markdown(f"""
+    <div style="background-color: {current_role['color']}; 
+                padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;
+                border-left: 5px solid rgba(255,255,255,0.3);">
+        <p style="color: white; margin: 0; font-weight: 500;">
+            {current_role['icon']} <strong>{current_role['title']}</strong>: {current_role['desc']}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     data = st.session_state.processed_data
 
-    # KPI Cards
-    st.subheader("📊 Risk Overview")
-    col1, col2, col3, col4 = st.columns(4)
-
+    # Enhanced KPI Cards with better styling
+    st.markdown("### 📊 Security Risk Overview")
+    st.markdown("---")
+    
+    # Create metrics in a more professional layout
+    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     risk_counts = Counter(email.get('risk_level', 'Unknown') for email in data)
 
-    with col1:
+    # Enhanced metric cards with background colors
+    with kpi_col1:
         critical_count = risk_counts.get('Critical', 0)
-        st.metric("🔴 Critical Risk", critical_count)
+        delta = f"+{critical_count}" if critical_count > 0 else None
+        st.metric(
+            "🔴 Critical Risk", 
+            critical_count,
+            delta=delta,
+            help="Emails requiring immediate attention"
+        )
 
-    with col2:
+    with kpi_col2:
         high_count = risk_counts.get('High', 0)
-        st.metric("🟠 High Risk", high_count)
+        delta = f"+{high_count}" if high_count > 0 else None
+        st.metric(
+            "🟠 High Risk", 
+            high_count,
+            delta=delta,
+            help="Emails requiring priority review"
+        )
 
-    with col3:
+    with kpi_col3:
         medium_count = risk_counts.get('Medium', 0)
-        st.metric("🟡 Medium Risk", medium_count)
+        st.metric(
+            "🟡 Medium Risk", 
+            medium_count,
+            help="Emails requiring standard review"
+        )
 
-    with col4:
+    with kpi_col4:
         low_count = risk_counts.get('Low', 0)
-        st.metric("🟢 Low Risk", low_count)
+        st.metric(
+            "🟢 Low Risk", 
+            low_count,
+            help="Emails with minimal security concerns"
+        )
 
-    # Domain Classification Summary
-    st.subheader("🌐 Domain Classification Analysis")
+    # Enhanced Domain Classification Analysis
+    st.markdown("### 🌐 Domain Intelligence Analysis")
+    st.markdown("---")
     
     # Analyze sender and recipient domains
     sender_domain_stats = defaultdict(int)
@@ -2145,91 +2191,209 @@ def daily_checks_page():
         if sender_domain and recipient_domain and sender_domain != recipient_domain:
             external_communications += 1
     
+    # Enhanced domain metrics with professional styling
     domain_col1, domain_col2, domain_col3, domain_col4 = st.columns(4)
     
     with domain_col1:
-        st.metric("📧 External Communications", external_communications, help="Cross-domain email activity")
+        delta_ext = f"+{external_communications}" if external_communications > 0 else None
+        st.metric(
+            "📧 External Communications", 
+            external_communications, 
+            delta=delta_ext,
+            help="Cross-domain email activity indicating potential data sharing"
+        )
+        
     with domain_col2:
-        st.metric("⚠️ Suspicious Domains", suspicious_domains, help="Potentially risky domain activity")
+        delta_sus = f"+{suspicious_domains}" if suspicious_domains > 0 else None
+        st.metric(
+            "⚠️ Suspicious Domains", 
+            suspicious_domains, 
+            delta=delta_sus,
+            help="Domains flagged as potentially risky or malicious"
+        )
+        
     with domain_col3:
         free_email_count = sender_domain_stats.get('free_email', 0) + recipient_domain_stats.get('free_email', 0)
-        st.metric("🔓 Free Email Usage", free_email_count, help="Personal email service usage")
+        st.metric(
+            "🔓 Free Email Usage", 
+            free_email_count, 
+            help="Personal email services (Gmail, Yahoo, etc.) usage"
+        )
+        
     with domain_col4:
         business_count = sender_domain_stats.get('business', 0) + recipient_domain_stats.get('business', 0)
-        st.metric("🏢 Business Communications", business_count, help="Corporate domain communications")
+        st.metric(
+            "🏢 Business Communications", 
+            business_count, 
+            help="Corporate domain communications"
+        )
     
-    # Security Actions Dashboard
+    # Enhanced Security Actions Dashboard
     if st.session_state.flagged_emails or st.session_state.generated_alerts or st.session_state.blocked_domains:
+        st.markdown("### 🔐 Active Security Actions")
         st.markdown("---")
-        st.subheader("🔐 Security Actions Dashboard")
         
-        action_tab1, action_tab2, action_tab3 = st.tabs(["🚨 Flagged Emails", "📧 Generated Alerts", "🔒 Blocked Domains"])
+        # Summary cards for security actions
+        actions_col1, actions_col2, actions_col3 = st.columns(3)
+        
+        with actions_col1:
+            flagged_count = len(st.session_state.get('flagged_emails', []))
+            st.metric("🚨 Flagged Emails", flagged_count, help="Emails flagged for investigation")
+            
+        with actions_col2:
+            alerts_count = len(st.session_state.get('generated_alerts', []))
+            st.metric("📧 Active Alerts", alerts_count, help="Security alerts requiring attention")
+            
+        with actions_col3:
+            blocked_count = len(st.session_state.get('blocked_domains', []))
+            st.metric("🔒 Blocked Domains", blocked_count, help="Domains blocked for security")
+        
+        # Enhanced tabbed interface
+        action_tab1, action_tab2, action_tab3 = st.tabs(["🚨 Flagged Emails", "📧 Active Alerts", "🔒 Blocked Domains"])
         
         with action_tab1:
             if st.session_state.flagged_emails:
-                st.write(f"**Total Flagged Emails: {len(st.session_state.flagged_emails)}**")
+                st.markdown(f"**📊 Summary: {len(st.session_state.flagged_emails)} emails flagged for review**")
+                st.markdown("---")
+                
                 for flag in st.session_state.flagged_emails:
-                    with st.expander(f"🚨 {flag['sender']} - {flag['subject'][:40]}..."):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Sender:** {flag['sender']}")
-                            st.write(f"**Domain:** {flag['domain']}")
-                            st.write(f"**Risk Level:** {flag['risk_level']}")
-                        with col2:
-                            st.write(f"**Flagged:** {flag['timestamp']}")
-                            st.write(f"**Reason:** {flag['reason']}")
+                    # Enhanced card layout for flagged emails
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="background-color: #fff3cd; border-left: 5px solid #ffc107; 
+                                    padding: 1rem; margin: 0.5rem 0; border-radius: 5px;">
+                            <h4 style="margin: 0; color: #856404;">🚨 {flag['sender']}</h4>
+                            <p style="margin: 0.5rem 0; color: #856404;">
+                                <strong>Subject:</strong> {flag['subject'][:60]}...
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        with st.expander("📋 View Details", expanded=False):
+                            detail_col1, detail_col2 = st.columns(2)
+                            with detail_col1:
+                                st.write(f"**📧 Sender:** {flag['sender']}")
+                                st.write(f"**🌐 Domain:** {flag['domain']}")
+                                st.write(f"**⚠️ Risk Level:** {flag['risk_level']}")
+                            with detail_col2:
+                                st.write(f"**📅 Flagged:** {flag['timestamp']}")
+                                st.write(f"**🔍 Reason:** {flag['reason']}")
             else:
-                st.info("No emails have been flagged for investigation yet.")
+                st.success("✅ No emails currently flagged for investigation")
         
         with action_tab2:
             if st.session_state.generated_alerts:
-                st.write(f"**Total Generated Alerts: {len(st.session_state.generated_alerts)}**")
+                st.markdown(f"**📊 Summary: {len(st.session_state.generated_alerts)} active security alerts**")
+                st.markdown("---")
+                
                 for alert in st.session_state.generated_alerts:
-                    severity_color = "🔴" if alert['severity'] == 'HIGH' else "🟡"
-                    with st.expander(f"{severity_color} {alert['alert_id']} - {alert['alert_type']}"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Alert ID:** {alert['alert_id']}")
-                            st.write(f"**Sender:** {alert['sender']}")
-                            st.write(f"**Domain:** {alert['domain']}")
-                        with col2:
-                            st.write(f"**Severity:** {alert['severity']}")
-                            st.write(f"**Generated:** {alert['timestamp']}")
-                            st.write(f"**Type:** {alert['alert_type']}")
+                    severity_color = "#dc3545" if alert['severity'] == 'HIGH' else "#ffc107"
+                    severity_icon = "🔴" if alert['severity'] == 'HIGH' else "🟡"
+                    
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="background-color: {'#f8d7da' if alert['severity'] == 'HIGH' else '#fff3cd'}; 
+                                    border-left: 5px solid {severity_color}; 
+                                    padding: 1rem; margin: 0.5rem 0; border-radius: 5px;">
+                            <h4 style="margin: 0;">
+                                {severity_icon} Alert: {alert['alert_type']}
+                            </h4>
+                            <p style="margin: 0.5rem 0;">
+                                <strong>ID:</strong> {alert['alert_id']} | 
+                                <strong>Severity:</strong> {alert['severity']}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        with st.expander("📋 Alert Details", expanded=False):
+                            alert_col1, alert_col2 = st.columns(2)
+                            with alert_col1:
+                                st.write(f"**🆔 Alert ID:** {alert['alert_id']}")
+                                st.write(f"**📧 Sender:** {alert['sender']}")
+                                st.write(f"**🌐 Domain:** {alert['domain']}")
+                            with alert_col2:
+                                st.write(f"**⚠️ Severity:** {alert['severity']}")
+                                st.write(f"**📅 Generated:** {alert['timestamp']}")
+                                st.write(f"**📝 Type:** {alert['alert_type']}")
             else:
-                st.info("No security alerts have been generated yet.")
+                st.success("✅ No active security alerts")
         
         with action_tab3:
             if st.session_state.blocked_domains:
-                st.write(f"**Total Blocked Domains: {len(st.session_state.blocked_domains)}**")
+                st.markdown(f"**📊 Summary: {len(st.session_state.blocked_domains)} domains currently blocked**")
+                st.markdown("---")
+                
                 for block in st.session_state.blocked_domains:
-                    with st.expander(f"🔒 {block['domain']} - {block['risk_level']} Risk"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Domain:** {block['domain']}")
-                            st.write(f"**Risk Level:** {block['risk_level']}")
-                            st.write(f"**Email Count:** {block['email_count']}")
-                        with col2:
-                            st.write(f"**Blocked:** {block['timestamp']}")
-                            st.write(f"**Reason:** {block['block_reason']}")
+                    risk_colors = {
+                        'Critical': '#dc3545',
+                        'High': '#fd7e14', 
+                        'Medium': '#ffc107',
+                        'Low': '#28a745'
+                    }
+                    color = risk_colors.get(block['risk_level'], '#6c757d')
+                    
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="background-color: #f8f9fa; border-left: 5px solid {color}; 
+                                    padding: 1rem; margin: 0.5rem 0; border-radius: 5px;">
+                            <h4 style="margin: 0;">🔒 {block['domain']}</h4>
+                            <p style="margin: 0.5rem 0;">
+                                <strong>Risk Level:</strong> {block['risk_level']} | 
+                                <strong>Email Count:</strong> {block['email_count']}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        with st.expander("📋 Block Details", expanded=False):
+                            block_col1, block_col2 = st.columns(2)
+                            with block_col1:
+                                st.write(f"**🌐 Domain:** {block['domain']}")
+                                st.write(f"**⚠️ Risk Level:** {block['risk_level']}")
+                                st.write(f"**📧 Email Count:** {block['email_count']}")
+                            with block_col2:
+                                st.write(f"**🔒 Blocked:** {block['timestamp']}")
+                                st.write(f"**📝 Reason:** {block['block_reason']}")
             else:
-                st.info("No domains have been blocked yet.")
+                st.success("✅ No domains currently blocked")
 
-    # 🚨 RED FLAG ALERT: Temporary/Disposable Email Detection
+    # Enhanced RED FLAG ALERT Section
     if temporary_disposable_emails:
         st.markdown("---")
-        st.error(f"🚨 **CRITICAL SECURITY ALERT: {len(temporary_disposable_emails)} Temporary/Disposable Email Detected!**")
         
-        st.subheader("🔴 Temporary/Disposable Email Red Flags")
-        st.warning("""
-        **SECURITY RISK**: Temporary and disposable email addresses are commonly used for:
-        - Data exfiltration attempts
-        - Hiding true identity
-        - Avoiding detection and accountability
-        - Bypassing security controls
+        # Critical alert banner with enhanced styling
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+                    padding: 1.5rem; border-radius: 10px; margin: 1rem 0;
+                    border: 3px solid #bd2130; box-shadow: 0 4px 8px rgba(220,53,69,0.3);">
+            <h2 style="color: white; margin: 0; text-align: center; font-weight: bold;">
+                🚨 CRITICAL SECURITY ALERT
+            </h2>
+            <h3 style="color: white; margin: 0.5rem 0 0 0; text-align: center;">
+                {len(temporary_disposable_emails)} Temporary/Disposable Emails Detected
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-        **Immediate Action Required**: Review these emails for potential security violations.
-        """)
+        st.markdown("### 🔴 Disposable Email Risk Assessment")
+        
+        # Enhanced security warning with better formatting
+        st.markdown("""
+        <div style="background-color: #fff3cd; border-left: 5px solid #ffc107; 
+                    padding: 1.5rem; margin: 1rem 0; border-radius: 5px;">
+            <h4 style="color: #856404; margin-top: 0;">⚠️ Security Risk Analysis</h4>
+            <p style="color: #856404; margin-bottom: 0;">
+                <strong>Temporary and disposable email addresses are commonly used for:</strong><br>
+                • Data exfiltration attempts<br>
+                • Hiding true identity and avoiding accountability<br>
+                • Bypassing security controls and detection systems<br>
+                • Establishing untraceable communication channels
+            </p>
+            <br>
+            <p style="color: #856404; margin-bottom: 0; font-weight: bold;">
+                🔍 <strong>Immediate Action Required:</strong> Review these emails for potential security violations
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Group temporary emails by sender (same structure as Risk Events)
         temp_sender_groups = defaultdict(list)
@@ -2470,18 +2634,11 @@ def daily_checks_page():
     else:
         st.success("✅ **No temporary or disposable email addresses detected in current dataset**")
 
-    # Risk Events by Sender with Tracking
-    st.subheader("🎯 Risk Events (Grouped by Sender)")
-
-    # Add tracking overview
-    col_track1, col_track2, col_track3, col_track4 = st.columns(4)
-
-    # Calculate tracking statistics
-    total_senders = 0
-    completed_senders = 0
-    outstanding_senders = 0
-    in_progress_senders = 0
-
+    # Enhanced Risk Events Section
+    st.markdown("---")
+    st.markdown("### 🎯 Security Risk Events Management")
+    st.markdown("*Organized by sender for efficient review and decision tracking*")
+    
     # Group emails by sender
     sender_groups = defaultdict(list)
     for email in data:
@@ -2504,6 +2661,11 @@ def daily_checks_page():
         return (max_priority, max_score)
 
     # Calculate tracking statistics before sorting
+    total_senders = 0
+    completed_senders = 0
+    outstanding_senders = 0
+    in_progress_senders = 0
+    
     for sender, emails in sender_groups.items():
         total_senders += 1
         sender_status = st.session_state.sender_review_status.get(sender, 'outstanding')
@@ -2515,30 +2677,54 @@ def daily_checks_page():
         else:
             outstanding_senders += 1
 
-    # Display tracking metrics
-    with col_track1:
-        st.metric("📊 Total Senders", total_senders)
-    with col_track2:
-        st.metric("✅ Completed", completed_senders)
-    with col_track3:
-        st.metric("🔄 In Progress", in_progress_senders)
-    with col_track4:
-        st.metric("⏳ Outstanding", outstanding_senders)
+    # Enhanced tracking dashboard
+    st.markdown("#### 📈 Review Progress Dashboard")
+    col_track1, col_track2, col_track3, col_track4 = st.columns(4)
 
-    # Add filter options
-    st.write("**Filter by Status:**")
+    with col_track1:
+        st.metric(
+            "📊 Total Senders", 
+            total_senders,
+            help="Total unique senders requiring review"
+        )
+    with col_track2:
+        completion_rate = f"{(completed_senders/total_senders*100):.1f}%" if total_senders > 0 else "0%"
+        st.metric(
+            "✅ Completed", 
+            completed_senders,
+            delta=completion_rate,
+            help="Senders with all emails reviewed"
+        )
+    with col_track3:
+        st.metric(
+            "🔄 In Progress", 
+            in_progress_senders,
+            help="Senders with partial review completed"
+        )
+    with col_track4:
+        st.metric(
+            "⏳ Outstanding", 
+            outstanding_senders,
+            help="Senders requiring initial review"
+        )
+
+    # Enhanced filter and sort interface
+    st.markdown("#### 🔧 Filter & Sort Options")
     filter_col1, filter_col2 = st.columns(2)
+    
     with filter_col1:
         status_filter = st.selectbox(
-            "Show senders:",
+            "📋 Show senders by status:",
             options=['All', 'Outstanding', 'In Progress', 'Completed'],
-            index=0
+            index=0,
+            help="Filter senders by their review status"
         )
     with filter_col2:
         sort_by = st.selectbox(
-            "Sort by:",
+            "📈 Sort by:",
             options=['Risk Level', 'Status', 'Email Count'],
-            index=0
+            index=0,
+            help="Choose how to order the sender list"
         )
 
     # Sort senders by risk priority (Critical first)
