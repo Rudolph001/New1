@@ -89,6 +89,9 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- July 10, 2025: Added "Email Check Completed" dashboard to separate reviewed emails from active monitoring tasks
+- July 10, 2025: Modified Security Operations Dashboard to filter out completed senders and focus on pending/in-progress reviews
+- July 10, 2025: Enhanced workflow separation with professional completion tracking and export functionality
 - July 10, 2025: Successfully completed migration from Replit Agent to standard Replit environment
 - July 10, 2025: Fixed domain classification import errors and updated all variable references to use new domain_classifier system
 - July 10, 2025: Enhanced Security Operations Dashboard with professional styling, improved readability, and better user experience

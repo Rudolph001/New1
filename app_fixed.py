@@ -1827,7 +1827,8 @@ def main():
     # Define all available pages
     all_pages = [
         "📁 Data Upload", 
-        "🛡️ Security Operations", 
+        "🛡️ Security Operations",
+        "✅ Email Check Completed",
         "📨 Follow-up Center", 
         "🔗 Network Analysis", 
         "🌐 Domain Classification",
@@ -1874,6 +1875,11 @@ def main():
     elif page == "🛡️ Security Operations":
         if has_permission('security_operations'):
             daily_checks_page()
+        else:
+            show_access_denied("security_operations")
+    elif page == "✅ Email Check Completed":
+        if has_permission('security_operations'):
+            email_check_completed_page()
         else:
             show_access_denied("security_operations")
     elif page == "📨 Follow-up Center":
@@ -2035,6 +2041,208 @@ def data_upload_page():
             st.error(f"❌ Error processing file: {str(e)}")
 
 
+
+@require_permission('security_operations')
+def email_check_completed_page():
+    """Dashboard showing emails that have been reviewed and completed"""
+    if st.session_state.processed_data is None:
+        st.warning("⚠️ Please upload data first in the Data Upload section.")
+        return
+
+    # Professional header
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
+        <h1 style="color: white; margin: 0; text-align: center;">
+            ✅ Email Check Completed Dashboard
+        </h1>
+        <p style="color: rgba(255,255,255,0.8); text-align: center; margin: 0.5rem 0 0 0;">
+            Completed Email Security Reviews & Actions Taken
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    data = st.session_state.processed_data
+    
+    # Filter to show only completed senders and emails
+    sender_groups = defaultdict(list)
+    for email in data:
+        sender = email.get('sender', 'Unknown')
+        sender_groups[sender].append(email)
+
+    # Get only completed senders
+    completed_senders = []
+    for sender, emails in sender_groups.items():
+        sender_status = st.session_state.sender_review_status.get(sender, 'outstanding')
+        if sender_status == 'completed':
+            completed_senders.append((sender, emails))
+
+    if not completed_senders:
+        st.info("📋 No emails have been marked as completed yet.")
+        st.markdown("---")
+        st.markdown("### 📖 How to mark emails as completed:")
+        st.markdown("""
+        1. Go to **🛡️ Security Operations** dashboard
+        2. Review emails in the Risk Events section
+        3. Make decisions on all emails from a sender (No Action, Monitor, Investigate, or Escalate)
+        4. Once all emails from a sender have been reviewed, they will automatically appear here
+        """)
+        return
+
+    # Summary metrics
+    st.markdown("### 📊 Completion Summary")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    total_completed_emails = sum(len(emails) for _, emails in completed_senders)
+    total_completed_senders = len(completed_senders)
+    
+    # Calculate completion stats
+    completed_actions = {
+        'no_action': 0,
+        'monitor': 0,
+        'investigate': 0,
+        'escalate': 0
+    }
+    
+    for sender, emails in completed_senders:
+        for i, email in enumerate(emails):
+            email_key = f"{sender}_{i}"
+            decision = st.session_state.followup_decisions.get(email_key, 'pending')
+            if decision in completed_actions:
+                completed_actions[decision] += 1
+
+    with col1:
+        st.metric("✅ Completed Senders", total_completed_senders)
+    with col2:
+        st.metric("📧 Total Emails Reviewed", total_completed_emails)
+    with col3:
+        st.metric("🔍 Investigations", completed_actions['investigate'])
+    with col4:
+        st.metric("🚨 Escalations", completed_actions['escalate'])
+
+    # Action breakdown
+    st.markdown("### 📈 Actions Taken Breakdown")
+    action_col1, action_col2, action_col3, action_col4 = st.columns(4)
+    
+    with action_col1:
+        st.metric("✅ No Action", completed_actions['no_action'], help="Emails cleared as no security concern")
+    with action_col2:
+        st.metric("⚠️ Monitor", completed_actions['monitor'], help="Emails added to monitoring list")
+    with action_col3:
+        st.metric("🔎 Investigate", completed_actions['investigate'], help="Emails sent for investigation")
+    with action_col4:
+        st.metric("🚨 Escalate", completed_actions['escalate'], help="Emails escalated to management")
+
+    # Completed senders list
+    st.markdown("---")
+    st.markdown("### 📋 Completed Email Reviews")
+    
+    # Sort by completion date (if we had that) or by sender name
+    completed_senders.sort(key=lambda x: x[0])
+    
+    for sender, emails in completed_senders:
+        # Calculate stats for this sender
+        sender_actions = {}
+        for i, email in enumerate(emails):
+            email_key = f"{sender}_{i}"
+            decision = st.session_state.followup_decisions.get(email_key, 'pending')
+            sender_actions[decision] = sender_actions.get(decision, 0) + 1
+
+        # Get risk info
+        max_risk = max(email.get('risk_score', 0) for email in emails)
+        max_risk_level = next((email.get('risk_level', 'Low') for email in emails 
+                              if email.get('risk_score', 0) == max_risk), 'Low')
+        
+        risk_level_colors = {
+            'Critical': '🔴',
+            'High': '🟠', 
+            'Medium': '🟡',
+            'Low': '🟢',
+            'Unknown': '⚪'
+        }
+        risk_color = risk_level_colors.get(max_risk_level, '⚪')
+        
+        # Create summary card
+        with st.container():
+            st.markdown(f"""
+            <div style="background-color: #d4edda; border-left: 5px solid #28a745; 
+                        padding: 1rem; margin: 0.5rem 0; border-radius: 5px;">
+                <h4 style="margin: 0; color: #155724;">
+                    ✅ {sender} - {len(emails)} emails completed
+                </h4>
+                <p style="margin: 0.5rem 0; color: #155724;">
+                    <strong>Highest Risk:</strong> {risk_color} {max_risk_level} | 
+                    <strong>Actions:</strong> 
+                    {sender_actions.get('no_action', 0)} No Action, 
+                    {sender_actions.get('monitor', 0)} Monitor, 
+                    {sender_actions.get('investigate', 0)} Investigate, 
+                    {sender_actions.get('escalate', 0)} Escalate
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            with st.expander("📋 View Completed Email Details", expanded=False):
+                for i, email in enumerate(emails):
+                    email_key = f"{sender}_{i}"
+                    decision = st.session_state.followup_decisions.get(email_key, 'pending')
+                    
+                    decision_icons = {
+                        'no_action': '✅',
+                        'monitor': '⚠️',
+                        'investigate': '🔎',
+                        'escalate': '🚨',
+                        'pending': '⏳'
+                    }
+                    decision_icon = decision_icons.get(decision, '❓')
+                    
+                    st.markdown(f"**{decision_icon} Email {i+1}: {decision.replace('_', ' ').title()}**")
+                    
+                    detail_col1, detail_col2 = st.columns(2)
+                    with detail_col1:
+                        st.write(f"**Subject:** {email.get('subject', 'N/A')[:50]}...")
+                        st.write(f"**Risk Score:** {email.get('risk_score', 0)}")
+                        st.write(f"**Risk Level:** {email.get('risk_level', 'Unknown')}")
+                    with detail_col2:
+                        st.write(f"**Time:** {email.get('_time', 'N/A')}")
+                        st.write(f"**Recipients:** {email.get('recipients', 'N/A')[:30]}...")
+                        st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                    
+                    if email.get('is_anomaly', False):
+                        st.error("🚨 **Anomaly was detected in this email**")
+                    
+                    st.markdown("---")
+
+    # Export completed reviews
+    st.markdown("### 💾 Export Completed Reviews")
+    if st.button("📊 Export Completion Report", use_container_width=True):
+        # Create completion report
+        report_data = []
+        for sender, emails in completed_senders:
+            for i, email in enumerate(emails):
+                email_key = f"{sender}_{i}"
+                decision = st.session_state.followup_decisions.get(email_key, 'pending')
+                
+                report_data.append({
+                    'Sender': sender,
+                    'Subject': email.get('subject', 'N/A'),
+                    'Risk Level': email.get('risk_level', 'Unknown'),
+                    'Risk Score': email.get('risk_score', 0),
+                    'Action Taken': decision.replace('_', ' ').title(),
+                    'Anomaly': 'Yes' if email.get('is_anomaly', False) else 'No',
+                    'Time': email.get('_time', 'N/A')
+                })
+        
+        if report_data:
+            import pandas as pd
+            df = pd.DataFrame(report_data)
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label="📥 Download CSV Report",
+                data=csv,
+                file_name=f"email_completion_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+            st.success("✅ Report ready for download!")
 
 @require_permission('security_operations')
 def daily_checks_page():
@@ -2639,6 +2847,10 @@ def daily_checks_page():
     st.markdown("### 🎯 Security Risk Events Management")
     st.markdown("*Organized by sender for efficient review and decision tracking*")
     
+    # Information about completed emails
+    if completed_senders > 0:
+        st.info(f"ℹ️ **{completed_senders} completed senders have been moved to the ✅ Email Check Completed dashboard.** Only pending and in-progress reviews are shown below.")
+    
     # Group emails by sender
     sender_groups = defaultdict(list)
     for email in data:
@@ -2732,8 +2944,14 @@ def daily_checks_page():
                                  key=lambda x: get_sender_max_risk(x[1]), 
                                  reverse=True)
 
-    # Apply status filter
-    if status_filter != 'All':
+    # Apply status filter - by default exclude completed senders from main dashboard
+    if status_filter == 'All':
+        # Exclude completed senders by default in main Security Operations dashboard
+        sorted_sender_groups = [
+            (sender, emails) for sender, emails in sorted_sender_groups 
+            if st.session_state.sender_review_status.get(sender, 'outstanding') != 'completed'
+        ]
+    else:
         filter_map = {'Outstanding': 'outstanding', 'In Progress': 'in_progress', 'Completed': 'completed'}
         filtered_status = filter_map[status_filter]
         sorted_sender_groups = [

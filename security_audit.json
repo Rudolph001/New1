@@ -310,5 +310,17 @@
     },
     "risk_level": "info",
     "session_id": "Unknown"
+  },
+  {
+    "timestamp": "2025-07-10T11:04:48.710710",
+    "user": "System Administrator",
+    "username": "admin",
+    "role": "admin",
+    "action": "settings_accessed",
+    "details": {
+      "section": "security_management"
+    },
+    "risk_level": "info",
+    "session_id": "Unknown"
   }
 ]

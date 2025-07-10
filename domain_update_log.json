@@ -1,0 +1,28 @@
+[
+  {
+    "timestamp": "2025-07-10T11:03:39.979514",
+    "action": "add",
+    "category": "suspicious_domains",
+    "domains": [
+      "tempmail24.com",
+      "fakeemail.net",
+      "disposableinbox.com",
+      "throwawaymails.com",
+      "quickemailverification.com"
+    ],
+    "reason": "Daily threat intelligence update",
+    "count": 5
+  },
+  {
+    "timestamp": "2025-07-10T11:03:39.986739",
+    "action": "add",
+    "category": "free_email_domains",
+    "domains": [
+      "tutamail.com",
+      "cock.li",
+      "guerrillamailblock.com"
+    ],
+    "reason": "Daily domain registry update",
+    "count": 3
+  }
+]
