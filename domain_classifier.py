@@ -106,10 +106,14 @@ class DomainClassifier:
                 "risk_level": "medium"
             }
         
-        # Check suspicious domains
+        # Check suspicious domains (includes temporary/disposable)
         if domain in self.classifications.get("suspicious_domains", []):
+            # Check if it's specifically a temporary/disposable domain
+            temp_patterns = ['temp', 'disposable', 'throw', 'fake', 'trash', '10min', 'guerrilla', 'mailinator', 'yopmail']
+            is_temp_disposable = any(pattern in domain for pattern in temp_patterns)
+            
             return {
-                "classification": "suspicious",
+                "classification": "temporary_disposable" if is_temp_disposable else "suspicious",
                 "category": "suspicious",
                 "is_suspicious": True,
                 "is_free": True,
