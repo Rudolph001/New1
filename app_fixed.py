@@ -3240,20 +3240,22 @@ def settings_page():
         # Display domain statistics
         col1, col2, col3, col4 = st.columns(4)
         
+        stats = domain_classifier.get_classification_stats()
+        
         with col1:
-            st.metric("Free Email Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["free_email_providers"]))
+            st.metric("Free Email Domains", stats.get("free_email_domains", 0))
             st.caption("Personal email services")
         
         with col2:
-            st.metric("Business Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["business_domains"]))
+            st.metric("Business Domains", stats.get("business_domains", 0))
             st.caption("Corporate organizations")
         
         with col3:
-            st.metric("Government Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["government_domains"]))
+            st.metric("Government Domains", stats.get("government_domains", 0))
             st.caption("Official institutions")
         
         with col4:
-            st.metric("Educational Domains", len(EMAIL_DOMAIN_CLASSIFICATIONS["educational_domains"]))
+            st.metric("Educational Domains", stats.get("educational_domains", 0))
             st.caption("Academic institutions")
         
         # Domain search and classification test
@@ -3284,11 +3286,13 @@ def settings_page():
         st.write("**Domain Classification Rules**")
         
         # Show classification categories
-        for category, domains in EMAIL_DOMAIN_CLASSIFICATIONS.items():
-            if category != "suspicious_patterns":  # Skip patterns for display
+        for category, domains in domain_classifier.classifications.items():
+            if category in ["last_updated", "version", "suspicious_patterns"]:  # Skip metadata and patterns
+                continue
+            if isinstance(domains, list) and domains:
                 with st.expander(f"{category.replace('_', ' ').title()} ({len(domains)} domains)"):
                     # Display first 20 domains for each category
-                    displayed_domains = list(domains)[:20]
+                    displayed_domains = domains[:20]
                     for i in range(0, len(displayed_domains), 4):
                         cols = st.columns(4)
                         for j, domain in enumerate(displayed_domains[i:i+4]):
@@ -3306,7 +3310,7 @@ def settings_page():
         with col1:
             new_domain = st.text_input("Domain to add:")
             domain_category = st.selectbox("Category:", 
-                ["business_domains", "free_email_providers", "suspicious_patterns"])
+                ["business_domains", "free_email_domains", "suspicious_domains"])
         
         with col2:
             if st.button("Add Domain"):
@@ -3490,9 +3494,11 @@ Off-Hours: {risk_config['off_hours_points']} pts
             """)
         
         with col2:
+            stats = domain_classifier.get_classification_stats()
+            total_domains = sum(count for count in stats.values() if isinstance(count, int))
             st.info(f"""
-            **Domain Database:** {sum(len(domains) for domains in EMAIL_DOMAIN_CLASSIFICATIONS.values() if isinstance(domains, set))} domains
-            **Classification Engine:** Advanced ML-based
+            **Domain Database:** {total_domains} domains
+            **Classification Engine:** Daily Updated System
             **Risk Engine:** Multi-factor analysis
             **Security Engine:** Multi-layer protection
             **Last Sync:** {datetime.now().strftime('%H:%M:%S')}
