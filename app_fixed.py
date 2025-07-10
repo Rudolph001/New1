@@ -2111,11 +2111,11 @@ def daily_checks_page():
             if '@' in email_addr:
                 domain = email_addr.split('@')[1].lower()
                 
-                # Check against temporary/disposable patterns
-                for pattern in EMAIL_DOMAIN_CLASSIFICATIONS["suspicious_patterns"]:
-                    if pattern in domain:
-                        is_temp_disposable_email = True
-                        break
+                # Check against domain classification
+                domain_class = domain_classifier.classify_domain(domain)
+                if domain_class.get('classification') == 'temporary_disposable':
+                    is_temp_disposable_email = True
+                    break
                 
                 # Also check specific temporary email domains
                 temp_domains = {
@@ -2568,8 +2568,10 @@ def daily_checks_page():
 
         # Check if sender has temporary/disposable email domain red flags
         sender_domain = sender.split('@')[-1].lower() if '@' in sender else ''
-        is_temp_disposable = sender_domain in EMAIL_DOMAIN_CLASSIFICATIONS.get('temporary_disposable', [])
-        temp_disposable_count = sum(1 for email in emails if email.get('sender', '').split('@')[-1].lower() in EMAIL_DOMAIN_CLASSIFICATIONS.get('temporary_disposable', []))
+        sender_classification = domain_classifier.classify_domain(sender_domain)
+        is_temp_disposable = sender_classification.get('classification') == 'temporary_disposable'
+        temp_disposable_count = sum(1 for email in emails 
+                                   if domain_classifier.classify_domain(email.get('sender', '').split('@')[-1].lower() if '@' in email.get('sender', '') else '').get('classification') == 'temporary_disposable')
 
         # Get current sender status
         current_status = st.session_state.sender_review_status.get(sender, 'outstanding')
@@ -3184,19 +3186,7 @@ Email Details:
 - Date/Time: {time}
 - Attachments: {attachments}
 
-Required Actions:
-1. Confirm you sent this email and it was intentional
-2. Verify that the recipients were intended
-3. Confirm the necessity of any attachments sent
-
-Security Concerns Identified:
-- Risk Level: {risk_level}
-- Risk Factors: {risk_factors}
-- Attachments: {attachments}
-
-Please respond to this email within 2 hours to confirm the legitimacy of this communication.
-
-If you did not send this email or suspect unauthorized access, please contact IT Security immediately.
+Could you please provide more details regarding this activity? Specifically, we would like to know if the file does indeed contain Investec IP and if this is part of an approved business process.
 
 Best regards,
 IT Security Team"""
