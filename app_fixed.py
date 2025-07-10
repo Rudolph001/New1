@@ -232,9 +232,9 @@ def calculate_risk_score(email_data):
         score += risk_config['attachment_keywords_points']
         factors.append('Sensitive keywords in attachments')
 
-    # Check departing employee
-    termination = email_data.get('Termination', '') or email_data.get('leaver', '')
-    if termination and termination.strip():
+    # Check departing employee - only if leaver field equals "YES"
+    leaver = email_data.get('leaver', '')
+    if leaver and leaver.strip().upper() == 'YES':
         score += risk_config['departing_employee_points']
         factors.append('Departing employee')
 
@@ -267,8 +267,9 @@ def calculate_risk_score(email_data):
     else:
         risk_level = 'Low'
 
-    # Critical risk combinations
-    if (termination and attachments and (word_list_subject or word_list_attachment) and 
+    # Critical risk combinations - only if leaver field equals "YES"
+    leaver = email_data.get('leaver', '')
+    if (leaver and leaver.strip().upper() == 'YES' and attachments and (word_list_subject or word_list_attachment) and 
         any('Free email' in factor or 'Suspicious' in factor for factor in factors)):
         risk_level = 'Critical'
         factors.append('CRITICAL COMBINATION')
@@ -323,9 +324,9 @@ def detect_anomalies(email_data):
         anomaly_score += 0.5
         anomaly_type = 'Content'
 
-    # Check for departing employee anomaly
-    termination = email_data.get('Termination', '') or email_data.get('leaver', '')
-    if termination and termination.strip():
+    # Check for departing employee anomaly - only if leaver field equals "YES"
+    leaver = email_data.get('leaver', '')
+    if leaver and leaver.strip().upper() == 'YES':
         is_anomaly = True
         anomaly_reasons.append('Email from departing employee')
         anomaly_score += 0.6
@@ -341,8 +342,9 @@ def detect_anomalies(email_data):
         anomaly_score += 0.4
         anomaly_type = 'Domain'
 
-    # High-risk combination anomaly
-    if (termination and has_attachments and (has_keywords_subject or has_keywords_attachment) and sender_domain in free_domains):
+    # High-risk combination anomaly - only if leaver field equals "YES"
+    leaver = email_data.get('leaver', '')
+    if (leaver and leaver.strip().upper() == 'YES' and has_attachments and (has_keywords_subject or has_keywords_attachment) and sender_domain in free_domains):
         is_anomaly = True
         anomaly_reasons.append('CRITICAL: Departing employee + attachments + keywords + free domain')
         anomaly_score += 0.9
@@ -2676,7 +2678,7 @@ def daily_checks_page():
                 risk_indicators.append(f"External communication ({external_recipients})")
             if attachment_count > 0 and keyword_matches > 0:
                 risk_indicators.append("Sensitive content + attachments")
-            if any(email.get('last_working_day', '').strip() for email in emails):
+            if any(email.get('leaver', '').strip().upper() == 'YES' for email in emails):
                 risk_indicators.append("Departing employee")
             
             # Create the detailed analysis view
@@ -5276,7 +5278,7 @@ def analyze_anomalies(data):
     
     with overview_col4:
         departing_senders = sum(1 for emails in sender_groups.values() 
-                               if any(e.get('Termination', '').strip() or e.get('leaver', '').strip() for e in emails))
+                               if any(e.get('leaver', '').strip().upper() == 'YES' for e in emails))
         st.metric("Departing Employees", departing_senders)
 
     # Sender Risk Distribution Chart
@@ -5887,8 +5889,8 @@ def analyze_anomalies(data):
             if attachment_emails > 0 and keyword_emails > 0:
                 pattern_counts['content_risk'] += 1
             
-            # Departing employees
-            if any(email.get('Termination', '').strip() or email.get('leaver', '').strip() for email in emails):
+            # Departing employees - only if leaver field equals "YES"
+            if any(email.get('leaver', '').strip().upper() == 'YES' for email in emails):
                 pattern_counts['departing_employees'] += 1
         
         # Display top patterns
@@ -6044,7 +6046,7 @@ def analyze_anomalies(data):
             if critical_senders:
                 action_items.append(f"URGENT: Review {len(critical_senders)} critical risk senders immediately")
             
-            departing_employees = [s for s in sender_risk_data if any(email.get('Termination', '').strip() or email.get('leaver', '').strip() for email in sender_groups[s['sender']])]
+            departing_employees = [s for s in sender_risk_data if any(email.get('leaver', '').strip().upper() == 'YES' for email in sender_groups[s['sender']])]
             if departing_employees:
                 action_items.append(f"HIGH: Monitor {len(departing_employees)} departing employees for data exfiltration")
             
