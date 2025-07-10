@@ -1857,10 +1857,13 @@ def data_upload_page():
             if data:
                 st.session_state.data = data
 
-                # Process each email for risk scoring and anomaly detection
+                # Process each email for risk scoring and anomaly detection using current risk configuration
                 processed_data = []
+                risk_manager = st.session_state.risk_config_manager
+                
                 for email in data:
-                    risk_info = calculate_risk_score(email)
+                    # Apply risk configuration from risk manager
+                    risk_info = risk_manager.calculate_risk_score(email)
                     anomaly_info = detect_anomalies(email)
                     email.update(risk_info)
                     email.update(anomaly_info)
@@ -1868,6 +1871,9 @@ def data_upload_page():
 
                 st.session_state.processed_data = processed_data
                 st.success("✅ Data uploaded and processed successfully!")
+                
+                # Show risk configuration being used
+                st.info(f"📊 **Risk Configuration Applied**: Using current risk level thresholds - Critical: {risk_manager.risk_config['risk_levels']['Critical']['threshold']}+, High: {risk_manager.risk_config['risk_levels']['High']['threshold']}+, Medium: {risk_manager.risk_config['risk_levels']['Medium']['threshold']}+, Low: {risk_manager.risk_config['risk_levels']['Low']['threshold']}+")
 
                 # Display data preview
                 st.subheader("📊 Data Preview")
@@ -1907,10 +1913,13 @@ def data_upload_page():
                 
                 if st.button("🔄 Reprocess All Data with Current Risk Settings", type="primary"):
                     with st.spinner("Reprocessing data with updated risk configuration..."):
-                        # Reprocess each email with current risk settings
+                        # Reprocess each email with current risk settings from risk manager
                         reprocessed_data = []
+                        risk_manager = st.session_state.risk_config_manager
+                        
                         for email in data:
-                            risk_info = calculate_risk_score(email)
+                            # Use the risk configuration manager for consistent scoring
+                            risk_info = risk_manager.calculate_risk_score(email)
                             anomaly_info = detect_anomalies(email)
                             email.update(risk_info)
                             email.update(anomaly_info)
@@ -1918,6 +1927,9 @@ def data_upload_page():
                         
                         st.session_state.processed_data = reprocessed_data
                         st.success("✅ Data reprocessed successfully with current risk settings!")
+                        
+                        # Show updated risk configuration info
+                        st.info(f"🎯 **Updated Risk Thresholds Applied**: Critical: {risk_manager.risk_config['risk_levels']['Critical']['threshold']}+, High: {risk_manager.risk_config['risk_levels']['High']['threshold']}+, Medium: {risk_manager.risk_config['risk_levels']['Medium']['threshold']}+, Low: {risk_manager.risk_config['risk_levels']['Low']['threshold']}+")
                         
                         # Show updated summary
                         st.subheader("📊 Updated Analysis Summary")
@@ -2153,7 +2165,10 @@ def daily_checks_page():
         return
 
     # Professional header with enhanced styling
-    st.markdown("""
+    risk_manager = st.session_state.risk_config_manager
+    total_conditions = sum(len(level.get('conditions', [])) for level in risk_manager.risk_config['risk_levels'].values())
+    
+    st.markdown(f"""
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
         <h1 style="color: white; margin: 0; text-align: center;">
@@ -2161,6 +2176,9 @@ def daily_checks_page():
         </h1>
         <p style="color: rgba(255,255,255,0.8); text-align: center; margin: 0.5rem 0 0 0;">
             Real-time Email Security Monitoring & Risk Management
+        </p>
+        <p style="color: rgba(255,255,255,0.6); text-align: center; margin: 0.5rem 0 0 0; font-size: 12px;">
+            Active Risk Engine: {total_conditions} conditions configured | Critical: ≥{risk_manager.risk_config['risk_levels']['Critical']['threshold']} pts
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2194,6 +2212,17 @@ def daily_checks_page():
 
     # Enhanced KPI Cards with better styling
     st.markdown("### 📊 Security Risk Overview")
+    
+    # Show current risk configuration being used
+    risk_manager = st.session_state.risk_config_manager
+    current_thresholds = {
+        'Critical': risk_manager.risk_config['risk_levels']['Critical']['threshold'],
+        'High': risk_manager.risk_config['risk_levels']['High']['threshold'], 
+        'Medium': risk_manager.risk_config['risk_levels']['Medium']['threshold'],
+        'Low': risk_manager.risk_config['risk_levels']['Low']['threshold']
+    }
+    
+    st.info(f"🎯 **Active Risk Configuration**: Critical ≥{current_thresholds['Critical']}, High ≥{current_thresholds['High']}, Medium ≥{current_thresholds['Medium']}, Low ≥{current_thresholds['Low']} points | 🔧 [Modify Risk Settings](/?page=Risk%20Configuration)")
     st.markdown("---")
     
     # Create metrics in a more professional layout

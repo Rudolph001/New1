@@ -341,3 +341,19 @@ class RiskConfigManager:
         except:
             pass
         return False
+    
+    def get_config_summary(self) -> Dict:
+        """Get summary of current risk configuration for display"""
+        summary = {
+            'thresholds': {},
+            'total_conditions': 0,
+            'conditions_by_level': {}
+        }
+        
+        for level, config in self.risk_config["risk_levels"].items():
+            summary['thresholds'][level] = config.get("threshold", 0)
+            conditions_count = len(config.get("conditions", []))
+            summary['conditions_by_level'][level] = conditions_count
+            summary['total_conditions'] += conditions_count
+        
+        return summary
