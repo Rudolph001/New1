@@ -2847,10 +2847,6 @@ def daily_checks_page():
     st.markdown("### 🎯 Security Risk Events Management")
     st.markdown("*Organized by sender for efficient review and decision tracking*")
     
-    # Information about completed emails
-    if completed_senders > 0:
-        st.info(f"ℹ️ **{completed_senders} completed senders have been moved to the ✅ Email Check Completed dashboard.** Only pending and in-progress reviews are shown below.")
-    
     # Group emails by sender
     sender_groups = defaultdict(list)
     for email in data:
@@ -2888,6 +2884,10 @@ def daily_checks_page():
             in_progress_senders += 1
         else:
             outstanding_senders += 1
+
+    # Information about completed emails
+    if completed_senders > 0:
+        st.info(f"ℹ️ **{completed_senders} completed senders have been moved to the ✅ Email Check Completed dashboard.** Only pending and in-progress reviews are shown below.")
 
     # Enhanced tracking dashboard
     st.markdown("#### 📈 Review Progress Dashboard")
