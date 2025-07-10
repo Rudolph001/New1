@@ -4,7 +4,7 @@
     "role": "admin",
     "email": "admin@exfileye.com",
     "created_date": "2025-07-10T06:53:30.773193",
-    "last_login": "2025-07-10T12:04:32.182240",
+    "last_login": "2025-07-10T12:15:30.670277",
     "active": true,
     "full_name": "System Administrator"
   },
@@ -14,7 +14,7 @@
     "email": "analyst@exfileye.com",
     "full_name": "Security Analyst",
     "created_date": "2025-07-10T06:53:30.809250",
-    "last_login": null,
+    "last_login": "2025-07-10T12:15:05.778716",
     "active": true
   },
   "manager": {

@@ -25,11 +25,11 @@
           "description": "Temporary/disposable email domain"
         },
         {
-          "field": "leaver",
-          "operator": "equals",
-          "value": "YES",
-          "points": 60,
-          "description": "Departing employee activity"
+          "field": "Wordlist_subject",
+          "operator": "not_equals",
+          "value": "\"-\"",
+          "points": 30,
+          "description": "Subject match wordlist"
         }
       ]
     },
