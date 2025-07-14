@@ -250,13 +250,62 @@ class RiskConfigManager:
         
         return condition_met, points if condition_met else 0
     
+    def check_critical_formula(self, email_data: Dict) -> bool:
+        """Check if email matches the critical formula:
+        leaver=YES AND attachments!="-" AND (Wordlist_attachment != "-" OR Wordlist_subject !="-")
+        """
+        # Check leaver = YES
+        leaver_value = str(email_data.get('leaver', '')).strip().upper()
+        if leaver_value != 'YES':
+            return False
+        
+        # Check attachments != "-"
+        attachments_value = str(email_data.get('attachments', '')).strip()
+        if attachments_value == '-' or attachments_value == '':
+            return False
+        
+        # Check (Wordlist_attachment != "-" OR Wordlist_subject !="-")
+        wordlist_attachment = str(email_data.get('Wordlist_attachment', '')).strip()
+        wordlist_subject = str(email_data.get('Wordlist_subject', '')).strip()
+        
+        # At least one of these must be not equal to "-"
+        if wordlist_attachment != '-' and wordlist_attachment != '':
+            return True
+        if wordlist_subject != '-' and wordlist_subject != '':
+            return True
+        
+        return False
+    
     def calculate_risk_score(self, email_data: Dict) -> Dict:
         """Calculate risk score based on configured conditions"""
         total_score = 0
         triggered_conditions = []
         
-        # Evaluate all conditions across all risk levels
+        # Special handling for Critical events with specific formula:
+        # leaver=YES AND attachments!="-" AND (Wordlist_attachment != "-" OR Wordlist_subject !="-")
+        critical_formula_met = self.check_critical_formula(email_data)
+        if critical_formula_met:
+            # If critical formula is met, immediately return Critical with high score
+            return {
+                'risk_score': 1000,  # Very high score to ensure Critical level
+                'risk_level': 'Critical',
+                'triggered_conditions': [{
+                    'description': 'Critical Event: Leaver with attachments and suspicious content',
+                    'points': 1000,
+                    'risk_level': 'Critical',
+                    'field': 'combined_critical_formula',
+                    'operator': 'special_formula',
+                    'value': 'leaver=YES AND attachments!="-" AND (Wordlist_attachment != "-" OR Wordlist_subject !="-")'
+                }],
+                'explanation': 'Email meets the critical formula criteria for departing employee with attachments and suspicious content'
+            }
+        
+        # Evaluate all other conditions across all risk levels (excluding Critical level conditions)
         for risk_level, config in self.risk_config["risk_levels"].items():
+            # Skip Critical level conditions since we handle them with special formula
+            if risk_level == "Critical":
+                continue
+                
             for condition in config.get("conditions", []):
                 condition_met, points = self.evaluate_condition(email_data, condition)
                 if condition_met:

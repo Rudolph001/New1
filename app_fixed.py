@@ -3701,12 +3701,69 @@ def risk_configuration_page():
     # Get available fields from uploaded data
     available_fields = risk_manager.get_available_fields(st.session_state.processed_data or [])
     
+    # Critical Formula Configuration Section
+    st.markdown("---")
+    st.markdown("### 🚨 Critical Event Formula")
+    st.markdown("*Special formula for detecting critical security events*")
+    
+    # Display current critical formula
+    st.info("""
+    **Current Critical Formula:**
+    `leaver=YES AND attachments!="-" AND (Wordlist_attachment != "-" OR Wordlist_subject !="-")`
+    
+    This formula identifies emails from departing employees that contain attachments and suspicious content.
+    """)
+    
+    # Show how to modify the formula
+    with st.expander("🔧 How to modify the Critical Formula"):
+        st.markdown("""
+        The Critical Formula is currently hardcoded for security. To modify it:
+        
+        1. **Current Logic**: Emails are flagged as Critical only if they meet ALL of these conditions:
+           - Employee is leaving (leaver=YES)
+           - Email has attachments (attachments != "-")
+           - Email contains suspicious content (Wordlist_attachment != "-" OR Wordlist_subject != "-")
+        
+        2. **To Change**: Contact your system administrator to modify the formula in `risk_config_manager.py`
+        
+        3. **Testing**: Use the test section below to verify how your data matches the current formula
+        """)
+    
+    # Test the critical formula
+    st.markdown("#### 🧪 Test Critical Formula")
+    test_col1, test_col2 = st.columns(2)
+    
+    with test_col1:
+        test_leaver = st.selectbox("Leaver Status:", ["YES", "NO", ""], key="test_leaver")
+        test_attachments = st.text_input("Attachments:", value="document.pdf", key="test_attachments")
+    
+    with test_col2:
+        test_wordlist_attachment = st.text_input("Wordlist Attachment:", value="-", key="test_wordlist_attachment")
+        test_wordlist_subject = st.text_input("Wordlist Subject:", value="-", key="test_wordlist_subject")
+    
+    if st.button("🔍 Test Formula"):
+        test_data = {
+            "leaver": test_leaver,
+            "attachments": test_attachments,
+            "Wordlist_attachment": test_wordlist_attachment,
+            "Wordlist_subject": test_wordlist_subject
+        }
+        
+        risk_result = risk_manager.calculate_risk_score(test_data)
+        
+        if risk_result['risk_level'] == 'Critical':
+            st.success("✅ **CRITICAL** - This email would be flagged as Critical")
+            st.json(risk_result)
+        else:
+            st.info(f"ℹ️ **{risk_result['risk_level'].upper()}** - This email would be flagged as {risk_result['risk_level']}")
+            st.json(risk_result)
+
     # Tabs for different configuration aspects
     tab1, tab2, tab3, tab4 = st.tabs(["🎯 Risk Levels", "📊 Current Config", "🔧 Add Rules", "💾 Import/Export"])
     
     with tab1:
         st.markdown("### Risk Level Configuration")
-        st.markdown("Configure thresholds and conditions for each risk level.")
+        st.markdown("Configure thresholds and conditions for each risk level (excluding Critical).")
         
         # Display and edit risk levels
         for risk_level in ["Critical", "High", "Medium", "Low"]:
