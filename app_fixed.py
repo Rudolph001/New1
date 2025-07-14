@@ -122,13 +122,26 @@ def extract_domain_from_email(email_field):
 def process_csv_data(csv_content):
     """Process CSV content with domain classification only on recipients field"""
     lines = csv_content.strip().split('\n')
-    if len(lines) < 2:
+    total_lines = len(lines)
+    
+    if total_lines < 2:
         return []
 
     headers = [h.strip() for h in lines[0].split(',')]
     data = []
+    processed_count = 0
+    skipped_count = 0
 
-    for line in lines[1:]:
+    # Log processing start for large files
+    if total_lines > 1000:
+        st.info(f"📊 Processing large CSV file: {total_lines:,} lines found. This may take a moment...")
+
+    for i, line in enumerate(lines[1:], 1):
+        # Show progress for very large files
+        if total_lines > 10000 and i % 10000 == 0:
+            progress = (i / (total_lines - 1)) * 100
+            st.info(f"⏳ Processing progress: {i:,} / {total_lines-1:,} records ({progress:.1f}%)")
+        
         values = [v.strip() for v in line.split(',')]
         if len(values) == len(headers):
             row = dict(zip(headers, values))
@@ -149,6 +162,15 @@ def process_csv_data(csv_content):
                 row['sender_domain'] = extract_domain_from_email(sender_email)
             
             data.append(row)
+            processed_count += 1
+        else:
+            skipped_count += 1
+
+    # Log final results
+    if total_lines > 1000:
+        st.success(f"✅ CSV processing complete: {processed_count:,} records processed, {skipped_count:,} skipped")
+        if skipped_count > 0:
+            st.warning(f"⚠️ {skipped_count:,} rows were skipped due to column count mismatch")
 
     return data
 
@@ -1849,28 +1871,58 @@ def data_upload_page():
     )
 
     if uploaded_file is not None:
+        # Display file information
+        file_size = uploaded_file.size
+        st.info(f"📁 **File Selected**: {uploaded_file.name} ({file_size:,} bytes)")
+        
+        if file_size > 100 * 1024 * 1024:  # 100MB
+            st.warning("⚠️ **Large File Detected**: This file is over 100MB. Processing may take several minutes.")
+        
         try:
             # Read the CSV file content
-            csv_content = uploaded_file.read().decode('utf-8')
-            data = process_csv_data(csv_content)
+            with st.spinner("📖 Reading CSV file..."):
+                csv_content = uploaded_file.read().decode('utf-8')
+            
+            # Process CSV data with progress indicators
+            with st.spinner("🔍 Parsing CSV data..."):
+                data = process_csv_data(csv_content)
 
             if data:
                 st.session_state.data = data
+                record_count = len(data)
+                st.success(f"✅ CSV parsed successfully: {record_count:,} records found")
 
                 # Process each email for risk scoring and anomaly detection using current risk configuration
                 processed_data = []
                 risk_manager = st.session_state.risk_config_manager
                 
-                for email in data:
+                # Show progress for large datasets
+                if record_count > 1000:
+                    st.info(f"🔄 Now calculating risk scores for {record_count:,} emails...")
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                
+                for i, email in enumerate(data):
                     # Apply risk configuration from risk manager
                     risk_info = risk_manager.calculate_risk_score(email)
                     anomaly_info = detect_anomalies(email)
                     email.update(risk_info)
                     email.update(anomaly_info)
                     processed_data.append(email)
+                    
+                    # Update progress for large files
+                    if record_count > 1000 and i % 1000 == 0:
+                        progress = (i + 1) / record_count
+                        progress_bar.progress(progress)
+                        status_text.text(f"Processing email {i+1:,} of {record_count:,} ({progress*100:.1f}%)")
+                
+                # Clear progress indicators
+                if record_count > 1000:
+                    progress_bar.empty()
+                    status_text.empty()
 
                 st.session_state.processed_data = processed_data
-                st.success("✅ Data uploaded and processed successfully!")
+                st.success(f"✅ Data uploaded and processed successfully! {record_count:,} emails ready for analysis")
                 
                 # Show risk configuration being used
                 st.info(f"📊 **Risk Configuration Applied**: Using current risk level thresholds - Critical: {risk_manager.risk_config['risk_levels']['Critical']['threshold']}+, High: {risk_manager.risk_config['risk_levels']['High']['threshold']}+, Medium: {risk_manager.risk_config['risk_levels']['Medium']['threshold']}+, Low: {risk_manager.risk_config['risk_levels']['Low']['threshold']}+")
