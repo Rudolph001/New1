@@ -89,6 +89,10 @@ ExfilEye is a Data Loss Prevention (DLP) email security monitoring application b
 
 ## Recent Changes
 
+- July 14, 2025: Successfully migrated from Replit Agent to standard Replit environment with enhanced security practices
+- July 14, 2025: Added automatic risk score recalculation when configuration changes, ensuring Security Operations Dashboard reflects real-time updates
+- July 14, 2025: Enhanced Risk Configuration page with automatic update notifications and manual refresh capabilities
+- July 14, 2025: Improved risk configuration integration with Security Operations Dashboard for seamless workflow
 - July 10, 2025: Created comprehensive configurable risk scoring system with field-based conditions and dynamic thresholds
 - July 10, 2025: Added "Risk Configuration" page allowing admins to define custom Critical/High/Medium/Low risk rules
 - July 10, 2025: Implemented advanced risk condition operators (equals, not_equals, contains, after_hours, etc.)

@@ -2158,11 +2158,42 @@ def email_check_completed_page():
             )
             st.success("✅ Report ready for download!")
 
+def recalculate_risk_scores():
+    """Recalculate risk scores for all processed data using current risk configuration"""
+    if st.session_state.processed_data is None:
+        return
+    
+    # Recalculate risk scores for all emails using current configuration
+    for email in st.session_state.processed_data:
+        risk_result = calculate_risk_score(email)
+        email.update(risk_result)
+        
+        # Recalculate anomaly detection as well
+        email.update(detect_anomalies(email))
+
 @require_permission('security_operations')
 def daily_checks_page():
     if st.session_state.processed_data is None:
         st.warning("⚠️ Please upload data first in the Data Upload section.")
         return
+    
+    # Check if we need to recalculate risk scores due to configuration changes
+    if 'last_risk_config_hash' not in st.session_state:
+        st.session_state.last_risk_config_hash = None
+    
+    # Create a hash of current risk configuration to detect changes
+    risk_manager = st.session_state.risk_config_manager
+    current_config_str = json.dumps(risk_manager.risk_config, sort_keys=True)
+    import hashlib
+    current_config_hash = hashlib.md5(current_config_str.encode()).hexdigest()
+    
+    # If configuration changed, recalculate risk scores
+    if st.session_state.last_risk_config_hash != current_config_hash:
+        st.session_state.last_risk_config_hash = current_config_hash
+        with st.spinner("🔄 Updating risk scores based on current configuration..."):
+            recalculate_risk_scores()
+            st.success("✅ Risk scores updated successfully!")
+            st.rerun()
 
     # Professional header with enhanced styling
     risk_manager = st.session_state.risk_config_manager
@@ -2222,7 +2253,19 @@ def daily_checks_page():
         'Low': risk_manager.risk_config['risk_levels']['Low']['threshold']
     }
     
-    st.info(f"🎯 **Active Risk Configuration**: Critical ≥{current_thresholds['Critical']}, High ≥{current_thresholds['High']}, Medium ≥{current_thresholds['Medium']}, Low ≥{current_thresholds['Low']} points | 🔧 [Modify Risk Settings](/?page=Risk%20Configuration)")
+    # Add manual refresh button and configuration info
+    config_col1, config_col2 = st.columns([4, 1])
+    
+    with config_col1:
+        st.info(f"🎯 **Active Risk Configuration**: Critical ≥{current_thresholds['Critical']}, High ≥{current_thresholds['High']}, Medium ≥{current_thresholds['Medium']}, Low ≥{current_thresholds['Low']} points | 🔧 [Modify Risk Settings](/?page=Risk%20Configuration)")
+    
+    with config_col2:
+        if st.button("🔄 Refresh Risk Scores", help="Manually recalculate risk scores based on current configuration"):
+            with st.spinner("🔄 Recalculating risk scores..."):
+                recalculate_risk_scores()
+                st.success("✅ Risk scores updated!")
+                st.rerun()
+    
     st.markdown("---")
     
     # Create metrics in a more professional layout
@@ -3551,6 +3594,9 @@ def risk_configuration_page():
     """, unsafe_allow_html=True)
 
     risk_manager = st.session_state.risk_config_manager
+    
+    # Information about automatic updates
+    st.info("ℹ️ **Automatic Updates**: Changes to risk configuration automatically update the Security Operations Dashboard. When you modify settings here, the imported data will be recalculated and reflected immediately in the dashboard.")
     
     # Check if configuration has changed and offer to reprocess data
     if st.session_state.processed_data and 'last_config_hash' not in st.session_state:
