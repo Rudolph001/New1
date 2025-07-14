@@ -22,3 +22,14 @@ scikit-learn
 scipy
 streamlit
 weasyprint
+streamlit
+dash-cytoscape
+igraph
+networkx
+numpy
+pandas
+plotly
+reportlab
+scikit-learn
+streamlit
+weasyprint
