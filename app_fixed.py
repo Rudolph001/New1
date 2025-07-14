@@ -3552,6 +3552,54 @@ def risk_configuration_page():
 
     risk_manager = st.session_state.risk_config_manager
     
+    # Check if configuration has changed and offer to reprocess data
+    if st.session_state.processed_data and 'last_config_hash' not in st.session_state:
+        st.session_state.last_config_hash = hash(str(risk_manager.risk_config))
+    
+    current_config_hash = hash(str(risk_manager.risk_config))
+    config_changed = st.session_state.get('last_config_hash') != current_config_hash
+    
+    if config_changed and st.session_state.processed_data:
+        st.warning("⚠️ **Risk configuration has changed!** Your imported data needs to be reprocessed to reflect the new risk settings.")
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔄 Reprocess Data with New Configuration", type="primary", use_container_width=True):
+                with st.spinner("Reprocessing all emails with updated risk configuration..."):
+                    # Reprocess each email with current risk settings
+                    reprocessed_data = []
+                    for email in st.session_state.data:  # Use original data
+                        # Apply domain classification
+                        recipient_email = email.get('recipients_email_domain', '') or email.get('recipients', '')
+                        if recipient_email:
+                            email['recipient_domain'] = extract_domain_from_email(recipient_email)
+                            first_recipient = recipient_email.split(';')[0].split(',')[0].strip()
+                            email['recipient_classification'] = classify_email_domain(first_recipient)
+                        
+                        sender_email = email.get('sender', '')
+                        if sender_email:
+                            email['sender_domain'] = extract_domain_from_email(sender_email)
+                        
+                        # Apply risk calculation with current config
+                        risk_info = risk_manager.calculate_risk_score(email)
+                        anomaly_info = detect_anomalies(email)
+                        email.update(risk_info)
+                        email.update(anomaly_info)
+                        reprocessed_data.append(email)
+                    
+                    st.session_state.processed_data = reprocessed_data
+                    st.session_state.last_config_hash = current_config_hash
+                    
+                    # Clear follow-up decisions since risk levels may have changed
+                    if st.button("🗑️ Also Clear Previous Decisions (Recommended)", type="secondary"):
+                        st.session_state.followup_decisions = {}
+                        st.session_state.sender_review_status = {}
+                        st.success("✅ Data reprocessed and previous decisions cleared!")
+                    else:
+                        st.success("✅ Data reprocessed with new risk configuration!")
+                    
+                    st.rerun()
+    
     # Get available fields from uploaded data
     available_fields = risk_manager.get_available_fields(st.session_state.processed_data or [])
     
@@ -3587,7 +3635,12 @@ def risk_configuration_page():
                     if new_threshold != current_threshold:
                         if st.button(f"Update {risk_level} Threshold", key=f"update_threshold_{risk_level}"):
                             risk_manager.update_threshold(risk_level, new_threshold)
+                            # Update config hash to trigger reprocess notification
+                            if 'last_config_hash' in st.session_state:
+                                del st.session_state.last_config_hash
                             st.success(f"{risk_level} threshold updated to {new_threshold}")
+                            if st.session_state.processed_data:
+                                st.info("💡 **Tip**: Go to the top of this page to reprocess your data with the new threshold!")
                             st.rerun()
                 
                 with col2:
@@ -3609,7 +3662,11 @@ def risk_configuration_page():
                             with col_action:
                                 if st.button("❌", key=f"remove_{risk_level}_{i}", help="Remove condition"):
                                     risk_manager.remove_condition(risk_level, i)
+                                    if 'last_config_hash' in st.session_state:
+                                        del st.session_state.last_config_hash
                                     st.success("Condition removed")
+                                    if st.session_state.processed_data:
+                                        st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                                     st.rerun()
                     else:
                         st.info(f"No conditions defined for {risk_level} risk level")
@@ -3723,7 +3780,12 @@ def risk_configuration_page():
                     risk_manager.add_condition(
                         target_risk_level, field_name, operator, condition_value, points, description
                     )
+                    # Update config hash to trigger reprocess notification
+                    if 'last_config_hash' in st.session_state:
+                        del st.session_state.last_config_hash
                     st.success(f"Added new {target_risk_level} risk condition: {description}")
+                    if st.session_state.processed_data:
+                        st.info("💡 **Tip**: Go to the top of this page to reprocess your data with the new condition!")
                     st.rerun()
                 else:
                     st.error("Please fill in all required fields")
@@ -3738,34 +3800,58 @@ def risk_configuration_page():
         with template_col1:
             if st.button("🔴 Departing Employee", use_container_width=True):
                 risk_manager.add_condition("Critical", "leaver", "equals", "YES", 60, "Departing employee activity")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added departing employee condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
             
             if st.button("📎 Suspicious Attachments", use_container_width=True):
                 risk_manager.add_condition("High", "Wordlist_attachment", "not_equals", "-", 40, "Suspicious attachment content")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added suspicious attachments condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
         
         with template_col2:
             if st.button("📧 Free Email Domains", use_container_width=True):
                 risk_manager.add_condition("High", "recipients_email_domain_classification", "equals", "free_email", 35, "Free email domain recipient")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added free email domain condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
             
             if st.button("🕒 After Hours Activity", use_container_width=True):
                 risk_manager.add_condition("Medium", "_time", "after_hours", "18:00-06:00", 20, "After-hours email activity")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added after hours condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
         
         with template_col3:
             if st.button("🔍 Subject Keywords", use_container_width=True):
                 risk_manager.add_condition("High", "Wordlist_subject", "not_equals", "-", 30, "Sensitive keywords in subject")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added subject keywords condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
             
             if st.button("🌐 Cross-Domain", use_container_width=True):
                 risk_manager.add_condition("Medium", "sender_recipient_different_domain", "equals", "true", 15, "Cross-domain communication")
+                if 'last_config_hash' in st.session_state:
+                    del st.session_state.last_config_hash
                 st.success("Added cross-domain condition")
+                if st.session_state.processed_data:
+                    st.info("💡 **Tip**: Go to the top of this page to reprocess your data!")
                 st.rerun()
     
     with tab4:
@@ -3802,7 +3888,11 @@ def risk_configuration_page():
                     config_content = uploaded_config.read().decode('utf-8')
                     if st.button("🔄 Import Configuration", type="primary"):
                         if risk_manager.import_config(config_content):
+                            if 'last_config_hash' in st.session_state:
+                                del st.session_state.last_config_hash
                             st.success("Configuration imported successfully!")
+                            if st.session_state.processed_data:
+                                st.info("💡 **Tip**: Go to the top of this page to reprocess your data with the imported configuration!")
                             st.rerun()
                         else:
                             st.error("Invalid configuration file format")
@@ -3816,7 +3906,11 @@ def risk_configuration_page():
         
         if st.button("🔄 Reset to Default Configuration", type="secondary"):
             st.session_state.risk_config_manager = RiskConfigManager()
+            if 'last_config_hash' in st.session_state:
+                del st.session_state.last_config_hash
             st.success("Configuration reset to defaults")
+            if st.session_state.processed_data:
+                st.info("💡 **Tip**: Go to the top of this page to reprocess your data with the default configuration!")
             st.rerun()
 
 @require_permission('admin')
