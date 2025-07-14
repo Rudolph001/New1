@@ -2226,9 +2226,12 @@ def recalculate_risk_scores():
     if st.session_state.processed_data is None:
         return
     
+    # Get the risk manager from session state
+    risk_manager = st.session_state.risk_config_manager
+    
     # Recalculate risk scores for all emails using current configuration
     for email in st.session_state.processed_data:
-        risk_result = calculate_risk_score(email)
+        risk_result = risk_manager.calculate_risk_score(email)
         email.update(risk_result)
         
         # Recalculate anomaly detection as well
@@ -2256,6 +2259,13 @@ def daily_checks_page():
         with st.spinner("🔄 Updating risk scores based on current configuration..."):
             recalculate_risk_scores()
             st.success("✅ Risk scores updated successfully!")
+            st.rerun()
+    
+    # Force recalculation if no hash is stored (first time loading)
+    if st.session_state.last_risk_config_hash is None:
+        st.session_state.last_risk_config_hash = current_config_hash
+        with st.spinner("🔄 Initializing risk scores..."):
+            recalculate_risk_scores()
             st.rerun()
 
     # Professional header with enhanced styling
