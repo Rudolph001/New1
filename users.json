@@ -1,46 +1,46 @@
 {
   "admin": {
-    "password_hash": "a91848870d351c7ba1135f4fe9030ca7:dc1dd6eebde634b3085fc404bc57626f23aed8b3d5e23e9af46a0f21477ac1dd",
+    "password_hash": "767d782be3bef263e8651d6bfac46dda:f9393b92715cbecb97f88298d48b7ee44a7a1b32fd02e401dcb48eeecfcf04c0",
     "role": "admin",
     "email": "admin@exfileye.com",
-    "created_date": "2025-07-10T06:53:30.773193",
-    "last_login": "2025-07-10T12:30:19.037681",
+    "created_date": "2025-07-14T18:30:26.234511",
+    "last_login": null,
     "active": true,
     "full_name": "System Administrator"
   },
   "analyst": {
-    "password_hash": "ea35ec6f83ad7f37150b9e5d3f91f294:ccc460026fded277cae8a6c40e919ae36554b5a18a31318dcee338a403eb554c",
+    "password_hash": "75c9b5ec479b84697056d0878e99d3fa:a5ec2067c5ca0983da0996e8562e52ceed34f26b72b5ba98ad458cf5549dc7cb",
     "role": "security_analyst",
     "email": "analyst@exfileye.com",
     "full_name": "Security Analyst",
-    "created_date": "2025-07-10T06:53:30.809250",
-    "last_login": "2025-07-10T12:15:05.778716",
+    "created_date": "2025-07-14T18:30:26.262254",
+    "last_login": null,
     "active": true
   },
   "manager": {
-    "password_hash": "23d1f4269e1abdca3b3a57ef36cd15b1:80151d340597a8a3e173a77c757dd90714cc4299452fe15784c85333ec66034f",
+    "password_hash": "8e76e4faeb0226111e5b2c604ea873ce:ceaa27cd54d0d864d0067130da50b3f09a1e12dcec88347259a50aeb555d032a",
     "role": "security_manager",
     "email": "manager@exfileye.com",
     "full_name": "Security Manager",
-    "created_date": "2025-07-10T06:53:30.844064",
+    "created_date": "2025-07-14T18:30:26.293496",
     "last_login": null,
     "active": true
   },
   "compliance": {
-    "password_hash": "741709b6721b4eeb67b012b3f336f30e:3d07f39402c3a6472bfcb25d4c1f0f71099af60c92c5159966211b9a7620e663",
+    "password_hash": "dce6e00327974bc416856771219b0ef7:863763b988c19ce2a26590dc1a54008c018fa10edf8236debc14b29386cdff5f",
     "role": "compliance_officer",
     "email": "compliance@exfileye.com",
     "full_name": "Compliance Officer",
-    "created_date": "2025-07-10T06:53:30.881950",
+    "created_date": "2025-07-14T18:30:26.322852",
     "last_login": null,
     "active": true
   },
   "viewer": {
-    "password_hash": "5b9f89696e7fddfd0c531dba595e03ae:dc4a58225ce8dcd21ddec53713a069909c715772747ddbf569523a15a6190257",
+    "password_hash": "fa77938053ea8a77f4759b071f3b7c8f:f5386e2c11405f1fe157febaa80937ad3a39116b4cbc30822086962baf1fed77",
     "role": "viewer",
     "email": "viewer@exfileye.com",
     "full_name": "Security Viewer",
-    "created_date": "2025-07-10T06:53:30.919951",
+    "created_date": "2025-07-14T18:30:26.360190",
     "last_login": null,
     "active": true
   }

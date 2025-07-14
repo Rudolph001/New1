@@ -319,13 +319,19 @@ class RiskConfigManager:
                         'value': condition.get('value')
                     })
         
-        # Determine risk level based on thresholds
+        # Determine risk level based on thresholds (highest to lowest)
         risk_level = "Low"  # Default to Low for all emails
-        for level in ["Critical", "High", "Medium"]:
-            threshold = self.risk_config["risk_levels"][level]["threshold"]
-            if total_score >= threshold:
-                risk_level = level
-                break
+        
+        # Check Critical threshold first (but only if formula not already handled)
+        critical_threshold = self.risk_config["risk_levels"]["Critical"]["threshold"]
+        if total_score >= critical_threshold:
+            risk_level = "Critical"
+        elif total_score >= self.risk_config["risk_levels"]["High"]["threshold"]:
+            risk_level = "High"
+        elif total_score >= self.risk_config["risk_levels"]["Medium"]["threshold"]:
+            risk_level = "Medium"
+        else:
+            risk_level = "Low"
         
         # Ensure all emails get at least Low risk level
         if risk_level == "Low" and total_score == 0:

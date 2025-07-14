@@ -1926,6 +1926,17 @@ def data_upload_page():
                 
                 # Show risk configuration being used
                 st.info(f"📊 **Risk Configuration Applied**: Using current risk level thresholds - Critical: {risk_manager.risk_config['risk_levels']['Critical']['threshold']}+, High: {risk_manager.risk_config['risk_levels']['High']['threshold']}+, Medium: {risk_manager.risk_config['risk_levels']['Medium']['threshold']}+, Low: {risk_manager.risk_config['risk_levels']['Low']['threshold']}+")
+                
+                # Debug: Show critical formula status
+                st.info(f"🚨 **Critical Formula**: leaver=YES AND attachments!='-' AND (Wordlist_attachment != '-' OR Wordlist_subject != '-')")
+                
+                # Show sample of risk calculations
+                sample_critical_checks = []
+                for i, email in enumerate(processed_data[:3]):
+                    formula_met = risk_manager.check_critical_formula(email)
+                    sample_critical_checks.append(f"Email {i+1}: Formula={formula_met}, Risk={email.get('risk_level')}, Score={email.get('risk_score')}")
+                
+                st.info(f"🔍 **Sample Risk Calculations**: " + " | ".join(sample_critical_checks))
 
                 # Display data preview
                 st.subheader("📊 Data Preview")
