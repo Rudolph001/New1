@@ -38,22 +38,29 @@ class RiskConfigManager:
                             "field": "leaver",
                             "operator": "equals",
                             "value": "YES",
-                            "points": 60,
+                            "points": 30,
                             "description": "Departing employee activity"
+                        },
+                        {
+                            "field": "attachments",
+                            "operator": "not_equals",
+                            "value": "-",
+                            "points": 30,
+                            "description": "Email has attachments"
                         },
                         {
                             "field": "Wordlist_attachment",
                             "operator": "not_equals",
                             "value": "-",
-                            "points": 40,
-                            "description": "Suspicious attachment content"
+                            "points": 30,
+                            "description": "Suspicious attachment content detected"
                         },
                         {
-                            "field": "recipients_email_domain_classification",
-                            "operator": "equals",
-                            "value": "temporary_disposable",
-                            "points": 50,
-                            "description": "Temporary/disposable email domain"
+                            "field": "Wordlist_subject",
+                            "operator": "not_equals",
+                            "value": "-",
+                            "points": 30,
+                            "description": "Suspicious keywords in subject line"
                         }
                     ]
                 },
