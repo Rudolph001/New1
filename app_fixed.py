@@ -2892,18 +2892,21 @@ def daily_checks_page():
     # Enhanced Risk Events Section
     st.markdown("---")
     st.markdown("### 🎯 Security Risk Events Management")
-    st.markdown("*Organized by sender for efficient review and decision tracking*")
+    st.markdown("*Organized by sender and subject for efficient review and decision tracking*")
     
-    # Group emails by sender
-    sender_groups = defaultdict(list)
+    # Group emails by sender and subject combination
+    sender_subject_groups = defaultdict(list)
     for email in data:
         sender = email.get('sender', 'Unknown')
-        sender_groups[sender].append(email)
+        subject = email.get('subject', 'No Subject')
+        # Create a compound key for sender-subject grouping
+        group_key = f"{sender} | {subject[:50]}{'...' if len(subject) > 50 else ''}"
+        sender_subject_groups[group_key].append(email)
 
-    # Sort sender groups by highest risk level (Critical first, then High, Medium, Low)
+    # Sort sender-subject groups by highest risk level (Critical first, then High, Medium, Low)
     risk_priority = {'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Unknown': 0}
 
-    def get_sender_max_risk(emails):
+    def get_group_max_risk(emails):
         max_priority = 0
         max_score = 0
         for email in emails:
@@ -2916,25 +2919,27 @@ def daily_checks_page():
         return (max_priority, max_score)
 
     # Calculate tracking statistics before sorting
-    total_senders = 0
-    completed_senders = 0
-    outstanding_senders = 0
-    in_progress_senders = 0
+    total_groups = 0
+    completed_groups = 0
+    outstanding_groups = 0
+    in_progress_groups = 0
     
-    for sender, emails in sender_groups.items():
-        total_senders += 1
+    for group_key, emails in sender_subject_groups.items():
+        total_groups += 1
+        # Extract sender from group key for status tracking
+        sender = group_key.split(' | ')[0]
         sender_status = st.session_state.sender_review_status.get(sender, 'outstanding')
 
         if sender_status == 'completed':
-            completed_senders += 1
+            completed_groups += 1
         elif sender_status == 'in_progress':
-            in_progress_senders += 1
+            in_progress_groups += 1
         else:
-            outstanding_senders += 1
+            outstanding_groups += 1
 
     # Information about completed emails
-    if completed_senders > 0:
-        st.info(f"ℹ️ **{completed_senders} completed senders have been moved to the ✅ Email Check Completed dashboard.** Only pending and in-progress reviews are shown below.")
+    if completed_groups > 0:
+        st.info(f"ℹ️ **{completed_groups} completed sender-subject groups have been moved to the ✅ Email Check Completed dashboard.** Only pending and in-progress reviews are shown below.")
 
     # Enhanced tracking dashboard
     st.markdown("#### 📈 Review Progress Dashboard")
@@ -2942,29 +2947,29 @@ def daily_checks_page():
 
     with col_track1:
         st.metric(
-            "📊 Total Senders", 
-            total_senders,
-            help="Total unique senders requiring review"
+            "📊 Total Groups", 
+            total_groups,
+            help="Total unique sender-subject combinations requiring review"
         )
     with col_track2:
-        completion_rate = f"{(completed_senders/total_senders*100):.1f}%" if total_senders > 0 else "0%"
+        completion_rate = f"{(completed_groups/total_groups*100):.1f}%" if total_groups > 0 else "0%"
         st.metric(
             "✅ Completed", 
-            completed_senders,
+            completed_groups,
             delta=completion_rate,
-            help="Senders with all emails reviewed"
+            help="Sender-subject groups with all emails reviewed"
         )
     with col_track3:
         st.metric(
             "🔄 In Progress", 
-            in_progress_senders,
-            help="Senders with partial review completed"
+            in_progress_groups,
+            help="Sender-subject groups with partial review completed"
         )
     with col_track4:
         st.metric(
             "⏳ Outstanding", 
-            outstanding_senders,
-            help="Senders requiring initial review"
+            outstanding_groups,
+            help="Sender-subject groups requiring initial review"
         )
 
     # Enhanced filter and sort interface
@@ -2973,49 +2978,53 @@ def daily_checks_page():
     
     with filter_col1:
         status_filter = st.selectbox(
-            "📋 Show senders by status:",
+            "📋 Show groups by status:",
             options=['All', 'Outstanding', 'In Progress', 'Completed'],
             index=0,
-            help="Filter senders by their review status"
+            help="Filter sender-subject groups by their review status"
         )
     with filter_col2:
         sort_by = st.selectbox(
             "📈 Sort by:",
             options=['Risk Level', 'Status', 'Email Count'],
             index=0,
-            help="Choose how to order the sender list"
+            help="Choose how to order the sender-subject groups"
         )
 
-    # Sort senders by risk priority (Critical first)
-    sorted_sender_groups = sorted(sender_groups.items(), 
-                                 key=lambda x: get_sender_max_risk(x[1]), 
-                                 reverse=True)
+    # Sort sender-subject groups by risk priority (Critical first)
+    sorted_sender_subject_groups = sorted(sender_subject_groups.items(), 
+                                         key=lambda x: get_group_max_risk(x[1]), 
+                                         reverse=True)
 
-    # Apply status filter - by default exclude completed senders from main dashboard
+    # Apply status filter - by default exclude completed groups from main dashboard
     if status_filter == 'All':
-        # Exclude completed senders by default in main Security Operations dashboard
-        sorted_sender_groups = [
-            (sender, emails) for sender, emails in sorted_sender_groups 
-            if st.session_state.sender_review_status.get(sender, 'outstanding') != 'completed'
+        # Exclude completed groups by default in main Security Operations dashboard
+        sorted_sender_subject_groups = [
+            (group_key, emails) for group_key, emails in sorted_sender_subject_groups 
+            if st.session_state.sender_review_status.get(group_key.split(' | ')[0], 'outstanding') != 'completed'
         ]
     else:
         filter_map = {'Outstanding': 'outstanding', 'In Progress': 'in_progress', 'Completed': 'completed'}
         filtered_status = filter_map[status_filter]
-        sorted_sender_groups = [
-            (sender, emails) for sender, emails in sorted_sender_groups 
-            if st.session_state.sender_review_status.get(sender, 'outstanding') == filtered_status
+        sorted_sender_subject_groups = [
+            (group_key, emails) for group_key, emails in sorted_sender_subject_groups 
+            if st.session_state.sender_review_status.get(group_key.split(' | ')[0], 'outstanding') == filtered_status
         ]
 
-    for sender, emails in sorted_sender_groups:
+    for group_key, emails in sorted_sender_subject_groups:
         if not emails:
             continue
+
+        # Extract sender and subject from group key
+        sender = group_key.split(' | ')[0]
+        subject = group_key.split(' | ')[1] if ' | ' in group_key else 'No Subject'
 
         # Find highest risk in group
         max_risk = max(email.get('risk_score', 0) for email in emails)
         max_risk_level = next((email.get('risk_level', 'Low') for email in emails 
                               if email.get('risk_score', 0) == max_risk), 'Low')
 
-        # Check if sender has any anomalies
+        # Check if group has any anomalies
         has_anomalies = any(email.get('is_anomaly', False) for email in emails)
         anomaly_count = sum(1 for email in emails if email.get('is_anomaly', False))
 
@@ -3023,15 +3032,13 @@ def daily_checks_page():
         sender_domain = sender.split('@')[-1].lower() if '@' in sender else ''
         sender_classification = domain_classifier.classify_domain(sender_domain)
         is_temp_disposable = sender_classification.get('classification') == 'temporary_disposable'
-        temp_disposable_count = sum(1 for email in emails 
-                                   if domain_classifier.classify_domain(email.get('sender', '').split('@')[-1].lower() if '@' in email.get('sender', '') else '').get('classification') == 'temporary_disposable')
 
-        # Get current sender status
+        # Get current sender status (using sender part for status tracking)
         current_status = st.session_state.sender_review_status.get(sender, 'outstanding')
         status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
         status_icon = status_icons.get(current_status, '⏳')
 
-        # Create sender title with clear risk level indicators and red flag status
+        # Create group title with clear risk level indicators and red flag status
         risk_level_colors = {
             'Critical': '🔴',
             'High': '🟠', 
@@ -3041,7 +3048,8 @@ def daily_checks_page():
         }
         risk_color = risk_level_colors.get(max_risk_level, '⚪')
         
-        sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+        group_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender}"
+        group_title += f"\n📧 **Subject:** {subject} ({len(emails)} emails)"
         
         # Add red flag indicators
         red_flags = []
@@ -3051,9 +3059,9 @@ def daily_checks_page():
             red_flags.append("🔴 RED FLAG: Disposable Email")
         
         if red_flags:
-            sender_title += " - " + " | ".join(red_flags)
+            group_title += " - " + " | ".join(red_flags)
 
-        # Auto-calculate status based on user actions
+        # Auto-calculate status based on user actions for this sender
         sender_emails_count = len(emails)
         sender_followup_decisions = [
             st.session_state.followup_decisions.get(f"{sender}_{i}", 'pending') 
@@ -3077,24 +3085,26 @@ def daily_checks_page():
         status_icons = {'outstanding': '⏳', 'in_progress': '🔄', 'completed': '✅'}
         status_icon = status_icons.get(auto_status, '⏳')
 
-        # Update sender title with new status (using the same enhanced format)
-        risk_color = risk_level_colors.get(max_risk_level, '⚪')
-        sender_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender} ({len(emails)} emails)"
+        # Create final group title for expander
+        final_group_title = f"{status_icon} {risk_color} **{max_risk_level.upper()} RISK** - {sender}"
+        final_group_title += f"\n📧 **Subject:** {subject} ({len(emails)} emails)"
+        
         if red_flags:
-            sender_title += " - " + " | ".join(red_flags)
+            final_group_title += " - " + " | ".join(red_flags)
 
-        with st.expander(sender_title):
+        with st.expander(final_group_title):
             # Show automatic status info
             st.write(f"**Review Status:** {auto_status.title()} ({decided_count}/{sender_emails_count} emails reviewed)")
             st.markdown("---")
             
-            # Add detailed behavioral analysis view per sender
-            st.subheader(f"📊 Behavioral Analysis - {sender}")
+            # Add detailed behavioral analysis view per sender-subject group
+            st.subheader(f"📊 Group Analysis - {sender}")
+            st.markdown(f"**📧 Subject:** {subject}")
             
-            # Calculate sender-specific metrics
-            total_emails_sender = len(emails)
-            avg_risk_sender = sum(email.get('risk_score', 0) for email in emails) / total_emails_sender if total_emails_sender else 0
-            anomaly_count_sender = sum(1 for email in emails if email.get('is_anomaly', False))
+            # Calculate group-specific metrics
+            total_emails_group = len(emails)
+            avg_risk_group = sum(email.get('risk_score', 0) for email in emails) / total_emails_group if total_emails_group else 0
+            anomaly_count_group = sum(1 for email in emails if email.get('is_anomaly', False))
             
             # Time analysis
             after_hours_count = 0
@@ -3137,9 +3147,9 @@ def daily_checks_page():
             
             with analysis_col1:
                 st.markdown("**📧 Email Patterns**")
-                st.write(f"• Total emails: {total_emails_sender}")
-                st.write(f"• Average risk: {avg_risk_sender:.1f}")
-                st.write(f"• Anomalies: {anomaly_count_sender}")
+                st.write(f"• Total emails: {total_emails_group}")
+                st.write(f"• Average risk: {avg_risk_group:.1f}")
+                st.write(f"• Anomalies: {anomaly_count_group}")
                 st.write(f"• After hours: {after_hours_count}")
             
             with analysis_col2:
